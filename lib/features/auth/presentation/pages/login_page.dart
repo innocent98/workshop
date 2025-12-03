@@ -29,11 +29,12 @@ class _LoginPageState extends State<LoginPage> {
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement login logic
-      print('Email: ${_emailController.text}');
-      print('Password: ${_passwordController.text}');
-      // Navigate to home after successful login
-      // context.push(AppRoutes.home);
+      // TODO: Implement actual login logic with authentication
+      // For now, navigate to client home page
+      // In production, check user type and navigate accordingly:
+      // - If user is a client: navigate to clientHome
+      // - If user is an artisan: navigate to artisan home (when implemented)
+      context.go(AppRoutes.clientHome);
     }
   }
 

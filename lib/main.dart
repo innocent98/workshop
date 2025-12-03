@@ -18,6 +18,7 @@ class MyApp extends ConsumerWidget {
     return ScreenUtilInit(
       designSize: const Size(375, 812),
       minTextAdapt: true,
+      ensureScreenSize: true,
       builder: (context, child) {
         return MaterialApp.router(
           title: 'Workshop',

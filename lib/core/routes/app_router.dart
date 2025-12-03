@@ -14,6 +14,10 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_email_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_new_password_page.dart';
+import '../../features/client_home/presentation/pages/client_home_page.dart';
+import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/search_result/presentation/pages/search_result_page.dart';
+import '../../features/artisan_profile/presentation/pages/artisan_profile_page.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -21,6 +25,10 @@ class AppRoutes {
   static const String userTypeSelection = '/user-type-selection';
   static const String onboarding = '/onboarding';
   static const String home = '/home';
+  static const String clientHome = '/client-home';
+  static const String search = '/search';
+  static const String searchResult = '/search-result';
+  static const String artisanProfile = '/artisan-profile';
 
   // Auth routes
   static const String login = '/auth/login';
@@ -108,6 +116,64 @@ final routerProvider = Provider<GoRouter>((ref) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
+      ),
+
+      // Client Home Page
+      GoRoute(
+        path: AppRoutes.clientHome,
+        name: 'clientHome',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ClientHomePage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      ),
+
+      // Search Page
+      GoRoute(
+        path: AppRoutes.search,
+        name: 'search',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SearchPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      ),
+
+      // Search Result Page
+      GoRoute(
+        path: AppRoutes.searchResult,
+        name: 'searchResult',
+        pageBuilder: (context, state) {
+          final query = state.extra as String;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: SearchResultPage(query: query),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          );
+        },
+      ),
+
+      // Artisan Profile Page
+      GoRoute(
+        path: AppRoutes.artisanProfile,
+        name: 'artisanProfile',
+        pageBuilder: (context, state) {
+          final artisan = state.extra as dynamic;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ArtisanProfilePage(artisan: artisan),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          );
+        },
       ),
 
       // Auth Routes
