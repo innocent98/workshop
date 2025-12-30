@@ -16,7 +16,7 @@ class ReviewItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: AppSizes.spacing),
+      margin: EdgeInsets.only(bottom: AppSizes.spacingSmall),
       padding: EdgeInsets.all(AppSizes.spacingSmall),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F5),
@@ -28,7 +28,7 @@ class ReviewItemWidget extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                radius: 20.r,
+                radius: 16.r,
                 backgroundImage: AssetImage(review.reviewerAvatarUrl),
               ),
               SizedBox(width: AppSizes.spacingSmall),

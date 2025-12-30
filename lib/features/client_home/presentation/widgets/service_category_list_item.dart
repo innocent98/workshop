@@ -34,7 +34,7 @@ class ServiceCategoryListItem extends StatelessWidget {
             // Category Icon
             Icon(
               category.icon,
-              size: AppSizes.iconSize,
+              size: AppSizes.iconSmall,
               color: AppColors.textPrimary,
             ),
             SizedBox(width: AppSizes.spacing),
@@ -42,7 +42,7 @@ class ServiceCategoryListItem extends StatelessWidget {
             // Category Name
             BodyText(
               category.name,
-              size: BodySize.medium,
+              size: BodySize.small,
               fontWeight: FontWeight.w500,
               color: AppColors.textPrimary,
             ),

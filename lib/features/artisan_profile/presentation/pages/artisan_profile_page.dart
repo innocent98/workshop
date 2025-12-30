@@ -91,7 +91,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CircleAvatar(
-                          radius: 24.r,
+                          radius: 20.r,
                           backgroundImage: AssetImage(widget.artisan.avatarUrl),
                         ),
                         SizedBox(width: AppSizes.spacingSmall),
@@ -122,7 +122,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 4.h),
+                              SizedBox(height: 2.h),
                               // Location
                               Row(
                                 children: [
@@ -146,7 +146,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: AppSizes.spacingLarge),
+                    SizedBox(height: AppSizes.spacing),
 
                     // Rating section
                     Row(
@@ -158,7 +158,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                           children: [
                             HeaderText(
                               widget.artisan.rating.toString(),
-                              size: HeaderSize.h1,
+                              size: HeaderSize.h4,
                               color: AppColors.primary,
                             ),
                             Row(
@@ -167,7 +167,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                                   index < widget.artisan.rating.floor()
                                       ? Icons.star
                                       : Icons.star_border,
-                                  size: 18.r,
+                                  size: 14.r,
                                   color: AppColors.primary,
                                 );
                               }),
@@ -178,10 +178,10 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                               size: BodySize.small,
                               color: AppColors.textSecondary,
                             ),
-                            SizedBox(height: AppSizes.spacing + 4.h),
+                            SizedBox(height: 4.h),
                             HeaderText(
                               widget.artisan.jobsCompleted.toString(),
-                              size: HeaderSize.h1,
+                              size: HeaderSize.h4,
                               color: AppColors.primary,
                             ),
                             const BodyText(
@@ -201,7 +201,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: AppSizes.spacingLarge),
+                    SizedBox(height: AppSizes.spacing),
 
                     // Action Buttons
                     Row(
@@ -221,7 +221,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                               child: const Center(
                                 child: BodyText(
                                   'Schedule Service',
-                                  size: BodySize.medium,
+                                  size: BodySize.small,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
@@ -243,7 +243,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                               child: const Center(
                                 child: BodyText(
                                   'Instant Service',
-                                  size: BodySize.medium,
+                                  size: BodySize.small,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
@@ -256,28 +256,35 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                     SizedBox(height: AppSizes.spacingLarge),
 
                     // Tab bar
-                    Row(
-                      children: [
-                        _TabButton(
-                          label: 'About',
-                          isActive: _currentTabIndex == 0,
-                          onTap: () => _onTabChanged(0),
-                        ),
-                        SizedBox(width: AppSizes.spacingSmall),
-                        _TabButton(
-                          label: 'Portfolio',
-                          isActive: _currentTabIndex == 1,
-                          onTap: () => _onTabChanged(1),
-                        ),
-                        SizedBox(width: AppSizes.spacingSmall),
-                        _TabButton(
-                          label: 'Review',
-                          isActive: _currentTabIndex == 2,
-                          onTap: () => _onTabChanged(2),
-                        ),
-                      ],
+                    Container(
+                      padding: EdgeInsets.all(4.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                      ),
+                      child: Row(
+                        children: [
+                          _TabButton(
+                            label: 'About',
+                            isActive: _currentTabIndex == 0,
+                            onTap: () => _onTabChanged(0),
+                          ),
+                          SizedBox(width: 4.w),
+                          _TabButton(
+                            label: 'Portfolio',
+                            isActive: _currentTabIndex == 1,
+                            onTap: () => _onTabChanged(1),
+                          ),
+                          SizedBox(width: 4.w),
+                          _TabButton(
+                            label: 'Review',
+                            isActive: _currentTabIndex == 2,
+                            onTap: () => _onTabChanged(2),
+                          ),
+                        ],
+                      ),
                     ),
-                    SizedBox(height: AppSizes.spacingLarge),
+                    SizedBox(height: AppSizes.spacingSmall),
 
                     // Tab content
                     if (_currentTabIndex == 0) _buildAboutTab(),
@@ -397,7 +404,7 @@ class _TabButton extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 10.h),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.primary : AppColors.cardBackground,
+            color: isActive ? AppColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
           ),
           child: Center(

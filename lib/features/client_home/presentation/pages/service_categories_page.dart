@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -7,26 +8,66 @@ import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../data/mock_data.dart';
 import '../widgets/service_category_list_item.dart';
+import '../../../search/presentation/providers/search_history_provider.dart';
+import '../../../search/data/search_suggestions.dart';
+import '../../../search/presentation/widgets/search_suggestion_item.dart';
 
-class ServiceCategoriesPage extends StatefulWidget {
+class ServiceCategoriesPage extends ConsumerStatefulWidget {
   const ServiceCategoriesPage({super.key});
 
   @override
-  State<ServiceCategoriesPage> createState() => _ServiceCategoriesPageState();
+  ConsumerState<ServiceCategoriesPage> createState() => _ServiceCategoriesPageState();
 }
 
-class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
+class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  List<String> _suggestions = [];
+  bool _showSuggestions = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+    _searchFocusNode.addListener(_onFocusChanged);
+  }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _suggestions = SearchSuggestions.getSuggestions(_searchController.text);
+      _showSuggestions = true;
+    });
+  }
+
+  void _onFocusChanged() {
+    setState(() {
+      _showSuggestions = _searchFocusNode.hasFocus;
+    });
+  }
+
+  void _onSuggestionTap(String query) {
+    // Add to history
+    ref.read(searchHistoryProvider.notifier).addSearch(query);
+
+    // Clear search and hide suggestions
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+
+    // Navigate to search results
+    context.push('${AppRoutes.searchResult}?query=$query');
   }
 
   void _onSearchSubmitted(String query) {
     if (query.trim().isNotEmpty) {
-      context.push(AppRoutes.search);
+      _onSuggestionTap(query);
     }
   }
 
@@ -37,6 +78,8 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final searchHistory = ref.watch(searchHistoryProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -82,15 +125,16 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                     Expanded(
                       child: TextField(
                         controller: _searchController,
+                        focusNode: _searchFocusNode,
                         onSubmitted: _onSearchSubmitted,
                         style: TextStyle(
-                          fontSize: AppSizes.body,
+                          fontSize: AppSizes.caption,
                           color: AppColors.textPrimary,
                         ),
                         decoration: InputDecoration(
                           hintText: 'What service do you need?',
                           hintStyle: TextStyle(
-                            fontSize: AppSizes.body,
+                            fontSize: AppSizes.caption,
                             color: AppColors.textSecondary,
                           ),
                           border: InputBorder.none,
@@ -109,20 +153,62 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
               ),
             ),
 
-            // Service Categories List
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                itemCount: MockData.allServiceCategories.length,
-                itemBuilder: (context, index) {
-                  final category = MockData.allServiceCategories[index];
-                  return ServiceCategoryListItem(
-                    category: category,
-                    onTap: () => _onCategoryTap(category.name),
-                  );
-                },
+            // Suggestions/History or Service Categories List
+            if (_showSuggestions && _searchController.text.isNotEmpty)
+              // Show suggestions when user is typing
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                  children: [
+                    // Matching history items first
+                    ...searchHistory
+                        .where((item) => item
+                            .toLowerCase()
+                            .contains(_searchController.text.toLowerCase().trim()))
+                        .map((query) => SearchSuggestionItem(
+                              text: query,
+                              isHistory: true,
+                              onTap: () => _onSuggestionTap(query),
+                            )),
+
+                    // Then other suggestions
+                    ..._suggestions.map((suggestion) => SearchSuggestionItem(
+                          text: suggestion,
+                          isHistory: false,
+                          onTap: () => _onSuggestionTap(suggestion),
+                        )),
+                  ],
+                ),
+              )
+            else if (_showSuggestions && _searchController.text.isEmpty)
+              // Show all history when focused but empty
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                  children: searchHistory
+                      .map((query) => SearchSuggestionItem(
+                            text: query,
+                            isHistory: true,
+                            onTap: () => _onSuggestionTap(query),
+                          ))
+                      .toList(),
+                ),
+              )
+            else
+              // Service Categories List (when not focused on search)
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                  itemCount: MockData.allServiceCategories.length,
+                  itemBuilder: (context, index) {
+                    final category = MockData.allServiceCategories[index];
+                    return ServiceCategoryListItem(
+                      category: category,
+                      onTap: () => _onCategoryTap(category.name),
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),

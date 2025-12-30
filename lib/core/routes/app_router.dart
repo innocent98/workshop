@@ -16,7 +16,6 @@ import '../../features/auth/presentation/pages/forgot_password_otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_new_password_page.dart';
 import '../../features/client_home/presentation/pages/client_home_page.dart';
 import '../../features/client_home/presentation/pages/service_categories_page.dart';
-import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/search_result/presentation/pages/search_result_page.dart';
 import '../../features/artisan_profile/presentation/pages/artisan_profile_page.dart';
 
@@ -28,7 +27,6 @@ class AppRoutes {
   static const String home = '/home';
   static const String clientHome = '/client-home';
   static const String serviceCategories = '/service-categories';
-  static const String search = '/search';
   static const String searchResult = '/search-result';
   static const String artisanProfile = '/artisan-profile';
 
@@ -140,19 +138,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const ServiceCategoriesPage(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      ),
-
-      // Search Page
-      GoRoute(
-        path: AppRoutes.search,
-        name: 'search',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const SearchPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
