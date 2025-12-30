@@ -18,6 +18,8 @@ import '../../features/client_home/presentation/pages/client_home_page.dart';
 import '../../features/client_home/presentation/pages/service_categories_page.dart';
 import '../../features/search_result/presentation/pages/search_result_page.dart';
 import '../../features/artisan_profile/presentation/pages/artisan_profile_page.dart';
+import '../../features/booking/presentation/pages/instant_service_page.dart';
+import '../../features/booking/presentation/pages/schedule_service_page.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -29,6 +31,8 @@ class AppRoutes {
   static const String serviceCategories = '/service-categories';
   static const String searchResult = '/search-result';
   static const String artisanProfile = '/artisan-profile';
+  static const String instantService = '/instant-service';
+  static const String scheduleService = '/schedule-service';
 
   // Auth routes
   static const String login = '/auth/login';
@@ -169,6 +173,38 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ArtisanProfilePage(artisan: artisan),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          );
+        },
+      ),
+
+      // Instant Service Page
+      GoRoute(
+        path: AppRoutes.instantService,
+        name: 'instantService',
+        pageBuilder: (context, state) {
+          final artisan = state.extra as dynamic;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: InstantServicePage(artisan: artisan),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          );
+        },
+      ),
+
+      // Schedule Service Page
+      GoRoute(
+        path: AppRoutes.scheduleService,
+        name: 'scheduleService',
+        pageBuilder: (context, state) {
+          final artisan = state.extra as dynamic;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ScheduleServicePage(artisan: artisan),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },

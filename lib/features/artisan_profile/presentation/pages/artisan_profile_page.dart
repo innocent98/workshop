@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../client_home/domain/models/artisan.dart';
 import '../../data/artisan_profile_data.dart';
@@ -36,7 +37,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
   }
 
   void _onBookService() {
-    // TODO: Navigate to booking page
+    context.push(AppRoutes.instantService, extra: widget.artisan);
   }
 
   @override
@@ -210,7 +211,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              // TODO: Navigate to schedule service
+                              context.push(AppRoutes.scheduleService, extra: widget.artisan);
                             },
                             child: Container(
                               padding: EdgeInsets.symmetric(vertical: 14.h),
