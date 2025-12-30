@@ -93,7 +93,7 @@ class _UserTypeSelectionPageState extends State<UserTypeSelectionPage>
 
                   // Title
                   HeaderText(
-                    'Welcome to Workshop',
+                    'Welcome to Workchop',
                     size: HeaderSize.h4,
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,

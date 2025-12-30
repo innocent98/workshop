@@ -10,7 +10,7 @@ import '../../../../core/widgets/navigation/bottom_nav_bar.dart';
 import '../../data/mock_data.dart';
 import '../widgets/service_category_chip.dart';
 import '../widgets/artisan_card.dart';
-import '../widgets/blog_post_card.dart';
+import '../widgets/nearby_store_card.dart';
 
 class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
@@ -29,7 +29,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   }
 
   void _onSearchTap() {
-    context.push(AppRoutes.search);
+    context.push(AppRoutes.serviceCategories);
   }
 
   void _onNotificationTap() {
@@ -44,12 +44,15 @@ class _ClientHomePageState extends State<ClientHomePage> {
     // TODO: Navigate to book service page
   }
 
+  void _onCategoryTap(String categoryName) {
+    // Navigate directly to search result with category
+    context.push('${AppRoutes.searchResult}?query=$categoryName');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -60,10 +63,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   children: [
                     // Top Section with Search Bar
                     Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        AppSizes.spacing,
-                        AppSizes.spacing,
-                        AppSizes.spacing,
+                      padding: EdgeInsets.all(
                         AppSizes.spacing,
                       ),
                       child: Row(
@@ -133,10 +133,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
                     // Call Banner
                     Container(
-                      margin: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                      // margin: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
                       padding: EdgeInsets.symmetric(
-                        horizontal: AppSizes.spacing,
-                        vertical: 14.h,
+                        horizontal: AppSizes.caption,
+                        vertical: 8.h,
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE2725B),
@@ -153,8 +153,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
                                   fontWeight: FontWeight.w500,
                                 ),
                                 children: [
-                                  const TextSpan(
+                                  TextSpan(
                                     text: 'CALL US TO GET AN ARTISAN ',
+                                    style: TextStyle(fontSize: AppSizes.caption,)
                                   ),
                                   TextSpan(
                                     text: '0702 500 0478',
@@ -168,12 +169,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
                               ),
                             ),
                           ),
-                          SizedBox(width: AppSizes.spacingSmall + 4.w),
+                          SizedBox(width: AppSizes.caption),
                           GestureDetector(
                             onTap: _onCallNowTap,
                             child: Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: AppSizes.spacing,
+                                horizontal: AppSizes.spacingSmall,
                                 vertical: AppSizes.spacingSmall,
                               ),
                               decoration: BoxDecoration(
@@ -199,11 +200,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       child: ListView.separated(
                         padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
                         scrollDirection: Axis.horizontal,
-                        itemCount: MockData.serviceCategories.length,
+                        itemCount: MockData.featuredServiceCategories.length,
                         separatorBuilder: (context, index) => SizedBox(width: AppSizes.spacingSmall),
                         itemBuilder: (context, index) {
+                          final category = MockData.featuredServiceCategories[index];
                           return ServiceCategoryChip(
-                            category: MockData.serviceCategories[index],
+                            category: category,
+                            onTap: () => _onCategoryTap(category.name),
                           );
                         },
                       ),
@@ -220,13 +223,29 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     ),
                     SizedBox(height: AppSizes.spacingLarge + 8.h),
 
-                    // Nearby Verified Artisans Section
+                    // Verified Artisans Nearby Section
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                      child: const BodyText(
-                        'Nearby Verified Artisans',
-                        size: BodySize.large,
-                        fontWeight: FontWeight.bold,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const BodyText(
+                            'Verified artisans nearby',
+                            size: BodySize.large,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              // TODO: Navigate to all artisans page
+                            },
+                            child: BodyText(
+                              'See all',
+                              size: BodySize.small,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     SizedBox(height: AppSizes.spacing),
@@ -239,40 +258,55 @@ class _ClientHomePageState extends State<ClientHomePage> {
                         scrollDirection: Axis.horizontal,
                         itemCount: MockData.nearbyArtisans.length,
                         itemBuilder: (context, index) {
+                          final artisan = MockData.nearbyArtisans[index];
                           return ArtisanCard(
-                            artisan: MockData.nearbyArtisans[index],
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(height: AppSizes.spacingSmall + 8.h),
-
-                    // Blog Post Section
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                      child: const BodyText(
-                        'Blog Post',
-                        size: BodySize.large,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: AppSizes.spacing),
-
-                    // Blog Posts Horizontal List
-                    SizedBox(
-                      height: 130.h,
-                      child: ListView.builder(
-                        padding: EdgeInsets.only(left: AppSizes.spacing),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: MockData.blogPosts.length,
-                        itemBuilder: (context, index) {
-                          return BlogPostCard(
-                            post: MockData.blogPosts[index],
+                            artisan: artisan,
+                            onTap: () {
+                              context.push(AppRoutes.artisanProfile, extra: artisan);
+                            },
                           );
                         },
                       ),
                     ),
                     SizedBox(height: AppSizes.spacingLarge + 8.h),
+
+                    // Nearby Stores Section
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const BodyText(
+                            'Nearby stores',
+                            size: BodySize.large,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              // TODO: Navigate to all stores page
+                            },
+                            child: BodyText(
+                              'See all',
+                              size: BodySize.small,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: AppSizes.spacing),
+
+                    // Nearby Stores List
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                      child: Column(
+                        children: MockData.nearbyStores
+                            .map((store) => NearbyStoreCard(store: store))
+                            .toList(),
+                      ),
+                    ),
+                    SizedBox(height: AppSizes.spacingLarge),
                   ],
                 ),
               ),

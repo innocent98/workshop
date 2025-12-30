@@ -1,6 +1,6 @@
 {
-    "name": "workshop",
-    "short_name": "workshop",
+    "name": "workchop",
+    "short_name": "workchop",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

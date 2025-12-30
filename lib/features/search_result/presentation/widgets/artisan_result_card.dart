@@ -27,14 +27,14 @@ class ArtisanResultCard extends StatelessWidget {
         margin: EdgeInsets.only(bottom: AppSizes.spacing),
         padding: EdgeInsets.all(AppSizes.spacingSmall),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.radius),
         ),
         child: Row(
           children: [
             // Avatar
             CircleAvatar(
-              radius: 28.r,
+              radius: 24.r,
               backgroundImage: AssetImage(artisan.avatarUrl),
             ),
             SizedBox(width: AppSizes.spacingSmall),

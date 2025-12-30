@@ -53,7 +53,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   Future<void> _navigateToOnboarding() async {
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
-      context.go(AppRoutes.userTypeSelection);
+      context.go(AppRoutes.clientHome);
+      // context.go(AppRoutes.userTypeSelection);
     }
   }
 
@@ -79,7 +80,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                 
                 // App Name - Using HeaderText with Bricolage Grotesque
                 HeaderText(
-                  'Workshop',
+                  'Workchop',
                   size: HeaderSize.h1,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

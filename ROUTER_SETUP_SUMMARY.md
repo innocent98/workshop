@@ -181,7 +181,7 @@ See `ROUTING_GUIDE.md` for:
 
 ## ✅ Migration Complete!
 
-Your Workshop app now has:
+Your Workchop app now has:
 - ✅ Modern, declarative routing
 - ✅ Type-safe navigation
 - ✅ Custom page transitions

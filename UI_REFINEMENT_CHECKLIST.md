@@ -110,7 +110,7 @@
 ### To Run the App
 ```bash
 # Navigate to project directory
-cd /Users/adebayovictor/Documents/mobile/workshop
+cd /Users/adebayovictor/Documents/mobile/workchop/workshop
 
 # Get dependencies (if needed)
 flutter pub get
@@ -146,7 +146,7 @@ flutter run -d chrome
 
 ## 🎯 Design Reference
 
-- **Figma**: https://www.figma.com/design/duaygbRaKq41SqlUMzEmQE/Workshop.app?node-id=1188-7708&t=vwAQHTvjfXyBaqJl-0
+- **Figma**: https://www.figma.com/design/duaygbRaKq41SqlUMzEmQE/Workchop.app?node-id=1188-7708&t=vwAQHTvjfXyBaqJl-0
 - **Screenshots**: `/screenshots/` directory
 - **Primary Color**: `#008080`
 - **Header Font**: Bricolage Grotesque

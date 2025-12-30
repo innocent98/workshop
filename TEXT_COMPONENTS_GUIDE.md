@@ -101,7 +101,7 @@ BodyText(
 ```dart
 // App name
 HeaderText(
-  'Workshop',
+  'Workchop',
   size: HeaderSize.h1,
   color: Colors.white,
   fontWeight: FontWeight.bold,
@@ -120,7 +120,7 @@ BodyText(
 ### Page Titles
 ```dart
 HeaderText(
-  'Welcome to Workshop',
+  'Welcome to Workchop',
   size: HeaderSize.h2,
   color: AppColors.primary,
 )
@@ -209,7 +209,7 @@ BodyText(
 ### Before (Old Way)
 ```dart
 Text(
-  'Workshop',
+  'Workchop',
   style: TextStyle(
     fontSize: AppSizes.h1,
     color: Colors.white,
@@ -222,7 +222,7 @@ Text(
 ### After (New Way)
 ```dart
 HeaderText(
-  'Workshop',
+  'Workchop',
   size: HeaderSize.h1,
   color: Colors.white,
   fontWeight: FontWeight.bold,

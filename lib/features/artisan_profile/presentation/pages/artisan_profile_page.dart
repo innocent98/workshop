@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
-import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../client_home/domain/models/artisan.dart';
 import '../../data/artisan_profile_data.dart';
 import '../widgets/rating_distribution.dart';
@@ -42,45 +41,37 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
             // Top bar
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppSizes.spacing,
-                AppSizes.spacing,
-                AppSizes.spacing,
-                AppSizes.spacing,
-              ),
+              padding: EdgeInsets.all(AppSizes.spacing),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
                     child: Icon(
-                      Icons.arrow_back_ios,
-                      size: 20.r,
-                      color: const Color(0xFFE2725B),
+                      Icons.arrow_back,
+                      size: 24.r,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
-                      child: BodyText(
+                      child: HeaderText(
                         'Artisan Info',
-                        size: BodySize.large,
-                        fontWeight: FontWeight.bold,
+                        size: HeaderSize.h4,
                       ),
                     ),
                   ),
                   GestureDetector(
                     onTap: _onShare,
                     child: Icon(
-                      Icons.calendar_today_outlined,
-                      size: 22.r,
+                      Icons.bookmark_border,
+                      size: 24.r,
                       color: AppColors.textPrimary,
                     ),
                   ),
@@ -97,9 +88,10 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                   children: [
                     // Profile header
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CircleAvatar(
-                          radius: 32.r,
+                          radius: 24.r,
                           backgroundImage: AssetImage(widget.artisan.avatarUrl),
                         ),
                         SizedBox(width: AppSizes.spacingSmall),
@@ -107,21 +99,22 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              // Name with verified badge and service
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 4.w,
                                 children: [
                                   BodyText(
                                     widget.artisan.name,
-                                    size: BodySize.medium,
+                                    size: BodySize.small,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  SizedBox(width: 4.w),
                                   if (widget.artisan.isVerified)
                                     Icon(
                                       Icons.verified,
                                       size: 16.r,
-                                      color: AppColors.primary,
+                                      color: Colors.red,
                                     ),
-                                  SizedBox(width: AppSizes.spacingSmall),
                                   BodyText(
                                     widget.artisan.service,
                                     size: BodySize.small,
@@ -130,6 +123,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                                 ],
                               ),
                               SizedBox(height: 4.h),
+                              // Location
                               Row(
                                 children: [
                                   Icon(
@@ -137,7 +131,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                                     size: 14.r,
                                     color: AppColors.textSecondary,
                                   ),
-                                  SizedBox(width: 4.w),
+                                  SizedBox(width: 2.w),
                                   const Expanded(
                                     child: BodyText(
                                       '20, Cresent Ekeng Street, Uyo',
@@ -162,10 +156,9 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            BodyText(
+                            HeaderText(
                               widget.artisan.rating.toString(),
-                              size: BodySize.large,
-                              fontWeight: FontWeight.bold,
+                              size: HeaderSize.h1,
                               color: AppColors.primary,
                             ),
                             Row(
@@ -179,17 +172,16 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                                 );
                               }),
                             ),
-                            SizedBox(height: 4.h),
+                            SizedBox(height: 2.h),
                             BodyText(
                               '${widget.artisan.jobsCompleted * 10} reviews',
                               size: BodySize.small,
                               color: AppColors.textSecondary,
                             ),
-                            SizedBox(height: AppSizes.spacing),
-                            BodyText(
+                            SizedBox(height: AppSizes.spacing + 4.h),
+                            HeaderText(
                               widget.artisan.jobsCompleted.toString(),
-                              size: BodySize.large,
-                              fontWeight: FontWeight.bold,
+                              size: HeaderSize.h1,
                               color: AppColors.primary,
                             ),
                             const BodyText(
@@ -199,7 +191,7 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                             ),
                           ],
                         ),
-                        SizedBox(width: AppSizes.spacingLarge),
+                        SizedBox(width: AppSizes.spacingLarge + 8.w),
 
                         // Right: Rating distribution
                         Expanded(
@@ -211,10 +203,55 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
                     ),
                     SizedBox(height: AppSizes.spacingLarge),
 
-                    // Book Service Button
-                    PrimaryButton(
-                      label: 'Book Service',
-                      onPressed: _onBookService,
+                    // Action Buttons
+                    Row(
+                      children: [
+                        // Schedule Service Button
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              // TODO: Navigate to schedule service
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                              ),
+                              child: const Center(
+                                child: BodyText(
+                                  'Schedule Service',
+                                  size: BodySize.medium,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: AppSizes.spacing),
+                        // Instant Service Button
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _onBookService,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                              ),
+                              child: const Center(
+                                child: BodyText(
+                                  'Instant Service',
+                                  size: BodySize.medium,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: AppSizes.spacingLarge),
 
@@ -256,52 +293,60 @@ class _ArtisanProfilePageState extends State<ArtisanProfilePage> {
     );
   }
 
+
   Widget _buildAboutTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const BodyText(
-          'Bio',
-          size: BodySize.medium,
-          fontWeight: FontWeight.w600,
-          color: AppColors.primary,
-        ),
-        SizedBox(height: AppSizes.spacingSmall),
-        const BodyText(
-          ArtisanProfileData.bio,
-          size: BodySize.small,
-          color: AppColors.textSecondary,
-          height: 1.5,
-        ),
-        SizedBox(height: AppSizes.spacingLarge),
-        const BodyText(
-          'Skills',
-          size: BodySize.medium,
-          fontWeight: FontWeight.w600,
-          color: AppColors.primary,
-        ),
-        SizedBox(height: AppSizes.spacingSmall),
-        ...ArtisanProfileData.skills.map((skill) => Padding(
-              padding: EdgeInsets.only(bottom: 6.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const BodyText(
-                    '•  ',
-                    size: BodySize.small,
-                    color: AppColors.textSecondary,
-                  ),
-                  Expanded(
-                    child: BodyText(
-                      skill,
+    return Container(
+      padding: EdgeInsets.all(AppSizes.spacing),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const BodyText(
+            'Bio',
+            size: BodySize.medium,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primary,
+          ),
+          SizedBox(height: AppSizes.spacingSmall),
+          const BodyText(
+            ArtisanProfileData.bio,
+            size: BodySize.small,
+            color: AppColors.textSecondary,
+            height: 1.5,
+          ),
+          SizedBox(height: AppSizes.spacingLarge),
+          const BodyText(
+            'Skills',
+            size: BodySize.medium,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primary,
+          ),
+          SizedBox(height: AppSizes.spacingSmall),
+          ...ArtisanProfileData.skills.map((skill) => Padding(
+                padding: EdgeInsets.only(bottom: 6.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const BodyText(
+                      '•  ',
                       size: BodySize.small,
                       color: AppColors.textSecondary,
                     ),
-                  ),
-                ],
-              ),
-            )),
-      ],
+                    Expanded(
+                      child: BodyText(
+                        skill,
+                        size: BodySize.small,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
     );
   }
 
@@ -350,9 +395,9 @@ class _TabButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12.h),
+          padding: EdgeInsets.symmetric(vertical: 10.h),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.primary : const Color(0xFFD3D3D3),
+            color: isActive ? AppColors.primary : AppColors.cardBackground,
             borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
           ),
           child: Center(

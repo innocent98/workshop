@@ -1,7 +1,7 @@
 # UI Refinement Summary
 
 ## Overview
-This document summarizes the UI refinement work done to align the Workshop app with the design specifications from the Figma file and screenshots.
+This document summarizes the UI refinement work done to align the Workchop app with the design specifications from the Figma file and screenshots.
 
 ## Design Specifications
 - **Primary Color**: `#008080` (Teal)
@@ -38,7 +38,7 @@ A reusable component for all header text using Bricolage Grotesque font.
 **Usage Example**:
 ```dart
 HeaderText(
-  'Workshop',
+  'Workchop',
   size: HeaderSize.h1,
   color: Colors.white,
   fontWeight: FontWeight.bold,
@@ -79,7 +79,7 @@ BodyText(
 **Visual Result**:
 - Clean, centered layout with teal background (#008080)
 - White wrench icon
-- "Workshop" in large Bricolage Grotesque
+- "Workchop" in large Bricolage Grotesque
 - "Connecting Artisans & Clients" in Poppins
 - Smooth fade and scale animations
 
@@ -87,7 +87,7 @@ BodyText(
 
 #### User Type Selection Page (`lib/features/onboarding/presentation/pages/user_type_selection_page.dart`)
 - Replaced all `Text` widgets with `HeaderText` and `BodyText` components
-- Title "Welcome to Workshop" now uses `HeaderText` with `HeaderSize.h2`
+- Title "Welcome to Workchop" now uses `HeaderText` with `HeaderSize.h2`
 - Description uses `BodyText` with `BodySize.large`
 - Selection label uses `BodyText` with medium weight
 
@@ -161,7 +161,7 @@ No additional font file configuration is needed.
 
 ## Design Reference
 
-- **Figma File**: https://www.figma.com/design/duaygbRaKq41SqlUMzEmQE/Workshop.app?node-id=1188-7708&t=vwAQHTvjfXyBaqJl-0
+- **Figma File**: https://www.figma.com/design/duaygbRaKq41SqlUMzEmQE/Workchop.app?node-id=1188-7708&t=vwAQHTvjfXyBaqJl-0
 - **Screenshots**: `/screenshots/` directory
 
 ## Notes

@@ -21,7 +21,7 @@ class MyApp extends ConsumerWidget {
       ensureScreenSize: true,
       builder: (context, child) {
         return MaterialApp.router(
-          title: 'Workshop',
+          title: 'Workchop',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           routerConfig: router,

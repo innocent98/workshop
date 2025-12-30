@@ -285,7 +285,7 @@ GoRouter automatically handles deep links. Configure in platform-specific files:
   <category android:name="android.intent.category.BROWSABLE" />
   <data
     android:scheme="https"
-    android:host="workshop.app" />
+    android:host="workchop.app" />
 </intent-filter>
 ```
 
@@ -296,13 +296,13 @@ GoRouter automatically handles deep links. Configure in platform-specific files:
   <dict>
     <key>CFBundleURLSchemes</key>
     <array>
-      <string>workshop</string>
+      <string>workchop</string>
     </array>
   </dict>
 </array>
 ```
 
-Then URLs like `https://workshop.app/jobs/123` will automatically route to the correct page!
+Then URLs like `https://workchop.app/jobs/123` will automatically route to the correct page!
 
 ## Best Practices
 

@@ -7,6 +7,7 @@ import '../../../../core/widgets/text/text_widgets.dart';
 import '../../data/search_result_data.dart';
 import '../widgets/artisan_result_card.dart';
 import '../widgets/store_result_card.dart';
+import '../widgets/filter_tab_selector.dart';
 
 class SearchResultPage extends StatefulWidget {
   final String query;
@@ -21,69 +22,112 @@ class SearchResultPage extends StatefulWidget {
 }
 
 class _SearchResultPageState extends State<SearchResultPage> {
-  int _currentTabIndex = 0;
+  FilterTab _selectedTab = FilterTab.all;
 
-  void _onTabChanged(int index) {
+  void _onTabChanged(FilterTab tab) {
     setState(() {
-      _currentTabIndex = index;
+      _selectedTab = tab;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // Filter content based on selected tab
+    final showArtisans = _selectedTab == FilterTab.all || _selectedTab == FilterTab.artisans;
+    final showStores = _selectedTab == FilterTab.all || _selectedTab == FilterTab.stores;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
             // Top bar with back button, search query, and search icon
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppSizes.spacing,
-                AppSizes.spacing,
-                AppSizes.spacing,
-                AppSizes.spacing,
-              ),
+              padding: EdgeInsets.all(AppSizes.spacing),
               child: Row(
                 children: [
                   // Back Button
                   GestureDetector(
                     onTap: () => context.pop(),
                     child: Icon(
-                      Icons.arrow_back_ios,
-                      size: 20.r,
-                      color: const Color(0xFFE2725B),
+                      Icons.arrow_back,
+                      size: 24.r,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  SizedBox(width: AppSizes.spacing),
 
                   // Search Query Text
                   Expanded(
                     child: Center(
-                      child: BodyText(
+                      child: HeaderText(
                         widget.query,
-                        size: BodySize.large,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        size: HeaderSize.h4,
                       ),
                     ),
                   ),
-                  SizedBox(width: AppSizes.spacing),
 
                   // Search Icon
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () {
+                      // TODO: Open search
+                    },
                     child: Icon(
                       Icons.search,
-                      size: AppSizes.iconSize,
+                      size: 24.r,
                       color: AppColors.textPrimary,
                     ),
                   ),
                 ],
               ),
             ),
+
+            // Location Section
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 16.r,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: 4.w),
+                      BodyText(
+                        '24, New Stadium Road, Uyo, AKS',
+                        size: BodySize.small,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Edit location
+                    },
+                    child: const BodyText(
+                      'Edit service location',
+                      size: BodySize.small,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: AppSizes.spacing),
+
+            // Filter Tabs
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+              child: FilterTabSelector(
+                selectedTab: _selectedTab,
+                onTabChanged: _onTabChanged,
+              ),
+            ),
+            SizedBox(height: AppSizes.spacing + 4.h),
 
             // Content
             Expanded(
@@ -92,155 +136,81 @@ class _SearchResultPageState extends State<SearchResultPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Available Artisans Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const BodyText(
-                          'Available Artisans',
-                          size: BodySize.large,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            // TODO: Navigate to all artisans
-                          },
-                          child: const BodyText(
-                            'See all',
+                    // Artisans Section
+                    if (showArtisans) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const BodyText(
+                            'Artisans near you',
                             size: BodySize.medium,
-                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: AppSizes.spacing),
+                          GestureDetector(
+                            onTap: () {
+                              // TODO: Navigate to all artisans
+                            },
+                            child: BodyText(
+                              'See all',
+                              size: BodySize.small,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: AppSizes.spacing),
 
-                    // Artisan Cards
-                    ...SearchResultData.artisans.map((artisan) {
-                      // Generate different distances for variety
-                      final distances = ['3m away', '34km away', 'Ogun State'];
-                      final index = SearchResultData.artisans.indexOf(artisan);
-                      return ArtisanResultCard(
-                        artisan: artisan,
-                        distance: distances[index % distances.length],
-                      );
-                    }),
+                      // Artisan Cards
+                      ...SearchResultData.artisans.map((artisan) {
+                        final distances = ['3m away', '34km away', 'Ogun State'];
+                        final index = SearchResultData.artisans.indexOf(artisan);
+                        return ArtisanResultCard(
+                          artisan: artisan,
+                          distance: distances[index % distances.length],
+                        );
+                      }),
 
-                    SizedBox(height: AppSizes.spacing),
+                      SizedBox(height: AppSizes.spacing + 4.h),
+                    ],
 
-                    // Nearby Stores Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const BodyText(
-                          'Nearby stores',
-                          size: BodySize.large,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            // TODO: Navigate to all stores
-                          },
-                          child: const BodyText(
-                            'See all',
+                    // Stores Section
+                    if (showStores) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const BodyText(
+                            'Nearby stores',
                             size: BodySize.medium,
-                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: AppSizes.spacing),
+                          GestureDetector(
+                            onTap: () {
+                              // TODO: Navigate to all stores
+                            },
+                            child: BodyText(
+                              'See all',
+                              size: BodySize.small,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: AppSizes.spacing),
 
-                    // Store Cards
-                    ...SearchResultData.stores.map((store) => StoreResultCard(
-                          store: store,
-                        )),
+                      // Store Cards
+                      ...SearchResultData.stores.map((store) => StoreResultCard(
+                            store: store,
+                          )),
 
-                    SizedBox(height: AppSizes.spacingLarge),
+                      SizedBox(height: AppSizes.spacingLarge),
+                    ],
                   ],
                 ),
               ),
             ),
-
-            // Bottom Tab Bar
-            Container(
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              // child: SafeArea(
-              //   child: Padding(
-              //     padding: EdgeInsets.symmetric(
-              //       horizontal: AppSizes.spacing,
-              //       vertical: AppSizes.spacingSmall + 4.h,
-              //     ),
-              //     child: Row(
-              //       children: [
-              //         _TabButton(
-              //           label: 'About',
-              //           isActive: _currentTabIndex == 0,
-              //           onTap: () => _onTabChanged(0),
-              //         ),
-              //         SizedBox(width: AppSizes.spacingSmall),
-              //         _TabButton(
-              //           label: 'Portfolio',
-              //           isActive: _currentTabIndex == 1,
-              //           onTap: () => _onTabChanged(1),
-              //         ),
-              //         SizedBox(width: AppSizes.spacingSmall),
-              //         _TabButton(
-              //           label: 'Review',
-              //           isActive: _currentTabIndex == 2,
-              //           onTap: () => _onTabChanged(2),
-              //         ),
-              //       ],
-              //     ),
-              //   ),
-              // ),
-            ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _TabButton({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 14.h),
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.primary : const Color(0xFFD3D3D3),
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-          child: Center(
-            child: BodyText(
-              label,
-              size: BodySize.medium,
-              fontWeight: FontWeight.w600,
-              color: isActive ? Colors.white : AppColors.textPrimary,
-            ),
-          ),
         ),
       ),
     );

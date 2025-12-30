@@ -23,7 +23,7 @@ class StoreResultCard extends StatelessWidget {
         margin: EdgeInsets.only(bottom: AppSizes.spacing),
         padding: EdgeInsets.all(AppSizes.spacingSmall),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.radius),
         ),
         child: Row(
@@ -38,7 +38,7 @@ class StoreResultCard extends StatelessWidget {
                   Row(
                     children: [
                       CircleAvatar(
-                        radius: 24.r,
+                        radius: 20.r,
                         backgroundImage: AssetImage(store.avatarUrl),
                       ),
                       SizedBox(width: AppSizes.spacingSmall),
@@ -113,8 +113,8 @@ class StoreResultCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
               child: Image.asset(
                 store.imageUrl,
-                width: 100.w,
-                height: 140.h,
+                width: 80.w,
+                height: 120.h,
                 fit: BoxFit.cover,
               ),
             ),

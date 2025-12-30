@@ -12,7 +12,7 @@
 ### ✅ User Type Selection Screen
 **Location:** `lib/features/onboarding/presentation/pages/user_type_selection_page.dart`
 - Hero welcome image at top
-- "Welcome to Workshop" title in brand teal color
+- "Welcome to Workchop" title in brand teal color
 - Descriptive subtitle
 - Two selection cards:
   - **Artisan**: Tool icon, description for skilled professionals

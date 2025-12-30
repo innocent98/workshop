@@ -2,7 +2,7 @@
 
 ## Design Target
 **Reference**: `screenshots/splash.png`  
-**Figma**: https://www.figma.com/design/duaygbRaKq41SqlUMzEmQE/Workshop.app?node-id=1188-7708&t=vwAQHTvjfXyBaqJl-0
+**Figma**: https://www.figma.com/design/duaygbRaKq41SqlUMzEmQE/Workchop.app?node-id=1188-7708&t=vwAQHTvjfXyBaqJl-0
 
 ## Visual Comparison
 
@@ -19,7 +19,7 @@
 | Size | 120 | 100 | ✅ Adjusted |
 | Color | White | White | ✅ Correct |
 
-### App Name ("Workshop")
+### App Name ("Workchop")
 | Aspect | Before | After | Status |
 |--------|--------|-------|--------|
 | Font Family | Default (Inter) | Bricolage Grotesque | ✅ Fixed |
@@ -79,7 +79,7 @@ Widget build(BuildContext context) {
             ),
             SizedBox(height: AppSizes.spacingLarge), // ❌ Too small
             Text(
-              'Workshop',
+              'Workchop',
               style: TextStyle(  // ❌ No custom font
                 fontSize: AppSizes.h1,
                 color: Colors.white,
@@ -136,7 +136,7 @@ Widget build(BuildContext context) {
               
               // App Name - Using HeaderText with Bricolage Grotesque
               HeaderText(  // ✅ Custom component
-                'Workshop',
+                'Workchop',
                 size: HeaderSize.h1,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
