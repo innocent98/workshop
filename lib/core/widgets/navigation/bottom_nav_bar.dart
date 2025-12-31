@@ -32,29 +32,29 @@ class BottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
+                activeIconPath: 'assets/icons/home_icon_a.png',
+                inactiveIconPath: 'assets/icons/home_icon_a.png',
                 label: 'Home',
                 isActive: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
               _NavItem(
-                icon: Icons.calendar_today_outlined,
-                activeIcon: Icons.calendar_today,
+                activeIconPath: 'assets/icons/bookings_icon_a.png',
+                inactiveIconPath: 'assets/icons/bookings_icon_i.png',
                 label: 'Bookings',
                 isActive: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _NavItem(
-                icon: Icons.chat_bubble_outline,
-                activeIcon: Icons.chat_bubble,
+                activeIconPath: 'assets/icons/support_icon_a.png',
+                inactiveIconPath: 'assets/icons/support_icon_i.png',
                 label: 'Support',
                 isActive: currentIndex == 2,
                 onTap: () => onTap(2),
               ),
               _NavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
+                activeIconPath: 'assets/icons/profile_icon_i.png',
+                inactiveIconPath: 'assets/icons/profile_icon_i.png',
                 label: 'Profile',
                 isActive: currentIndex == 3,
                 onTap: () => onTap(3),
@@ -68,15 +68,15 @@ class BottomNavBar extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
+  final String activeIconPath;
+  final String inactiveIconPath;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
 
   const _NavItem({
-    required this.icon,
-    required this.activeIcon,
+    required this.activeIconPath,
+    required this.inactiveIconPath,
     required this.label,
     required this.isActive,
     required this.onTap,
@@ -92,9 +92,10 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              size: 24.r,
+            Image.asset(
+              isActive ? activeIconPath : inactiveIconPath,
+              width: 24.r,
+              height: 24.r,
               color: isActive ? AppColors.primary : AppColors.textSecondary,
             ),
             SizedBox(height: 4.h),

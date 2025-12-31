@@ -6,7 +6,6 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
-import '../../../../core/widgets/navigation/bottom_nav_bar.dart';
 import '../../data/mock_data.dart';
 import '../widgets/service_category_chip.dart';
 import '../widgets/artisan_card.dart';
@@ -20,14 +19,6 @@ class ClientHomePage extends StatefulWidget {
 }
 
 class _ClientHomePageState extends State<ClientHomePage> {
-  int _currentNavIndex = 0;
-
-  void _onNavTap(int index) {
-    setState(() {
-      _currentNavIndex = index;
-    });
-  }
-
   void _onSearchTap() {
     context.push(AppRoutes.serviceCategories);
   }
@@ -310,12 +301,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ],
                 ),
               ),
-            ),
-
-            // Bottom Navigation Bar
-            BottomNavBar(
-              currentIndex: _currentNavIndex,
-              onTap: _onNavTap,
             ),
           ],
         ),

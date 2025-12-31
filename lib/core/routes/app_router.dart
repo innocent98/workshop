@@ -14,8 +14,8 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_email_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_new_password_page.dart';
-import '../../features/client_home/presentation/pages/client_home_page.dart';
 import '../../features/client_home/presentation/pages/service_categories_page.dart';
+import '../../features/main_navigation/presentation/pages/main_navigation_page.dart';
 import '../../features/search_result/presentation/pages/search_result_page.dart';
 import '../../features/artisan_profile/presentation/pages/artisan_profile_page.dart';
 import '../../features/booking/presentation/pages/instant_service_page.dart';
@@ -33,6 +33,7 @@ class AppRoutes {
   static const String artisanProfile = '/artisan-profile';
   static const String instantService = '/instant-service';
   static const String scheduleService = '/schedule-service';
+  static const String bookings = '/bookings';
 
   // Auth routes
   static const String login = '/auth/login';
@@ -128,7 +129,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'clientHome',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const ClientHomePage(),
+          child: const MainNavigationPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
