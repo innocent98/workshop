@@ -9,6 +9,7 @@ import '../widgets/stat_card.dart';
 import '../widgets/job_request_card.dart';
 import '../widgets/ongoing_job_card.dart';
 import '../widgets/store_card.dart';
+import '../../../../core/widgets/forms/custom_switch.dart';
 
 class ArtisanHomePage extends ConsumerStatefulWidget {
   const ArtisanHomePage({super.key});
@@ -119,14 +120,14 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
     return Row(
       children: [
         CircleAvatar(
-          radius: 16.r,
+          radius: 18.r,
           backgroundImage: const AssetImage('assets/images/regular.jpg'),
         ),
         SizedBox(width: 10.w),
         Expanded(
           child: Row(
             children: [
-              BodyText('Welcome, ', size: BodySize.medium),
+              BodyText('Welcome, ', size: BodySize.large),
               BodyText(name, size: BodySize.medium, fontWeight: FontWeight.w500),
             ],
           ),
@@ -155,15 +156,9 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
             ),
           ],
         ),
-        Transform.scale(
-          scale: 0.7,
-          child: Switch(
-            value: _isAvailable,
-            onChanged: (value) => setState(() => _isAvailable = value),
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: Colors.grey[200],
-            inactiveThumbColor: Colors.white,
-          ),
+        CustomSwitch(
+          value: _isAvailable,
+          onChanged: (value) => setState(() => _isAvailable = value),
         ),
       ],
     );

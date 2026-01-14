@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
-import '../../domain/models/booking.dart';
+import 'package:workchop/features/bookings/domain/models/booking.dart';
 
 class OngoingBookingCard extends StatelessWidget {
   final Booking booking;

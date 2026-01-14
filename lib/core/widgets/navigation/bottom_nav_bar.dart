@@ -25,8 +25,8 @@ class BottomNavBar extends StatelessWidget {
         onTap: () => onTap(0),
       ),
       _NavItem(
-        activeIconPath: 'assets/icons/bookings_icon_a.png',
-        inactiveIconPath: 'assets/icons/bookings_icon_i.png',
+        activeIconPath: isArtisan ? 'assets/icons/job_icon_a.png' : 'assets/icons/bookings_icon_a.png',
+        inactiveIconPath: isArtisan ? 'assets/icons/job_icon_i.png' : 'assets/icons/bookings_icon_i.png',
         label: isArtisan ? 'Jobs' : 'Bookings',
         isActive: currentIndex == 1,
         onTap: () => onTap(1),

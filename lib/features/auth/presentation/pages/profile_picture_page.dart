@@ -8,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/indicators/step_progress_indicator.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
 class ProfilePicturePage extends StatefulWidget {
@@ -129,11 +130,12 @@ class _ProfilePicturePageState extends State<ProfilePicturePage> {
   }
 
   void _handleContinue() {
-    // TODO: Save profile picture and bio, then complete registration
-    print('Profile picture: ${_selectedImage?.path}');
-    print('Bio: ${_bioController.text}');
-    // Navigate to home or completion screen
-    // context.push(AppRoutes.home);
+    // TODO: Save profile picture and bio to a backend/provider here
+    debugPrint('Profile picture selected: ${_selectedImage != null}');
+    debugPrint('Bio: ${_bioController.text}');
+
+    // Navigate to login screen to complete the flow
+    context.go(AppRoutes.login);
   }
 
   @override

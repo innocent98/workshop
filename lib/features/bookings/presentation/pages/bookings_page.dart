@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
-import 'package:workchop/features/artisan_home/data/mock_artisan_data.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
-import '../widgets/artisan_job_card.dart';
+import 'package:workchop/features/bookings/data/mock_booking_data.dart';
+import 'package:workchop/features/bookings/presentation/widgets/completed_booking_card.dart';
+import 'package:workchop/features/bookings/presentation/widgets/ongoing_booking_card.dart';
+import 'package:workchop/features/bookings/presentation/widgets/request_booking_card.dart';
 
 class BookingsPage extends StatefulWidget {
   const BookingsPage({super.key});
@@ -15,11 +15,10 @@ class BookingsPage extends StatefulWidget {
 }
 
 class _BookingsPageState extends State<BookingsPage> {
-  int _mainTabIndex = 0; // 0: Upcoming, 1: History
+  int _mainTabIndex = 0; // 0: Active, 1: History
   int _filterIndex = 0;
 
-  final List<String> _upcomingFilters = ['All', 'Pending', 'Accepted', 'Today'];
-  final List<String> _historyFilters = ['All', 'Completed', 'Cancelled'];
+  final List<String> _filters = ['All', 'Requested', 'Ongoing', 'Completed', 'Cancelled'];
 
   @override
   Widget build(BuildContext context) {
@@ -29,9 +28,9 @@ class _BookingsPageState extends State<BookingsPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        title: HeaderText(
-          'Your Jobs',
-          size: HeaderSize.h4,
+        title: BodyText(
+          'Bookings',
+          size: BodySize.large,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -49,7 +48,7 @@ class _BookingsPageState extends State<BookingsPage> {
                 ),
                 child: Row(
                   children: [
-                    _buildMainTab('Upcoming', 0),
+                    _buildMainTab('Active', 0),
                     _buildMainTab('History', 1),
                   ],
                 ),
@@ -63,23 +62,19 @@ class _BookingsPageState extends State<BookingsPage> {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
-                itemCount: _mainTabIndex == 0 ? _upcomingFilters.length : _historyFilters.length,
+                itemCount: _filters.length,
                 itemBuilder: (context, index) {
-                  final filters = _mainTabIndex == 0 ? _upcomingFilters : _historyFilters;
-                  return _buildFilterChip(filters[index], index);
+                  return _buildFilterChip(_filters[index], index);
                 },
               ),
             ),
             SizedBox(height: 16.h),
 
-            // History Summary Header
-            if (_mainTabIndex == 1) _buildHistorySummary(),
-
-            // Jobs List
+            // Bookings List
             Expanded(
               child: ListView(
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
-                children: _mainTabIndex == 0 ? _buildUpcomingList() : _buildHistoryList(),
+                children: _mainTabIndex == 0 ? _buildActiveList() : _buildHistoryList(),
               ),
             ),
           ],
@@ -136,103 +131,27 @@ class _BookingsPageState extends State<BookingsPage> {
     );
   }
 
-  Widget _buildHistorySummary() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              BodyText('Total Earned: ', size: BodySize.medium, fontWeight: FontWeight.w500),
-              BodyText('₦140,000', size: BodySize.medium, color: const Color(0xFFE2725B), fontWeight: FontWeight.w500),
-            ],
-          ),
-          BodyText('From 2 jobs', size: BodySize.small, color: AppColors.textSecondary),
-        ],
-      ),
-    );
-  }
+  List<Widget> _buildActiveList() {
+    final activeBookings = MockBookingData.clientBookings
+        .where((b) => b.status == 'ongoing' || b.status == 'requested')
+        .toList();
 
-  List<Widget> _buildUpcomingList() {
-    final mockJob = MockArtisanData.jobRequests[0];
-    return [
-      ArtisanJobCard(
-        status: ArtisanJobStatus.ongoing,
-        serviceName: 'Leaking Faucet Repair',
-        clientName: 'Idem Etop',
-        clientAvatar: 'assets/images/regular.jpg',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-      ArtisanJobCard(
-        status: ArtisanJobStatus.next,
-        serviceName: 'Leaking Faucet Repair',
-        clientName: 'Idem Etop',
-        clientAvatar: 'assets/images/regular.jpg',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-      ArtisanJobCard(
-        status: ArtisanJobStatus.pending,
-        serviceName: 'Plumbing Repair',
-        clientName: 'Yannic Bazeel',
-        clientAvatar: 'assets/images/regular.jpg',
-        price: 'N5k - N7k',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-    ];
+    return activeBookings.map((booking) {
+      if (booking.status == 'ongoing') {
+        return OngoingBookingCard(booking: booking);
+      } else {
+        return RequestBookingCard(booking: booking);
+      }
+    }).toList();
   }
 
   List<Widget> _buildHistoryList() {
-    final mockJob = MockArtisanData.jobRequests[0];
-    return [
-      ArtisanJobCard(
-        status: ArtisanJobStatus.completed,
-        serviceName: 'Plumbing Repair',
-        clientName: 'Yannic Bazeel',
-        clientAvatar: 'assets/images/regular.jpg',
-        price: '₦ 7,000',
-        timeInfo: 'Saturday, 27 Nov, 2025 • 07:25 AM',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () {},
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-      ArtisanJobCard(
-        status: ArtisanJobStatus.cancelled,
-        serviceName: 'Plumbing Repair',
-        clientName: 'Yannic Bazeel',
-        clientAvatar: 'assets/images/regular.jpg',
-        price: 'N7k',
-        timeInfo: 'Saturday, 27 Nov, 2025 • 07:25 AM',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () {},
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-    ];
+    final historyBookings = MockBookingData.clientBookings
+        .where((b) => b.status == 'completed' || b.status == 'cancelled')
+        .toList();
+
+    return historyBookings.map((booking) {
+      return CompletedBookingCard(booking: booking);
+    }).toList();
   }
 }

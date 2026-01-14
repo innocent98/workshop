@@ -86,7 +86,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go(AppRoutes.userTypeSelection);
+                      }
+                    },
                     child: Row(
                       children: [
                         Icon(
@@ -281,7 +287,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         color: AppColors.textSecondary,
                       ),
                       GestureDetector(
-                        onTap: () => context.pop(),
+                        onTap: () => context.go(AppRoutes.userTypeSelection),
                         child: BodyText(
                           'Sign Up',
                           size: BodySize.medium,

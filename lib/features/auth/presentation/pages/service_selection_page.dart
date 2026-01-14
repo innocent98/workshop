@@ -28,27 +28,27 @@ class _ServiceSelectionPageState extends State<ServiceSelectionPage> {
   final List<Map<String, String>> _clientServices = [
     {
       'title': 'Construction',
-      'image': 'assets/images/services/construction.jpg',
+      'image': 'assets/images/services/construction.png',
     },
     {
       'title': 'Car repairs/parts',
-      'image': 'assets/images/services/car_repairs.jpg',
+      'image': 'assets/images/services/car_repairs.png',
     },
     {
       'title': 'Electronics/repairs',
-      'image': 'assets/images/services/electronics.jpg',
+      'image': 'assets/images/services/electronics.png',
     },
     {
       'title': 'Dry Cleaning',
-      'image': 'assets/images/services/dry_cleaning.jpg',
+      'image': 'assets/images/services/dry_cleaning.png',
     },
     {
       'title': 'Electrical',
-      'image': 'assets/images/services/electrical.jpg',
+      'image': 'assets/images/services/electrical.png',
     },
     {
       'title': 'Fashion Design',
-      'image': 'assets/images/services/fashion_design.jpg',
+      'image': 'assets/images/services/fashion_design.png',
     },
   ];
 
@@ -56,27 +56,27 @@ class _ServiceSelectionPageState extends State<ServiceSelectionPage> {
   final List<Map<String, String>> _artisanServices = [
     {
       'title': 'Electrician',
-      'image': 'assets/images/services/electrician.jpg',
+      'image': 'assets/images/services/electrician.png',
     },
     {
       'title': 'Plumber',
-      'image': 'assets/images/services/plumber.jpg',
+      'image': 'assets/images/services/plumber.png',
     },
     {
       'title': 'Carpenter',
-      'image': 'assets/images/services/carpenter.jpg',
+      'image': 'assets/images/services/carpenter.png',
     },
     {
       'title': 'Cleaner',
-      'image': 'assets/images/services/cleaner.jpg',
+      'image': 'assets/images/services/cleaner.png',
     },
     {
       'title': 'Painter',
-      'image': 'assets/images/services/painter.jpg',
+      'image': 'assets/images/services/painter.png',
     },
     {
       'title': 'Make up artist',
-      'image': 'assets/images/services/makeup_artist.jpg',
+      'image': 'assets/images/services/makeup_artist.png',
     },
   ];
 

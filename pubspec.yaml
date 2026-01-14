@@ -65,6 +65,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/support_icons/
+    - assets/images/services/
     - assets/icons/
 
   # The following line ensures that the Material Icons font is

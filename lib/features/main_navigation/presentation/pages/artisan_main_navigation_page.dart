@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/navigation/bottom_nav_bar.dart';
 import '../../../artisan_home/presentation/pages/artisan_home_page.dart';
-import '../../../bookings/presentation/pages/bookings_page.dart';
+import '../../../bookings/presentation/pages/artisan_jobs_page.dart';
 import '../../../support/presentation/pages/support_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../bookings/presentation/pages/earnings_page.dart';
@@ -18,7 +18,7 @@ class _ArtisanMainNavigationPageState extends State<ArtisanMainNavigationPage> {
 
   final List<Widget> _pages = [
     const ArtisanHomePage(),
-    const BookingsPage(),    // Will serve as "Jobs"
+    const ArtisanJobsPage(),    // Correctly using ArtisanJobsPage now
     const EarningsPage(),
     const SupportPage(),
     const ProfilePage(),
