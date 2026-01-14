@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.workchop"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "29.0.14033849"
 
     compileOptions {

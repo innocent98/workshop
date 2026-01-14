@@ -20,6 +20,9 @@ import '../../features/search_result/presentation/pages/search_result_page.dart'
 import '../../features/artisan_profile/presentation/pages/artisan_profile_page.dart';
 import '../../features/booking/presentation/pages/instant_service_page.dart';
 import '../../features/booking/presentation/pages/schedule_service_page.dart';
+import '../../features/artisan_home/presentation/pages/job_detail_page.dart';
+import '../../features/artisan_home/domain/models/job_request.dart';
+import '../../features/main_navigation/presentation/pages/artisan_main_navigation_page.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -28,6 +31,8 @@ class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String home = '/home';
   static const String clientHome = '/client-home';
+  static const String artisanHome = '/artisan-home';
+  static const String jobDetail = '/job-detail';
   static const String serviceCategories = '/service-categories';
   static const String searchResult = '/search-result';
   static const String artisanProfile = '/artisan-profile';
@@ -134,6 +139,42 @@ final routerProvider = Provider<GoRouter>((ref) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
+      ),
+
+      // Artisan Home Page
+      GoRoute(
+        path: AppRoutes.artisanHome,
+        name: 'artisanHome',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ArtisanMainNavigationPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      ),
+
+      // Job Detail Page
+      GoRoute(
+        path: AppRoutes.jobDetail,
+        name: 'jobDetail',
+        pageBuilder: (context, state) {
+          final job = state.extra as JobRequest;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: JobDetailPage(job: job),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
+              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              return SlideTransition(
+                position: animation.drive(tween),
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+          );
+        },
       ),
 
       // Service Categories Page

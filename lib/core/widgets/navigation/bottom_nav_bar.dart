@@ -5,15 +5,56 @@ import '../../constants/app_colors.dart';
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final bool isArtisan;
 
   const BottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.isArtisan = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final navItems = [
+      _NavItem(
+        activeIconPath: 'assets/icons/home_icon_a.png',
+        inactiveIconPath: 'assets/icons/home_icon_a.png',
+        label: 'Home',
+        isActive: currentIndex == 0,
+        onTap: () => onTap(0),
+      ),
+      _NavItem(
+        activeIconPath: 'assets/icons/bookings_icon_a.png',
+        inactiveIconPath: 'assets/icons/bookings_icon_i.png',
+        label: isArtisan ? 'Jobs' : 'Bookings',
+        isActive: currentIndex == 1,
+        onTap: () => onTap(1),
+      ),
+      if (isArtisan)
+        _NavItem(
+          activeIconPath: 'assets/icons/wallet_icon_a.png', // Assuming this exists or using fallback
+          inactiveIconPath: 'assets/icons/wallet_icon_i.png',
+          label: 'Earnings',
+          isActive: currentIndex == 2,
+          onTap: () => onTap(2),
+        ),
+      _NavItem(
+        activeIconPath: 'assets/icons/support_icon_a.png',
+        inactiveIconPath: 'assets/icons/support_icon_i.png',
+        label: 'Support',
+        isActive: currentIndex == (isArtisan ? 3 : 2),
+        onTap: () => onTap(isArtisan ? 3 : 2),
+      ),
+      _NavItem(
+        activeIconPath: 'assets/icons/profile_icon_i.png',
+        inactiveIconPath: 'assets/icons/profile_icon_i.png',
+        label: 'Profile',
+        isActive: currentIndex == (isArtisan ? 4 : 3),
+        onTap: () => onTap(isArtisan ? 4 : 3),
+      ),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -30,36 +71,7 @@ class BottomNavBar extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 8.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                activeIconPath: 'assets/icons/home_icon_a.png',
-                inactiveIconPath: 'assets/icons/home_icon_a.png',
-                label: 'Home',
-                isActive: currentIndex == 0,
-                onTap: () => onTap(0),
-              ),
-              _NavItem(
-                activeIconPath: 'assets/icons/bookings_icon_a.png',
-                inactiveIconPath: 'assets/icons/bookings_icon_i.png',
-                label: 'Bookings',
-                isActive: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
-                activeIconPath: 'assets/icons/support_icon_a.png',
-                inactiveIconPath: 'assets/icons/support_icon_i.png',
-                label: 'Support',
-                isActive: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                activeIconPath: 'assets/icons/profile_icon_i.png',
-                inactiveIconPath: 'assets/icons/profile_icon_i.png',
-                label: 'Profile',
-                isActive: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
+            children: navItems,
           ),
         ),
       ),

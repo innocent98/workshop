@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/widgets/navigation/bottom_nav_bar.dart';
 import '../../../client_home/presentation/pages/client_home_page.dart';
 import '../../../bookings/presentation/pages/bookings_page.dart';
+import '../../../support/presentation/pages/support_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key});
@@ -36,20 +37,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabChanged,
-      ),
-    );
-  }
-}
-
-// Temporary placeholder for Support page
-class SupportPage extends StatelessWidget {
-  const SupportPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('Support Page - Coming Soon'),
       ),
     );
   }

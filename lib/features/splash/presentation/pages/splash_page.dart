@@ -53,8 +53,9 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   Future<void> _navigateToOnboarding() async {
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
-      context.go(AppRoutes.clientHome);
-      // context.go(AppRoutes.userTypeSelection);
+      // context.go(AppRoutes.clientHome);
+      // context.go(AppRoutes.artisanHome);
+      context.go(AppRoutes.userTypeSelection);
     }
   }
 

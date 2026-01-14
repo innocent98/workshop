@@ -57,5 +57,12 @@
 	<!-- Photo Library Add Only permission (iOS 11+) -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app needs permission to save photos to your library.</string>
+
+	<!-- Location permissions for maps -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs your location to show nearby artisans and calculate distances.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs your location to show nearby artisans and calculate distances.</string>
 </dict>
 </plist>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -6,15 +7,17 @@ import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/models/user.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -27,14 +30,36 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement actual login logic with authentication
-      // For now, navigate to client home page
-      // In production, check user type and navigate accordingly:
-      // - If user is a client: navigate to clientHome
-      // - If user is an artisan: navigate to artisan home (when implemented)
-      context.go(AppRoutes.clientHome);
+      // TODO: Implement actual API authentication
+      // For now, use mock user based on email
+      final email = _emailController.text.toLowerCase();
+
+      // Mock user - determine role from email
+      final isArtisan = email.contains('artisan') || email.contains('ethan');
+
+      final mockUser = User(
+        id: '1',
+        name: isArtisan ? 'Ethan' : 'Jeremiah',
+        email: email,
+        role: isArtisan ? UserRole.artisan : UserRole.client,
+        location: 'Ikeja, Lagos',
+        service: isArtisan ? 'Plumber' : null,
+        avatarUrl: 'assets/images/regular.jpg',
+      );
+
+      // Save user to auth provider
+      await ref.read(authProvider.notifier).login(mockUser);
+
+      // Navigate based on user role
+      if (mounted) {
+        if (mockUser.role == UserRole.artisan) {
+          context.go(AppRoutes.artisanHome);
+        } else {
+          context.go(AppRoutes.clientHome);
+        }
+      }
     }
   }
 
