@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/providers/password_reset_provider.dart';
+import '../../../../core/network/api_exception.dart';
 
-class ForgotPasswordEmailPage extends StatefulWidget {
+class ForgotPasswordEmailPage extends ConsumerStatefulWidget {
   const ForgotPasswordEmailPage({super.key});
 
   @override
-  State<ForgotPasswordEmailPage> createState() => _ForgotPasswordEmailPageState();
+  ConsumerState<ForgotPasswordEmailPage> createState() => _ForgotPasswordEmailPageState();
 }
 
-class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
+class _ForgotPasswordEmailPageState extends ConsumerState<ForgotPasswordEmailPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,12 +28,39 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
     super.dispose();
   }
 
-  void _handleContinue() {
+  Future<void> _handleContinue() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Send reset code to email
-      print('Sending reset code to: ${_emailController.text}');
-      // Navigate to OTP verification page
-      context.push(AppRoutes.forgotPasswordOtp, extra: _emailController.text);
+      setState(() => _isLoading = true);
+
+      try {
+        await ref.read(passwordResetProvider.notifier).sendResetCode(
+              _emailController.text.trim(),
+            );
+
+        if (mounted) {
+          context.push(AppRoutes.forgotPasswordOtp, extra: _emailController.text);
+        }
+      } catch (e) {
+        if (mounted) {
+          String message = 'Failed to send reset code. Please try again.';
+          if (e is ApiException) {
+            message = e.message;
+          } else if (e is NetworkException) {
+            message = e.message;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -121,8 +152,8 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
             Padding(
               padding: EdgeInsets.all(20.w),
               child: PrimaryButton(
-                label: 'Continue',
-                onPressed: _handleContinue,
+                label: _isLoading ? 'Sending...' : 'Continue',
+                onPressed: _isLoading ? () {} : _handleContinue,
               ),
             ),
           ],

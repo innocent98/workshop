@@ -5,75 +5,95 @@ enum UserRole {
 
 class User {
   final String id;
-  final String name;
+  final String fullName;
   final String email;
-  final String? phone;
-  final String? avatarUrl;
+  final String phoneNumber;
+  final String? profilePictureUrl;
   final UserRole role;
+  final String userType;
+  final String? bio;
+  final List<String>? services;
   final String? location;
-  final String? service; // For artisans
+  final DateTime? createdAt;
 
   const User({
     required this.id,
-    required this.name,
+    required this.fullName,
     required this.email,
-    this.phone,
-    this.avatarUrl,
+    required this.phoneNumber,
+    this.profilePictureUrl,
     required this.role,
+    required this.userType,
+    this.bio,
+    this.services,
     this.location,
-    this.service,
+    this.createdAt,
   });
 
   // Convert to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
+      'fullName': fullName,
       'email': email,
-      'phone': phone,
-      'avatarUrl': avatarUrl,
+      'phoneNumber': phoneNumber,
+      'profilePictureUrl': profilePictureUrl,
       'role': role.name,
+      'userType': userType,
+      'bio': bio,
+      'services': services,
       'location': location,
-      'service': service,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 
   // Create from JSON
   factory User.fromJson(Map<String, dynamic> json) {
+    final userType = json['userType'] as String? ?? json['user_type'] as String? ?? 'client';
     return User(
       id: json['id'] as String,
-      name: json['name'] as String,
+      fullName: json['fullName'] as String,
       email: json['email'] as String,
-      phone: json['phone'] as String?,
-      avatarUrl: json['avatarUrl'] as String?,
-      role: UserRole.values.firstWhere(
-        (e) => e.name == json['role'],
-        orElse: () => UserRole.client,
-      ),
+      phoneNumber: json['phoneNumber'] as String,
+      profilePictureUrl: json['profilePictureUrl'] as String?,
+      role: userType == 'artisan' ? UserRole.artisan : UserRole.client,
+      userType: userType,
+      bio: json['bio'] as String?,
+      services: json['services'] != null
+          ? List<String>.from(json['services'] as List)
+          : null,
       location: json['location'] as String?,
-      service: json['service'] as String?,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : null,
     );
   }
 
   User copyWith({
     String? id,
-    String? name,
+    String? fullName,
     String? email,
-    String? phone,
-    String? avatarUrl,
+    String? phoneNumber,
+    String? profilePictureUrl,
     UserRole? role,
+    String? userType,
+    String? bio,
+    List<String>? services,
     String? location,
-    String? service,
+    DateTime? createdAt,
   }) {
     return User(
       id: id ?? this.id,
-      name: name ?? this.name,
+      fullName: fullName ?? this.fullName,
       email: email ?? this.email,
-      phone: phone ?? this.phone,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       role: role ?? this.role,
+      userType: userType ?? this.userType,
+      bio: bio ?? this.bio,
+      services: services ?? this.services,
       location: location ?? this.location,
-      service: service ?? this.service,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

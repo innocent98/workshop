@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/providers/registration_provider.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
-class PasswordPage extends StatefulWidget {
+class PasswordPage extends ConsumerStatefulWidget {
   final UserType userType;
 
   const PasswordPage({
@@ -17,15 +20,16 @@ class PasswordPage extends StatefulWidget {
   });
 
   @override
-  State<PasswordPage> createState() => _PasswordPageState();
+  ConsumerState<PasswordPage> createState() => _PasswordPageState();
 }
 
-class _PasswordPageState extends State<PasswordPage> {
+class _PasswordPageState extends ConsumerState<PasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -34,10 +38,39 @@ class _PasswordPageState extends State<PasswordPage> {
     super.dispose();
   }
 
-  void _handleContinue() {
+  Future<void> _handleContinue() async {
     if (_formKey.currentState!.validate()) {
-      // Navigate to phone verification page
-      context.push(AppRoutes.phoneVerification, extra: widget.userType);
+      setState(() => _isLoading = true);
+
+      try {
+        await ref.read(registrationProvider.notifier).registerPassword(
+              _passwordController.text,
+            );
+
+        if (mounted) {
+          context.push(AppRoutes.phoneVerification, extra: widget.userType);
+        }
+      } catch (e) {
+        if (mounted) {
+          String message = 'An error occurred. Please try again.';
+          if (e is ApiException) {
+            message = e.message;
+          } else if (e is NetworkException) {
+            message = e.message;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -174,8 +207,8 @@ class _PasswordPageState extends State<PasswordPage> {
             Padding(
               padding: EdgeInsets.all(20.w),
               child: PrimaryButton(
-                label: 'Continue',
-                onPressed: _handleContinue,
+                label: _isLoading ? 'Loading...' : 'Continue',
+                onPressed: _isLoading ? () {} : _handleContinue,
               ),
             ),
           ],

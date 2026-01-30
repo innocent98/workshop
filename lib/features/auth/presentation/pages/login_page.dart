@@ -8,6 +8,7 @@ import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/models/user.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -22,6 +23,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -32,32 +34,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement actual API authentication
-      // For now, use mock user based on email
-      final email = _emailController.text.toLowerCase();
+      setState(() => _isLoading = true);
 
-      // Mock user - determine role from email
-      final isArtisan = email.contains('artisan') || email.contains('ethan');
+      try {
+        await ref.read(authProvider.notifier).login(
+              _emailController.text.trim(),
+              _passwordController.text,
+            );
 
-      final mockUser = User(
-        id: '1',
-        name: isArtisan ? 'Ethan' : 'Jeremiah',
-        email: email,
-        role: isArtisan ? UserRole.artisan : UserRole.client,
-        location: 'Ikeja, Lagos',
-        service: isArtisan ? 'Plumber' : null,
-        avatarUrl: 'assets/images/regular.jpg',
-      );
+        final user = ref.read(authProvider);
+        if (mounted && user != null) {
+          if (user.role == UserRole.artisan) {
+            context.go(AppRoutes.artisanHome);
+          } else {
+            context.go(AppRoutes.clientHome);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          String message = 'Invalid email or password';
+          if (e is ApiException) {
+            message = e.message;
+          } else if (e is NetworkException) {
+            message = e.message;
+          }
 
-      // Save user to auth provider
-      await ref.read(authProvider.notifier).login(mockUser);
-
-      // Navigate based on user role
-      if (mounted) {
-        if (mockUser.role == UserRole.artisan) {
-          context.go(AppRoutes.artisanHome);
-        } else {
-          context.go(AppRoutes.clientHome);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
         }
       }
     }
@@ -272,8 +283,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 children: [
                   PrimaryButton(
-                    label: 'Continue',
-                    onPressed: _handleLogin,
+                    label: _isLoading ? 'Logging in...' : 'Continue',
+                    onPressed: _isLoading ? () {} : _handleLogin,
                   ),
                   SizedBox(height: 16.h),
 

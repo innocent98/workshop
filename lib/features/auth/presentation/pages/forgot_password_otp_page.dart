@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/providers/password_reset_provider.dart';
+import '../../../../core/network/api_exception.dart';
 
-class ForgotPasswordOtpPage extends StatefulWidget {
+class ForgotPasswordOtpPage extends ConsumerStatefulWidget {
   final String email;
 
   const ForgotPasswordOtpPage({
@@ -17,10 +20,10 @@ class ForgotPasswordOtpPage extends StatefulWidget {
   });
 
   @override
-  State<ForgotPasswordOtpPage> createState() => _ForgotPasswordOtpPageState();
+  ConsumerState<ForgotPasswordOtpPage> createState() => _ForgotPasswordOtpPageState();
 }
 
-class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
+class _ForgotPasswordOtpPageState extends ConsumerState<ForgotPasswordOtpPage> {
   final List<TextEditingController> _controllers = List.generate(
     6,
     (index) => TextEditingController(),
@@ -31,8 +34,10 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
   );
 
   Timer? _timer;
-  int _countdown = 37; // Start with 37 seconds as shown in screenshot
+  int _countdown = 600; // 10 minutes as per API spec
   bool _canResend = false;
+  bool _isLoading = false;
+  bool _isResending = false;
 
   @override
   void initState() {
@@ -71,14 +76,47 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
     });
   }
 
-  void _resendCode() {
-    // TODO: Resend OTP code
-    print('Resending OTP code to: ${widget.email}');
-    setState(() {
-      _countdown = 60;
-      _canResend = false;
-    });
-    _startCountdown();
+  Future<void> _resendCode() async {
+    setState(() => _isResending = true);
+
+    try {
+      await ref.read(passwordResetProvider.notifier).sendResetCode(widget.email);
+
+      if (mounted) {
+        setState(() {
+          _countdown = 600;
+          _canResend = false;
+        });
+        _startCountdown();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reset code resent successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        String message = 'Failed to resend code. Please try again.';
+        if (e is ApiException) {
+          message = e.message;
+        } else if (e is NetworkException) {
+          message = e.message;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
+    }
   }
 
   void _onDigitEntered(int index, String value) {
@@ -102,13 +140,38 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
     return _getOtpCode().length == 6;
   }
 
-  void _handleVerify() {
+  Future<void> _handleVerify() async {
     final code = _getOtpCode();
     if (code.length == 6) {
-      // TODO: Verify OTP code
-      print('Verifying OTP: $code');
-      // Navigate to new password page
-      context.push(AppRoutes.forgotPasswordNewPassword, extra: widget.email);
+      setState(() => _isLoading = true);
+
+      try {
+        await ref.read(passwordResetProvider.notifier).verifyCode(code);
+
+        if (mounted) {
+          context.push(AppRoutes.forgotPasswordNewPassword, extra: widget.email);
+        }
+      } catch (e) {
+        if (mounted) {
+          String message = 'Invalid or expired code. Please try again.';
+          if (e is ApiException) {
+            message = e.message;
+          } else if (e is NetworkException) {
+            message = e.message;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -198,11 +261,11 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                         ),
                         if (_canResend)
                           GestureDetector(
-                            onTap: _resendCode,
+                            onTap: _isResending ? null : _resendCode,
                             child: BodyText(
-                              'Resend',
+                              _isResending ? 'Resending...' : 'Resend',
                               size: BodySize.medium,
-                              color: const Color(0xFFE2725B), // Coral
+                              color: const Color(0xFFE2725B),
                               fontWeight: FontWeight.w500,
                             ),
                           )
@@ -224,8 +287,8 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
             Padding(
               padding: EdgeInsets.all(20.w),
               child: PrimaryButton(
-                label: 'Continue',
-                onPressed: isOtpComplete ? _handleVerify : null,
+                label: _isLoading ? 'Verifying...' : 'Continue',
+                onPressed: (_isLoading || !isOtpComplete) ? null : _handleVerify,
               ),
             ),
           ],

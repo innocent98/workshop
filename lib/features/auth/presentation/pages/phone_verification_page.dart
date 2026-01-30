@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/providers/registration_provider.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
-class PhoneVerificationPage extends StatefulWidget {
+class PhoneVerificationPage extends ConsumerStatefulWidget {
   final UserType userType;
 
   const PhoneVerificationPage({
@@ -17,10 +20,10 @@ class PhoneVerificationPage extends StatefulWidget {
   });
 
   @override
-  State<PhoneVerificationPage> createState() => _PhoneVerificationPageState();
+  ConsumerState<PhoneVerificationPage> createState() => _PhoneVerificationPageState();
 }
 
-class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
+class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
   final List<TextEditingController> _controllers = List.generate(
     6,
     (index) => TextEditingController(),
@@ -29,14 +32,38 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
     6,
     (index) => FocusNode(),
   );
+  bool _isLoading = false;
+  bool _isResending = false;
 
   @override
   void initState() {
     super.initState();
-    // Auto-focus first field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
+      _sendOtp();
     });
+  }
+
+  Future<void> _sendOtp() async {
+    try {
+      await ref.read(registrationProvider.notifier).sendOtp();
+    } catch (e) {
+      if (mounted) {
+        String message = 'Failed to send OTP. Please try again.';
+        if (e is ApiException) {
+          message = e.message;
+        } else if (e is NetworkException) {
+          message = e.message;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -67,11 +94,75 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
     return _controllers.map((c) => c.text).join();
   }
 
-  void _handleVerify() {
+  Future<void> _handleVerify() async {
     final code = _getOtpCode();
     if (code.length == 6) {
-      // Navigate to service selection based on user type
-      context.push(AppRoutes.serviceSelection, extra: widget.userType);
+      setState(() => _isLoading = true);
+
+      try {
+        await ref.read(registrationProvider.notifier).verifyOtp(code);
+
+        if (mounted) {
+          context.push(AppRoutes.serviceSelection, extra: widget.userType);
+        }
+      } catch (e) {
+        if (mounted) {
+          String message = 'Invalid OTP. Please try again.';
+          if (e is ApiException) {
+            message = e.message;
+          } else if (e is NetworkException) {
+            message = e.message;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
+  Future<void> _handleResendOtp() async {
+    setState(() => _isResending = true);
+
+    try {
+      await ref.read(registrationProvider.notifier).sendOtp();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('OTP resent successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        String message = 'Failed to resend OTP. Please try again.';
+        if (e is ApiException) {
+          message = e.message;
+        } else if (e is NetworkException) {
+          message = e.message;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
     }
   }
 
@@ -157,9 +248,25 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
             // Verify Button (Fixed at bottom)
             Padding(
               padding: EdgeInsets.all(20.w),
-              child: PrimaryButton(
-                label: 'Verify',
-                onPressed: _handleVerify,
+              child: Column(
+                children: [
+                  PrimaryButton(
+                    label: _isLoading ? 'Verifying...' : 'Verify',
+                    onPressed: _isLoading ? () {} : _handleVerify,
+                  ),
+                  SizedBox(height: 16.h),
+                  TextButton(
+                    onPressed: _isResending ? () {} : _handleResendOtp,
+                    child: Text(
+                      _isResending ? 'Resending...' : 'Resend OTP',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

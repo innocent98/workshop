@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import '../services/token_storage_service.dart';
+import '../models/user.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/onboarding/presentation/pages/user_type_selection_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_carousel_page.dart';
@@ -57,6 +60,8 @@ class AppRoutes {
 /// Router configuration provider
 /// This provides the GoRouter instance that will be used throughout the app
 final routerProvider = Provider<GoRouter>((ref) {
+  final tokenStorage = TokenStorageService();
+
   return GoRouter(
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true, // Enable for debugging routes
@@ -402,22 +407,47 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
 
-    // Redirect logic - for authentication guards (ready for future use)
-    redirect: (context, state) {
-      // Example: Check if user is authenticated
-      // final isAuthenticated = ref.read(authProvider).isAuthenticated;
-      // final isOnAuthPage = state.matchedLocation == AppRoutes.splash ||
-      //                      state.matchedLocation == AppRoutes.userTypeSelection;
+    // Redirect logic - authentication guards
+    redirect: (context, state) async {
+      final hasToken = await tokenStorage.hasToken();
+      final currentPath = state.matchedLocation;
 
-      // if (!isAuthenticated && !isOnAuthPage) {
-      //   return AppRoutes.splash;
-      // }
+      final publicPaths = [
+        AppRoutes.splash,
+        AppRoutes.userTypeSelection,
+        AppRoutes.onboarding,
+        AppRoutes.login,
+        AppRoutes.personalInformation,
+        AppRoutes.password,
+        AppRoutes.phoneVerification,
+        AppRoutes.serviceSelection,
+        AppRoutes.profilePicture,
+        AppRoutes.forgotPasswordEmail,
+        AppRoutes.forgotPasswordOtp,
+        AppRoutes.forgotPasswordNewPassword,
+      ];
 
-      // if (isAuthenticated && isOnAuthPage) {
-      //   return AppRoutes.home;
-      // }
+      final isPublicPath = publicPaths.contains(currentPath);
 
-      return null; // No redirect needed
+      if (!hasToken && !isPublicPath) {
+        return AppRoutes.splash;
+      }
+
+      if (hasToken && (currentPath == AppRoutes.login ||
+          currentPath == AppRoutes.personalInformation ||
+          currentPath == AppRoutes.password ||
+          currentPath == AppRoutes.phoneVerification ||
+          currentPath == AppRoutes.serviceSelection ||
+          currentPath == AppRoutes.profilePicture)) {
+        final user = ref.read(authProvider);
+        if (user != null) {
+          return user.role == UserRole.artisan
+              ? AppRoutes.artisanHome
+              : AppRoutes.clientHome;
+        }
+      }
+
+      return null;
     },
 
     // Error page

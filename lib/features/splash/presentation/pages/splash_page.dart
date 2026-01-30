@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/text/header_text.dart';
 import '../../../../core/widgets/text/body_text.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/services/onboarding_service.dart';
+import '../../../../core/services/token_storage_service.dart';
+import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/models/user.dart';
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
+class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  final OnboardingService _onboardingService = OnboardingService();
+  final TokenStorageService _tokenStorage = TokenStorageService();
 
   @override
   void initState() {
@@ -41,7 +48,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     );
 
     _controller.forward();
-    _navigateToOnboarding();
+    _navigateToNextScreen();
   }
 
   @override
@@ -50,12 +57,30 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  Future<void> _navigateToOnboarding() async {
+  Future<void> _navigateToNextScreen() async {
     await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
-      // context.go(AppRoutes.clientHome);
-      // context.go(AppRoutes.artisanHome);
-      context.go(AppRoutes.userTypeSelection);
+
+    if (!mounted) return;
+
+    final hasToken = await _tokenStorage.hasToken();
+    final hasCompletedOnboarding = await _onboardingService.hasCompletedOnboarding();
+
+    if (!mounted) return;
+
+    if (hasToken) {
+      final user = ref.read(authProvider);
+      if (user != null) {
+        final route = user.role == UserRole.artisan
+            ? AppRoutes.artisanHome
+            : AppRoutes.clientHome;
+        if (mounted) context.go(route);
+      } else {
+        if (mounted) context.go(AppRoutes.login);
+      }
+    } else if (hasCompletedOnboarding) {
+      if (mounted) context.go(AppRoutes.login);
+    } else {
+      if (mounted) context.go(AppRoutes.userTypeSelection);
     }
   }
 

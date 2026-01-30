@@ -4,14 +4,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/indicators/step_progress_indicator.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/providers/registration_provider.dart';
+import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/image_compressor.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
-class ProfilePicturePage extends StatefulWidget {
+class ProfilePicturePage extends ConsumerStatefulWidget {
   final UserType userType;
 
   const ProfilePicturePage({
@@ -20,15 +25,16 @@ class ProfilePicturePage extends StatefulWidget {
   });
 
   @override
-  State<ProfilePicturePage> createState() => _ProfilePicturePageState();
+  ConsumerState<ProfilePicturePage> createState() => _ProfilePicturePageState();
 }
 
-class _ProfilePicturePageState extends State<ProfilePicturePage> {
+class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
   final _bioController = TextEditingController();
   final _imagePicker = ImagePicker();
   File? _selectedImage;
   bool _isBioFocused = false;
   final _bioFocusNode = FocusNode();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -129,13 +135,63 @@ class _ProfilePicturePageState extends State<ProfilePicturePage> {
     }
   }
 
-  void _handleContinue() {
-    // TODO: Save profile picture and bio to a backend/provider here
-    debugPrint('Profile picture selected: ${_selectedImage != null}');
-    debugPrint('Bio: ${_bioController.text}');
+  Future<void> _handleContinue() async {
+    setState(() => _isLoading = true);
 
-    // Navigate to login screen to complete the flow
-    context.go(AppRoutes.login);
+    try {
+      if (_selectedImage != null) {
+        final isValidSize = await ImageCompressor.validateFileSize(_selectedImage!);
+        if (!isValidSize) {
+          throw Exception('Image size exceeds 5MB limit');
+        }
+
+        final compressedImage = await ImageCompressor.compress(_selectedImage!);
+        if (compressedImage != null) {
+          await ref.read(registrationProvider.notifier).uploadProfilePicture(compressedImage);
+        }
+      }
+
+      final registrationData = ref.read(registrationProvider).value;
+      if (registrationData?.email == null || registrationData?.password == null) {
+        throw Exception('Registration data not found. Please start registration again.');
+      }
+
+      await ref.read(authProvider.notifier).login(
+            registrationData!.email!,
+            registrationData.password!,
+          );
+
+      ref.read(registrationProvider.notifier).clearRegistration();
+
+      if (mounted) {
+        final homePath = widget.userType == UserType.artisan
+            ? AppRoutes.artisanHome
+            : AppRoutes.clientHome;
+        context.go(homePath);
+      }
+    } catch (e) {
+      if (mounted) {
+        String message = 'An error occurred. Please try again.';
+        if (e is ApiException) {
+          message = e.message;
+        } else if (e is NetworkException) {
+          message = e.message;
+        } else if (e is Exception) {
+          message = e.toString().replaceAll('Exception: ', '');
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -351,8 +407,8 @@ class _ProfilePicturePageState extends State<ProfilePicturePage> {
             Padding(
               padding: EdgeInsets.all(20.w),
               child: PrimaryButton(
-                label: buttonLabel,
-                onPressed: _handleContinue,
+                label: _isLoading ? 'Completing Registration...' : buttonLabel,
+                onPressed: _isLoading ? () {} : _handleContinue,
               ),
             ),
           ],

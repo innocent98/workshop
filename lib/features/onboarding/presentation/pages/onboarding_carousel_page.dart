@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/services/onboarding_service.dart';
 import '../../data/onboarding_data.dart';
 import '../../domain/models/onboarding_content.dart';
 import '../widgets/page_indicator.dart';
@@ -67,9 +68,11 @@ class _OnboardingCarouselPageState extends State<OnboardingCarouselPage> {
     }
   }
 
-  void _completeOnboarding() {
-    // Navigate to Personal Information page with user type
-    context.push(AppRoutes.personalInformation, extra: widget.userType);
+  Future<void> _completeOnboarding() async {
+    await OnboardingService().markOnboardingComplete();
+    if (mounted) {
+      context.push(AppRoutes.personalInformation, extra: widget.userType);
+    }
   }
 
   void _skipOnboarding() {

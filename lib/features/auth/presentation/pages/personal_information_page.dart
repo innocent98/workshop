@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/widgets/indicators/step_progress_indicator.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/providers/registration_provider.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
-class PersonalInformationPage extends StatefulWidget {
+class PersonalInformationPage extends ConsumerStatefulWidget {
   final UserType userType;
 
   const PersonalInformationPage({
@@ -18,14 +21,15 @@ class PersonalInformationPage extends StatefulWidget {
   });
 
   @override
-  State<PersonalInformationPage> createState() => _PersonalInformationPageState();
+  ConsumerState<PersonalInformationPage> createState() => _PersonalInformationPageState();
 }
 
-class _PersonalInformationPageState extends State<PersonalInformationPage> {
+class _PersonalInformationPageState extends ConsumerState<PersonalInformationPage> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -35,10 +39,43 @@ class _PersonalInformationPageState extends State<PersonalInformationPage> {
     super.dispose();
   }
 
-  void _handleContinue() {
+  Future<void> _handleContinue() async {
     if (_formKey.currentState!.validate()) {
-      // Navigate to password page with user type
-      context.push(AppRoutes.password, extra: widget.userType);
+      setState(() => _isLoading = true);
+
+      try {
+        final userType = widget.userType == UserType.artisan ? 'artisan' : 'client';
+        await ref.read(registrationProvider.notifier).registerPersonalInfo(
+              fullName: _fullNameController.text.trim(),
+              email: _emailController.text.trim(),
+              phoneNumber: _phoneController.text.trim(),
+              userType: userType,
+            );
+
+        if (mounted) {
+          context.push(AppRoutes.password, extra: widget.userType);
+        }
+      } catch (e) {
+        if (mounted) {
+          String message = 'An error occurred. Please try again.';
+          if (e is ApiException) {
+            message = e.message;
+          } else if (e is NetworkException) {
+            message = e.message;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -234,8 +271,8 @@ class _PersonalInformationPageState extends State<PersonalInformationPage> {
               child: Column(
                 children: [
                   PrimaryButton(
-                    label: 'Continue',
-                    onPressed: _handleContinue,
+                    label: _isLoading ? 'Loading...' : 'Continue',
+                    onPressed: _isLoading ? () {} : _handleContinue,
                   ),
                   SizedBox(height: 16.h),
 

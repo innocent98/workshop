@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
+import 'core/network/dio_client.dart';
 
 void main() {
+  DioClient().init();
   runApp(const ProviderScope(child: MyApp()));
 }
 

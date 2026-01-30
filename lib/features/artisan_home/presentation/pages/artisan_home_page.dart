@@ -37,7 +37,7 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 child: Column(
                   children: [
-                    _buildHeader(user?.name ?? 'Ethan'),
+                    _buildHeader(user?.fullName ?? ''),
                     SizedBox(height: 12.h),
                     _buildAvailabilityToggle(),
                   ],
