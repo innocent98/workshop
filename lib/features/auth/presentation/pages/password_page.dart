@@ -52,12 +52,16 @@ class _PasswordPageState extends ConsumerState<PasswordPage> {
         }
       } catch (e) {
         if (mounted) {
-          String message = 'An error occurred. Please try again.';
+          String message = 'Something went wrong. Please try again.';
           if (e is ApiException) {
             message = e.message;
           } else if (e is NetworkException) {
             message = e.message;
+          } else if (e is UnauthorizedException) {
+            message = e.message;
           }
+
+          debugPrint('Save password error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

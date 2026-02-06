@@ -31,6 +31,14 @@ class _ForgotPasswordNewPasswordPageState extends ConsumerState<ForgotPasswordNe
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Add listeners to update button state when text changes
+    _passwordController.addListener(() => setState(() {}));
+    _confirmPasswordController.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -51,6 +59,7 @@ class _ForgotPasswordNewPasswordPageState extends ConsumerState<ForgotPasswordNe
       try {
         await ref.read(passwordResetProvider.notifier).resetPassword(
               _passwordController.text,
+              _confirmPasswordController.text,
             );
 
         ref.read(passwordResetProvider.notifier).clear();
@@ -67,12 +76,16 @@ class _ForgotPasswordNewPasswordPageState extends ConsumerState<ForgotPasswordNe
         }
       } catch (e) {
         if (mounted) {
-          String message = 'Failed to reset password. Please try again.';
+          String message = 'Something went wrong. Please try again.';
           if (e is ApiException) {
             message = e.message;
           } else if (e is NetworkException) {
             message = e.message;
+          } else if (e is UnauthorizedException) {
+            message = e.message;
           }
+
+          debugPrint('Reset password error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -1,50 +1,46 @@
 import 'package:dio/dio.dart';
+import 'package:logger/logger.dart';
 import '../../../../core/network/dio_client.dart';
-import '../../../../core/network/api_exception.dart';
 import '../models/service_model.dart';
 
 class ServicesRemoteDataSource {
   final Dio _dio = DioClient().dio;
+  final Logger _logger = Logger();
 
+  /// Fetch all services from the API
+  /// GET /api/v1/services
   Future<List<ServiceModel>> fetchServices() async {
     try {
+      _logger.i('Fetching services from API');
+      
       final response = await _dio.get('/services');
-      final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((json) => ServiceModel.fromJson(json)).toList();
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        
+        // Handle both direct array and object with 'services' key
+        final servicesJson = data is List ? data : (data['services'] as List);
+        
+        final services = servicesJson
+            .map((json) => ServiceModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+
+        _logger.i('Successfully fetched ${services.length} services');
+        return services;
+      } else {
+        _logger.e('Failed to fetch services: ${response.statusCode}');
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          error: 'Failed to fetch services',
+        );
+      }
     } on DioException catch (e) {
-      throw _handleError(e);
+      _logger.e('DioException while fetching services: ${e.message}');
+      rethrow;
+    } catch (e) {
+      _logger.e('Unexpected error while fetching services: $e');
+      throw Exception('Failed to fetch services: $e');
     }
-  }
-
-  Exception _handleError(DioException error) {
-    if (error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.receiveTimeout ||
-        error.type == DioExceptionType.sendTimeout) {
-      return NetworkException('Connection timeout. Please try again.');
-    }
-
-    if (error.type == DioExceptionType.connectionError) {
-      return NetworkException();
-    }
-
-    if (error.response != null) {
-      final statusCode = error.response!.statusCode;
-      final data = error.response!.data;
-
-      String message = 'An error occurred. Please try again.';
-      if (data is Map<String, dynamic>) {
-        message = data['detail'] as String? ??
-            data['message'] as String? ??
-            message;
-      }
-
-      if (statusCode == 401) {
-        return UnauthorizedException(message);
-      }
-
-      return ApiException(message, statusCode);
-    }
-
-    return NetworkException();
   }
 }

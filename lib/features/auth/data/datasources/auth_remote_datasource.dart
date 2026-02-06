@@ -167,6 +167,7 @@ class AuthRemoteDataSource {
   }
 
   Exception _handleError(DioException error) {
+    // print('DioException caught: ${error.error}, ${error.message}, type: ${error.type}, response: ${error.response?.data}');
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
         error.type == DioExceptionType.sendTimeout) {
@@ -177,15 +178,29 @@ class AuthRemoteDataSource {
       return NetworkException();
     }
 
+    // If we have a response from the server (e.g., 400, 401, 429, 500 errors)
     if (error.response != null) {
       final statusCode = error.response!.statusCode;
       final data = error.response!.data;
 
       String message = 'An error occurred. Please try again.';
-      if (data is Map<String, dynamic>) {
-        message = data['detail'] as String? ??
-            data['message'] as String? ??
-            message;
+
+      if (data is String) {
+        message = data;
+      } else if (data is Map<String, dynamic>) {
+        // Check if detail is a List (validation errors from FastAPI/Pydantic)
+        if (data['detail'] is List && (data['detail'] as List).isNotEmpty) {
+          final firstError = (data['detail'] as List).first;
+          if (firstError is Map<String, dynamic> && firstError['msg'] != null) {
+            message = firstError['msg'] as String;
+          }
+        } else {
+          // Standard error message handling
+          message = data['message'] as String? ??
+              data['detail'] as String? ??
+              data['error'] as String? ??
+              message;
+        }
       }
 
       if (statusCode == 401) {
@@ -193,6 +208,27 @@ class AuthRemoteDataSource {
       }
 
       return ApiException(message, statusCode);
+    }
+
+    // If we have an error but no response (e.g., parsing error, unknown error)
+    if (error.error != null) {
+      final data = error.error;
+
+      if (data is String) {
+        return ApiException(data);
+      }
+
+      String message = 'An error occurred. Please try again.';
+      if (data is Map<String, dynamic>) {
+        message = data['detail'] as String? ??
+            data['message'] as String? ??
+            message;
+      } else {
+        // For other types (exceptions, objects), convert to string
+        message = data.toString();
+      }
+
+      return ApiException(message);
     }
 
     return NetworkException();

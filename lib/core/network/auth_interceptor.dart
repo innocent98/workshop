@@ -21,10 +21,20 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
       _tokenStorage.deleteToken();
+
+      // Extract error message from response
+      String errorMessage = 'Unauthorized. Please login again.';
+      if (err.response?.data is Map<String, dynamic>) {
+        final data = err.response!.data as Map<String, dynamic>;
+        errorMessage = data['detail'] as String? ??
+            data['message'] as String? ??
+            errorMessage;
+      }
+
       handler.reject(
         DioException(
           requestOptions: err.requestOptions,
-          error: UnauthorizedException(),
+          error: UnauthorizedException(errorMessage),
         ),
       );
     } else {

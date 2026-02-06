@@ -57,12 +57,16 @@ class _PersonalInformationPageState extends ConsumerState<PersonalInformationPag
         }
       } catch (e) {
         if (mounted) {
-          String message = 'An error occurred. Please try again.';
+          String message = 'Something went wrong. Please try again.';
           if (e is ApiException) {
             message = e.message;
           } else if (e is NetworkException) {
             message = e.message;
+          } else if (e is UnauthorizedException) {
+            message = e.message;
           }
+
+          debugPrint('Save personal information error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

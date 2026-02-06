@@ -799,7 +799,11 @@ Services are matched by **exact name** (case-sensitive), so the frontend MUST us
 Authorization: Bearer {access_token}
 ```
 
-### 1. Customer Profile
+---
+
+### Customer Profile Endpoints
+
+Available to all authenticated users (both customers and artisans can access their basic profile).
 
 #### Get My Customer Profile
 
@@ -815,7 +819,7 @@ Authorization: Bearer {access_token}
   "full_name": "Jane Smith",
   "email": "jane@example.com",
   "phone_number": "08012345678",
-  "profile_picture_url": "/static/profile_pictures/123e4567_a1b2c3d4.jpg",
+  "profile_picture_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/profile_pictures/123e4567_a1b2c3d4.jpg",
   "bio": "Looking for reliable artisans",
   "is_email_verified": true,
   "is_active": true,
@@ -823,9 +827,19 @@ Authorization: Bearer {access_token}
 }
 ```
 
+**Field Descriptions:**
+- `id`: User UUID (string)
+- `full_name`: User's full name (string)
+- `email`: User's email address (string)
+- `phone_number`: User's phone number (string)
+- `profile_picture_url`: Cloudinary image URL or null (string or null)
+- `bio`: User biography (string or null)
+- `is_email_verified`: Email verification status (boolean)
+- `is_active`: Account active status (boolean)
+- `created_at`: Account creation timestamp (ISO 8601 datetime string)
+
 **Error Responses:**
 - **401** - Unauthorized (invalid or missing token)
-- **403** - User account is inactive
 
 ---
 
@@ -857,7 +871,7 @@ Authorization: Bearer {access_token}
   "full_name": "Jane Smith Updated",
   "email": "jane@example.com",
   "phone_number": "08087654321",
-  "profile_picture_url": "/static/profile_pictures/123e4567_a1b2c3d4.jpg",
+  "profile_picture_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/profile_pictures/123e4567_a1b2c3d4.jpg",
   "bio": "Updated bio text",
   "is_email_verified": true,
   "is_active": true,
@@ -872,9 +886,11 @@ Authorization: Bearer {access_token}
 
 ---
 
-### 2. Artisan Profile
+### Artisan Profile Endpoints
 
-#### Get My Artisan Profile
+Only available to users with `user_type: "artisan"`.
+
+#### Get My Artisan Profile (Private)
 
 **Endpoint:** `GET /profiles/artisans/me`
 
@@ -890,13 +906,13 @@ Authorization: Bearer {access_token}
   "full_name": "John Doe",
   "email": "john@example.com",
   "phone_number": "08012345678",
-  "profile_picture_url": "/static/profile_pictures/123e4567_a1b2c3d4.jpg",
+  "profile_picture_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/profile_pictures/123e4567_a1b2c3d4.jpg",
   "bio": "Experienced plumber with 10 years",
   "user_type": "artisan",
   "location_address": "123 Main St, Lagos",
   "service_radius_km": 15.0,
-  "hourly_rate_min": 5000,
-  "hourly_rate_max": 15000,
+  "hourly_rate_min": "5000.00",
+  "hourly_rate_max": "15000.00",
   "years_of_experience": 10,
   "specialization": "Residential plumbing",
   "is_verified": true,
@@ -911,9 +927,34 @@ Authorization: Bearer {access_token}
 }
 ```
 
+**Field Descriptions:**
+- `id`: User UUID (string)
+- `full_name`: Artisan's full name (string)
+- `email`: Artisan's email address (string) - **Private field**
+- `phone_number`: Artisan's phone number (string) - **Private field**
+- `profile_picture_url`: Cloudinary image URL or null (string or null)
+- `bio`: Artisan biography (string or null)
+- `user_type`: User type (string: "artisan")
+- `location_address`: Human-readable address (string or null)
+- `service_radius_km`: Service radius in kilometers (float, default: 10.0)
+- `hourly_rate_min`: Minimum hourly rate in NGN (string decimal format like "5000.00" or null)
+- `hourly_rate_max`: Maximum hourly rate in NGN (string decimal format like "15000.00" or null)
+- `years_of_experience`: Years of experience (integer or null)
+- `specialization`: Area of specialization (string or null)
+- `is_verified`: Admin verification status (boolean)
+- `verified_at`: Verification timestamp (ISO 8601 datetime string or null)
+- `availability_status`: Current availability (string: "available", "busy", or "offline")
+- `average_rating`: Average rating (float, 0.0 to 5.0)
+- `total_ratings`: Number of ratings received (integer)
+- `total_jobs_completed`: Total completed jobs (integer)
+- `response_time_avg_minutes`: Average response time in minutes (integer or null)
+- `acceptance_rate`: Job acceptance rate (float, 0.0 to 1.0) - **Private field**
+- `created_at`: Account creation timestamp (ISO 8601 datetime string)
+
 **Implementation Notes:**
-- If artisan profile doesn't exist, it will be created automatically
-- Returns private view with all details including email
+- If artisan profile doesn't exist, it will be created automatically with default values
+- Returns private view with all details including email, phone_number, and acceptance_rate
+- `service_radius_km` defaults to 10.0 if not set
 
 **Error Responses:**
 - **401** - Unauthorized
@@ -960,19 +1001,20 @@ Authorization: Bearer {access_token}
 - `specialization`: Optional, string (max 200 characters)
 
 **Success Response (200):**
+Returns full artisan profile (same format as GET /profiles/artisans/me):
 ```json
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
   "full_name": "John Doe",
   "email": "john@example.com",
   "phone_number": "08012345678",
-  "profile_picture_url": "/static/profile_pictures/123e4567_a1b2c3d4.jpg",
+  "profile_picture_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/profile_pictures/123e4567_a1b2c3d4.jpg",
   "bio": "Experienced plumber with 10 years",
   "user_type": "artisan",
   "location_address": "123 Main St, Lagos",
   "service_radius_km": 15.0,
-  "hourly_rate_min": 5000,
-  "hourly_rate_max": 15000,
+  "hourly_rate_min": "5000.00",
+  "hourly_rate_max": "15000.00",
   "years_of_experience": 10,
   "specialization": "Residential plumbing",
   "is_verified": true,
@@ -1014,7 +1056,7 @@ Authorization: Bearer {access_token}
 - `availability_status`: Required, enum: `"available"`, `"busy"`, or `"offline"`
 
 **Success Response (200):**
-Returns full artisan profile (same as GET /profiles/artisans/me)
+Returns full artisan profile (same format as GET /profiles/artisans/me)
 
 **Error Responses:**
 - **403** - Only artisans can access this endpoint
@@ -1042,6 +1084,13 @@ Returns full artisan profile (same as GET /profiles/artisans/me)
 }
 ```
 
+**Field Descriptions:**
+- `average_rating`: Average rating (float, 0.0 to 5.0)
+- `total_ratings`: Number of ratings received (integer)
+- `total_jobs_completed`: Total completed jobs (integer)
+- `response_time_avg_minutes`: Average response time in minutes (integer or null)
+- `acceptance_rate`: Job acceptance rate (float, 0.0 to 1.0)
+
 **Implementation Notes:**
 - If no artisan profile exists, returns default stats (all zeros)
 
@@ -1064,12 +1113,12 @@ Returns full artisan profile (same as GET /profiles/artisans/me)
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
   "full_name": "John Doe",
-  "profile_picture_url": "/static/profile_pictures/123e4567_a1b2c3d4.jpg",
+  "profile_picture_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/profile_pictures/123e4567_a1b2c3d4.jpg",
   "bio": "Experienced plumber with 10 years",
   "location_address": "123 Main St, Lagos",
   "service_radius_km": 15.0,
-  "hourly_rate_min": 5000,
-  "hourly_rate_max": 15000,
+  "hourly_rate_min": "5000.00",
+  "hourly_rate_max": "15000.00",
   "years_of_experience": 10,
   "specialization": "Residential plumbing",
   "is_verified": true,
@@ -1081,9 +1130,18 @@ Returns full artisan profile (same as GET /profiles/artisans/me)
 }
 ```
 
+**Field Descriptions:**
+- All fields same as private profile, except:
+- **NO** `email` (private)
+- **NO** `phone_number` (private)
+- **NO** `user_type` (not needed)
+- **NO** `acceptance_rate` (private)
+- **NO** `verified_at` (not needed)
+- **NO** `created_at` (not needed)
+
 **Implementation Notes:**
-- Returns public view only (no email, phone number, or private details)
-- Email and sensitive information are excluded
+- Returns public view only - excludes email, phone number, acceptance_rate, and other sensitive/private details
+- Used when customers view artisan profiles during search
 
 **Error Responses:**
 - **400** - User is not an artisan
@@ -1092,7 +1150,9 @@ Returns full artisan profile (same as GET /profiles/artisans/me)
 
 ---
 
-### 3. Portfolio Management
+### Portfolio Management (Artisan Only)
+
+All portfolio endpoints are only available to artisans.
 
 #### Get My Portfolio
 
@@ -1109,7 +1169,7 @@ Returns full artisan profile (same as GET /profiles/artisans/me)
   {
     "id": 1,
     "artisan_id": "123e4567-e89b-12d3-a456-426614174000",
-    "image_url": "https://res.cloudinary.com/workchop/portfolio/image1.jpg",
+    "image_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/portfolio/image1.jpg",
     "title": "Bathroom Renovation",
     "description": "Complete bathroom renovation for residential client",
     "project_date": "2025-01-15T00:00:00Z",
@@ -1119,7 +1179,7 @@ Returns full artisan profile (same as GET /profiles/artisans/me)
   {
     "id": 2,
     "artisan_id": "123e4567-e89b-12d3-a456-426614174000",
-    "image_url": "https://res.cloudinary.com/workchop/portfolio/image2.jpg",
+    "image_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/portfolio/image2.jpg",
     "title": "Kitchen Plumbing",
     "description": "Installed new kitchen sink and fixtures",
     "project_date": null,
@@ -1129,9 +1189,19 @@ Returns full artisan profile (same as GET /profiles/artisans/me)
 ]
 ```
 
+**Field Descriptions:**
+- `id`: Portfolio item ID (integer)
+- `artisan_id`: Artisan's user UUID (string)
+- `image_url`: Cloudinary image URL (string, required)
+- `title`: Portfolio item title (string or null)
+- `description`: Portfolio item description (string or null)
+- `project_date`: Project completion date (ISO 8601 datetime string or null)
+- `display_order`: Display order for sorting (integer, default: 0)
+- `created_at`: Creation timestamp (ISO 8601 datetime string)
+
 **Implementation Notes:**
-- Returns empty array if no portfolio items
-- Sorted by display_order, then created_at (newest first)
+- Returns empty array `[]` if no portfolio items
+- Sorted by display_order (ascending), then created_at (descending/newest first)
 
 **Error Responses:**
 - **403** - Only artisans can access this endpoint
@@ -1168,14 +1238,14 @@ formData.append('display_order', '1');
 - Max size: 10MB (larger than profile pictures)
 - Formats: JPEG, PNG, GIF, WEBP
 - Image is automatically resized to max 1920x1920 pixels
-- Image is compressed and optimized
+- Image is compressed and optimized for web delivery
 
 **Success Response (201):**
 ```json
 {
   "id": 1,
   "artisan_id": "123e4567-e89b-12d3-a456-426614174000",
-  "image_url": "https://res.cloudinary.com/workchop/portfolio/image1.jpg",
+  "image_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/portfolio/image1.jpg",
   "title": "Bathroom Renovation",
   "description": "Complete bathroom renovation for residential client",
   "project_date": null,
@@ -1220,15 +1290,16 @@ formData.append('display_order', '1');
 - `display_order`: Optional, integer
 
 **Implementation Notes:**
-- This endpoint updates metadata only, not the image
+- This endpoint updates metadata only, **not the image**
 - To change the image, delete and create a new portfolio item
+- All fields are optional - only send fields you want to update
 
 **Success Response (200):**
 ```json
 {
   "id": 1,
   "artisan_id": "123e4567-e89b-12d3-a456-426614174000",
-  "image_url": "https://res.cloudinary.com/workchop/portfolio/image1.jpg",
+  "image_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/portfolio/image1.jpg",
   "title": "Updated Title",
   "description": "Updated description",
   "project_date": "2025-01-15T00:00:00Z",
@@ -1260,8 +1331,9 @@ formData.append('display_order', '1');
 No content returned
 
 **Implementation Notes:**
-- Deletes both the database record and the image from Cloudinary/storage
+- Deletes both the database record and the image from Cloudinary
 - Returns 204 No Content on success
+- This action is irreversible
 
 **Error Responses:**
 - **403** - Only artisans can access this endpoint
@@ -1285,7 +1357,7 @@ No content returned
   {
     "id": 1,
     "artisan_id": "123e4567-e89b-12d3-a456-426614174000",
-    "image_url": "https://res.cloudinary.com/workchop/portfolio/image1.jpg",
+    "image_url": "https://res.cloudinary.com/workchop/image/upload/v1234567890/portfolio/image1.jpg",
     "title": "Bathroom Renovation",
     "description": "Complete bathroom renovation for residential client",
     "project_date": "2025-01-15T00:00:00Z",
@@ -1296,8 +1368,9 @@ No content returned
 ```
 
 **Implementation Notes:**
-- Returns empty array if artisan has no portfolio items
-- Sorted by display_order, then created_at (newest first)
+- Returns empty array `[]` if artisan has no portfolio items
+- Sorted by display_order (ascending), then created_at (descending/newest first)
+- Same response format as private endpoint
 
 **Error Responses:**
 - **404** - Artisan not found
@@ -1318,23 +1391,23 @@ No content returned
 latitude (required): float, -90 to 90
 longitude (required): float, -180 to 180
 radius_km (optional): float, 0.1 to 100, default: 10.0
-category_id (optional): int
-service_ids (optional): string (comma-separated IDs, e.g., "1,2,3")
+category_id (optional): int - Filter by service category (currently services have no categories assigned)
+service_ids (optional): string - Comma-separated service IDs (e.g., "14,15,16")
 min_hourly_rate (optional): decimal, >= 0
 max_hourly_rate (optional): decimal, >= 0
 min_rating (optional): float, 0 to 5
 verified_only (optional): boolean, default: false
-availability_status (optional): string ("available", "busy", "offline")
+availability_status (optional): string - One of: "available", "busy", "offline"
 min_years_experience (optional): int, >= 0
-sort_by (optional): string, options: "distance", "rating", "price", "experience", "jobs_completed", "response_time", default: "distance"
-sort_order (optional): string, "asc" or "desc", default: "asc"
+sort_by (optional): string - One of: "distance", "rating", "price", "experience", "jobs_completed", "response_time", default: "distance"
+sort_order (optional): string - One of: "asc", "desc", default: "asc"
 page (optional): int, >= 1, default: 1
 page_size (optional): int, 1 to 100, default: 20
 ```
 
 **Example Request:**
 ```
-GET /search/artisans?latitude=6.5244&longitude=3.3792&radius_km=15&category_id=1&verified_only=true&min_rating=4.0&sort_by=rating&sort_order=desc&page=1&page_size=10
+GET /search/artisans?latitude=6.5244&longitude=3.3792&radius_km=15&service_ids=14,15&verified_only=true&min_rating=4.0&sort_by=rating&sort_order=desc&page=1&page_size=10
 ```
 
 **Success Response (200):**
@@ -1342,31 +1415,31 @@ GET /search/artisans?latitude=6.5244&longitude=3.3792&radius_km=15&category_id=1
 {
   "results": [
     {
-      "id": "123e4567-e89b-12d3-a456-426614174000",
-      "full_name": "John Smith",
-      "profile_picture": "https://cloudinary.com/profile.jpg",
-      "location_address": "123 Main St, Ikeja, Lagos",
-      "service_radius_km": 20.0,
-      "hourly_rate_min": 5000.00,
-      "hourly_rate_max": 15000.00,
+      "id": "0b4467de-2616-4c9f-bf0a-d4db849e26c9",
+      "full_name": "John Electrician",
+      "profile_picture": null,
+      "location_address": "Lagos, Nigeria",
+      "service_radius_km": 25.0,
+      "hourly_rate_min": "5000.00",
+      "hourly_rate_max": "10000.00",
       "years_of_experience": 8,
-      "specialization": "Commercial and residential plumbing",
+      "specialization": "Residential & Commercial Electrical Work",
       "is_verified": true,
       "availability_status": "available",
-      "average_rating": 4.7,
-      "total_ratings": 45,
-      "total_jobs_completed": 120,
-      "response_time_avg_minutes": 15,
-      "acceptance_rate": 0.85,
-      "distance_km": 2.34,
-      "services": ["Pipe Installation", "Leak Repair", "Water Heater"],
-      "portfolio_sample": "https://cloudinary.com/portfolio1.jpg"
+      "average_rating": 3.8,
+      "total_ratings": 26,
+      "total_jobs_completed": 94,
+      "response_time_avg_minutes": 81,
+      "acceptance_rate": 0.84,
+      "distance_km": 2.47,
+      "services": ["Electrician"],
+      "portfolio_sample": null
     }
   ],
-  "total": 25,
+  "total": 10,
   "page": 1,
   "page_size": 10,
-  "total_pages": 3,
+  "total_pages": 1,
   "search_location": {
     "latitude": 6.5244,
     "longitude": 3.3792
@@ -1374,7 +1447,7 @@ GET /search/artisans?latitude=6.5244&longitude=3.3792&radius_km=15&category_id=1
   "filters_applied": {
     "radius_km": 15.0,
     "verified_only": true,
-    "category_id": 1,
+    "service_ids": [14, 15],
     "min_rating": 4.0
   }
 }
@@ -1383,29 +1456,30 @@ GET /search/artisans?latitude=6.5244&longitude=3.3792&radius_km=15&category_id=1
 **Response Fields:**
 - `results`: Array of artisan search results
   - `id`: Artisan user ID (UUID string)
-  - `full_name`: Artisan's full name
+  - `full_name`: Artisan's full name (string)
   - `profile_picture`: URL to profile image or null
-  - `location_address`: Human-readable address
-  - `service_radius_km`: How far the artisan is willing to travel
-  - `hourly_rate_min/max`: Rate range in NGN (can be null)
-  - `years_of_experience`: Years of experience (can be null)
-  - `specialization`: Artisan's area of specialization
-  - `is_verified`: Whether artisan is verified
-  - `availability_status`: Current availability
-  - `average_rating`: Average rating (0.0 to 5.0)
-  - `total_ratings`: Number of ratings received
-  - `total_jobs_completed`: Total completed jobs
-  - `response_time_avg_minutes`: Average response time in minutes
-  - `acceptance_rate`: Job acceptance rate (0.0 to 1.0)
-  - `distance_km`: Distance from search location in kilometers
-  - `services`: Array of service names offered by artisan
+  - `location_address`: Human-readable address (string or null)
+  - `service_radius_km`: How far the artisan is willing to travel (float)
+  - `hourly_rate_min`: Minimum hourly rate in NGN (string in decimal format like "5000.00" or null)
+  - `hourly_rate_max`: Maximum hourly rate in NGN (string in decimal format like "10000.00" or null)
+  - `years_of_experience`: Years of experience (integer or null)
+  - `specialization`: Artisan's area of specialization (string or null)
+  - `is_verified`: Whether artisan is verified (boolean)
+  - `availability_status`: Current availability (string: "available", "busy", or "offline")
+  - `average_rating`: Average rating (float, 0.0 to 5.0)
+  - `total_ratings`: Number of ratings received (integer)
+  - `total_jobs_completed`: Total completed jobs (integer)
+  - `response_time_avg_minutes`: Average response time in minutes (integer or null)
+  - `acceptance_rate`: Job acceptance rate (float, 0.0 to 1.0)
+  - `distance_km`: Distance from search location in kilometers (float, rounded to 2 decimals)
+  - `services`: Array of service names offered by artisan (array of strings)
   - `portfolio_sample`: URL to one portfolio image or null
-- `total`: Total number of results matching criteria
-- `page`: Current page number
-- `page_size`: Number of results per page
-- `total_pages`: Total number of pages
-- `search_location`: The coordinates used for search
-- `filters_applied`: Summary of filters used in the search
+- `total`: Total number of results matching criteria (integer)
+- `page`: Current page number (integer)
+- `page_size`: Number of results per page (integer)
+- `total_pages`: Total number of pages (integer)
+- `search_location`: The coordinates used for search (object with latitude and longitude)
+- `filters_applied`: Summary of filters used in the search (object with applied filter keys and values)
 
 **Implementation Notes:**
 - Uses PostGIS ST_DWithin for efficient spatial queries
@@ -1415,6 +1489,8 @@ GET /search/artisans?latitude=6.5244&longitude=3.3792&radius_km=15&category_id=1
 - Price filtering considers both min and max hourly rates (shows artisan if rate range overlaps filter)
 - Sorting by "price" uses hourly_rate_min
 - Pagination starts at page 1
+- **Data Types:** Decimal fields (hourly rates) are returned as strings (e.g., "5000.00") not numbers
+- The `service_ids` parameter accepts a comma-separated string of IDs (e.g., "14,15"), which is parsed and returned as an array in filters_applied
 
 **Error Responses:**
 - **400** - Invalid query parameters (e.g., latitude out of range)
@@ -1433,6 +1509,8 @@ GET /search/artisans?latitude=6.5244&longitude=3.3792&radius_km=15&category_id=1
 
 **Description:** Get aggregated statistics about service availability in a specific location. Shows which services are available, how many artisans offer each service, and average rates and ratings.
 
+**IMPORTANT LIMITATION:** This endpoint currently requires services to have a category assigned. Since all services in the current database have `category_id = null`, this endpoint will return an empty array `[]` until service categories are properly configured.
+
 **Query Parameters:**
 ```
 latitude (required): float, -90 to 90
@@ -1443,10 +1521,15 @@ category_id (optional): int
 
 **Example Request:**
 ```
-GET /search/services/availability?latitude=6.5244&longitude=3.3792&radius_km=20&category_id=1
+GET /search/services/availability?latitude=6.5244&longitude=3.3792&radius_km=20
 ```
 
 **Success Response (200):**
+```json
+[]
+```
+
+**Note:** Currently returns empty array because services don't have categories assigned. Once categories are configured, the response format will be:
 ```json
 [
   {
@@ -1455,39 +1538,30 @@ GET /search/services/availability?latitude=6.5244&longitude=3.3792&radius_km=20&
     "category_id": 1,
     "category_name": "Plumbing",
     "artisans_available": 12,
-    "average_hourly_rate": 8500.50,
+    "average_hourly_rate": "8500.50",
     "average_rating": 4.3,
     "closest_artisan_distance_km": 1.25
-  },
-  {
-    "service_id": 2,
-    "service_name": "Leak Repair",
-    "category_id": 1,
-    "category_name": "Plumbing",
-    "artisans_available": 15,
-    "average_hourly_rate": 7000.00,
-    "average_rating": 4.5,
-    "closest_artisan_distance_km": 0.85
   }
 ]
 ```
 
-**Response Fields:**
-- `service_id`: Service ID
-- `service_name`: Name of the service
-- `category_id`: Category ID
-- `category_name`: Category name
-- `artisans_available`: Number of available artisans offering this service
-- `average_hourly_rate`: Average hourly rate for this service (can be null)
-- `average_rating`: Average rating of artisans offering this service (can be null)
-- `closest_artisan_distance_km`: Distance to the closest artisan offering this service
+**Response Fields (when categories are configured):**
+- `service_id`: Service ID (integer)
+- `service_name`: Name of the service (string)
+- `category_id`: Category ID (integer)
+- `category_name`: Category name (string)
+- `artisans_available`: Number of available artisans offering this service (integer)
+- `average_hourly_rate`: Average hourly rate for this service (string in decimal format like "8500.50" or null)
+- `average_rating`: Average rating of artisans offering this service (float or null, rounded to 1 decimal)
+- `closest_artisan_distance_km`: Distance to the closest artisan offering this service (float or null, rounded to 2 decimals)
 
 **Implementation Notes:**
 - Only counts artisans with availability_status = "available"
-- Only includes active services
+- Requires services to have category_id assigned (INNER JOIN with service_categories table)
 - Results are grouped by service and ordered by category name, then service name
 - Statistics are calculated only for artisans within the specified radius
 - If no artisans are available for a service, it won't appear in results
+- **Currently non-functional** due to missing service categories in database
 
 **Error Responses:**
 - **400** - Invalid query parameters
@@ -1510,39 +1584,41 @@ radius_km (optional): float, 0.1 to 100, default: 10.0
 
 **Example Request:**
 ```
-GET /search/artisans/nearby/summary?latitude=6.5244&longitude=3.3792&radius_km=25
+GET /search/artisans/nearby/summary?latitude=6.5244&longitude=3.3792&radius_km=50
 ```
 
 **Success Response (200):**
 ```json
 {
-  "total_artisans": 47,
-  "total_verified": 32,
-  "total_available": 38,
-  "services_offered": 28,
+  "total_artisans": 10,
+  "total_verified": 5,
+  "total_available": 10,
+  "services_offered": 10,
   "average_rating": 4.4,
   "distance_range_km": {
-    "min": 0.35,
-    "max": 24.87
+    "min": 2.47,
+    "max": 4.56
   }
 }
 ```
 
 **Response Fields:**
-- `total_artisans`: Total number of artisans in the area
-- `total_verified`: Number of verified artisans
-- `total_available`: Number of currently available artisans
-- `services_offered`: Total number of unique services offered
-- `average_rating`: Average rating across all artisans
-- `distance_range_km`: Distance range of artisans found
-  - `min`: Distance to the closest artisan
-  - `max`: Distance to the farthest artisan (within radius)
+- `total_artisans`: Total number of artisans in the area (integer)
+- `total_verified`: Number of verified artisans (integer)
+- `total_available`: Number of currently available artisans (integer, where availability_status = "available")
+- `services_offered`: Total number of unique services offered by all artisans in the area (integer)
+- `average_rating`: Average rating across all artisans (float, rounded to 1 decimal, defaults to 0.0 if no artisans)
+- `distance_range_km`: Distance range of artisans found (object)
+  - `min`: Distance to the closest artisan (float, rounded to 2 decimals, defaults to 0.0 if no artisans)
+  - `max`: Distance to the farthest artisan within radius (float, rounded to 2 decimals, defaults to 0.0 if no artisans)
 
 **Implementation Notes:**
 - Useful for showing availability indicators before performing detailed search
 - Can be used to determine if it's worth expanding search radius
-- All statistics exclude inactive users
+- All statistics exclude inactive users (is_active = false)
 - Average rating is calculated across all artisans, not weighted by number of ratings
+- Only counts artisans with location data set (location IS NOT NULL)
+- Services count includes all unique services offered by artisans in the area
 
 **Error Responses:**
 - **400** - Invalid query parameters
@@ -1552,16 +1628,28 @@ GET /search/artisans/nearby/summary?latitude=6.5244&longitude=3.3792&radius_km=2
 
 ## Additional Notes for Frontend Implementation
 
-8. **Authentication:** Profile and portfolio endpoints require JWT Bearer token (search endpoints are public)
-9. **Availability Status:** Valid values are `"available"`, `"busy"`, `"offline"`
-10. **Location:** When updating location, both latitude and longitude are required together
-11. **Portfolio Images:** Portfolio images support larger file sizes (10MB vs 5MB for profiles)
-12. **Image Dimensions:** Portfolio images are resized to max 1920x1920, profiles to 1080x1080
-13. **Public vs Private:** Artisan public profiles exclude email and phone number for privacy
-14. **Search Radius:** Default search radius is 10km, maximum is 100km
-15. **Coordinates:** Nigeria's approximate coordinates: Lagos (6.5244, 3.3792), Abuja (9.0765, 7.3986), Port Harcourt (4.8156, 7.0498)
-16. **Distance Calculation:** All distances use PostGIS ST_Distance on WGS84 geography for accurate results
-17. **Search Performance:** Location-based searches are optimized with spatial indexes for fast queries
+### Profile & Portfolio Module
+
+1. **Authentication:** Profile and portfolio endpoints require JWT Bearer token (search endpoints are public)
+2. **User Types:** Customer profile endpoints are available to all users; artisan profile endpoints only to artisans
+3. **Public vs Private Profiles:** Artisan public profiles exclude: email, phone_number, acceptance_rate, verified_at, created_at, and user_type
+4. **Image URLs:** Profile and portfolio images are hosted on Cloudinary with URLs like `https://res.cloudinary.com/workchop/image/upload/...` (can also be `null`)
+5. **Availability Status:** Valid values are `"available"`, `"busy"`, `"offline"`
+6. **Location:** When updating artisan location, both latitude and longitude are required together
+7. **Portfolio Images:** Portfolio images support larger file sizes (10MB vs 5MB for profiles)
+8. **Image Dimensions:** Portfolio images are resized to max 1920x1920, profiles to 1080x1080
+9. **Decimal Values:** Hourly rates (hourly_rate_min, hourly_rate_max) are returned as strings in JSON (e.g., "5000.00" not 5000). Parse them as numbers in your frontend code.
+10. **Service Radius Default:** The `service_radius_km` field defaults to 10.0 if not set by the artisan
+
+### Search Module
+
+11. **Search Radius:** Default search radius is 10km, maximum is 100km
+12. **Coordinates:** Nigeria's approximate coordinates: Lagos (6.5244, 3.3792), Abuja (9.0765, 7.3986), Port Harcourt (4.8156, 7.0498)
+13. **Distance Calculation:** All distances use PostGIS ST_Distance on WGS84 geography for accurate results
+14. **Search Performance:** Location-based searches are optimized with spatial indexes for fast queries
+15. **Decimal Values in Search:** All decimal/money fields (hourly rates, average rates) are returned as strings in JSON (e.g., "5000.00" not 5000.00). Parse them as numbers in your frontend code.
+16. **Service IDs Filter:** When using `service_ids` parameter, pass as comma-separated string (e.g., "14,15,16"), not as an array
+17. **Service Categories:** The `/search/services/availability` endpoint is currently non-functional because services don't have categories assigned. It will return an empty array until service categories are configured in the database.
 
 ---
 
@@ -1575,5 +1663,5 @@ GET /search/artisans/nearby/summary?latitude=6.5244&longitude=3.3792&radius_km=2
 
 ---
 
-**Last Updated:** 2026-01-21
+**Last Updated:** 2026-01-31
 **API Version:** v1

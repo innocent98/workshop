@@ -12,6 +12,7 @@ import '../../../../core/widgets/indicators/step_progress_indicator.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/providers/registration_provider.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/location_provider.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/image_compressor.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
@@ -163,6 +164,16 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
 
       ref.read(registrationProvider.notifier).clearRegistration();
 
+      // Request location permission for clients (non-blocking)
+      if (widget.userType == UserType.client) {
+        try {
+          await ref.read(locationProvider.notifier).requestPermission();
+        } catch (locationError) {
+          // Log but don't block registration - location is optional
+          debugPrint('Location permission request failed: $locationError');
+        }
+      }
+
       if (mounted) {
         final homePath = widget.userType == UserType.artisan
             ? AppRoutes.artisanHome
@@ -171,14 +182,18 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
       }
     } catch (e) {
       if (mounted) {
-        String message = 'An error occurred. Please try again.';
+        String message = 'Something went wrong. Please try again.';
         if (e is ApiException) {
           message = e.message;
         } else if (e is NetworkException) {
           message = e.message;
+        } else if (e is UnauthorizedException) {
+          message = e.message;
         } else if (e is Exception) {
           message = e.toString().replaceAll('Exception: ', '');
         }
+
+        debugPrint('Profile picture completion error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

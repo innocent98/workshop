@@ -62,12 +62,16 @@ class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
       }
     } catch (e) {
       if (mounted) {
-        String message = 'An error occurred. Please try again.';
+        String message = 'Something went wrong. Please try again.';
         if (e is ApiException) {
           message = e.message;
         } else if (e is NetworkException) {
           message = e.message;
+        } else if (e is UnauthorizedException) {
+          message = e.message;
         }
+
+        debugPrint('Save services error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -179,7 +183,7 @@ class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
                         itemBuilder: (context, index) {
                           final service = services[index];
                           final serviceName = service.name;
-                          final imageUrl = service.image;
+                          final imageUrl = service.imageUrl;
 
                           return ServiceCard(
                             imagePath: imageUrl ?? '',

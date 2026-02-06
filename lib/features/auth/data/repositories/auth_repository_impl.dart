@@ -121,11 +121,13 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String resetToken,
     required String newPassword,
+    required String confirmPassword,
   }) async {
     final request = ResetPasswordRequest(
       email: email,
       resetToken: resetToken,
       newPassword: newPassword,
+      confirmPassword: confirmPassword,
     );
     return await _remoteDataSource.resetPassword(request);
   }

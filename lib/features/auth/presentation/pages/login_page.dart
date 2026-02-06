@@ -8,6 +8,7 @@ import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/location_provider.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/models/user.dart';
 
@@ -44,6 +45,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
         final user = ref.read(authProvider);
         if (mounted && user != null) {
+          // Request location permission for clients (non-blocking)
+          if (user.role == UserRole.client) {
+            try {
+              final hasRequested = await ref.read(locationProvider.notifier).hasRequestedPermissionBefore();
+              if (!hasRequested) {
+                await ref.read(locationProvider.notifier).requestPermission();
+              }
+            } catch (locationError) {
+              // Log but don't block login - location is optional
+              debugPrint('Location permission request failed: $locationError');
+            }
+          }
+
           if (user.role == UserRole.artisan) {
             context.go(AppRoutes.artisanHome);
           } else {
@@ -52,12 +66,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
       } catch (e) {
         if (mounted) {
-          String message = 'Invalid email or password';
+          String message = 'Login failed. Please try again.';
           if (e is ApiException) {
             message = e.message;
           } else if (e is NetworkException) {
             message = e.message;
+          } else if (e is UnauthorizedException) {
+            message = e.message;
           }
+
+          debugPrint('Login error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

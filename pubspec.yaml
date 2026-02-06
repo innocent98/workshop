@@ -49,6 +49,7 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   image: ^4.1.7
   http_parser: ^4.0.2
+  geolocator: ^11.0.0
 
 dev_dependencies:
   flutter_test:

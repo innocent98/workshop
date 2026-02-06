@@ -42,12 +42,16 @@ class _ForgotPasswordEmailPageState extends ConsumerState<ForgotPasswordEmailPag
         }
       } catch (e) {
         if (mounted) {
-          String message = 'Failed to send reset code. Please try again.';
+          String message = 'Something went wrong. Please try again.';
           if (e is ApiException) {
             message = e.message;
           } else if (e is NetworkException) {
             message = e.message;
+          } else if (e is UnauthorizedException) {
+            message = e.message;
           }
+
+          debugPrint('Send reset code error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

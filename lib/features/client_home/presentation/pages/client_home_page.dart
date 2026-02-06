@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -10,15 +11,17 @@ import '../../data/mock_data.dart';
 import '../widgets/service_category_chip.dart';
 import '../widgets/artisan_card.dart';
 import '../widgets/nearby_store_card.dart';
+import '../../../services/presentation/providers/services_provider.dart';
+import '../../../search/presentation/providers/nearby_artisans_provider.dart';
 
-class ClientHomePage extends StatefulWidget {
+class ClientHomePage extends ConsumerStatefulWidget {
   const ClientHomePage({super.key});
 
   @override
-  State<ClientHomePage> createState() => _ClientHomePageState();
+  ConsumerState<ClientHomePage> createState() => _ClientHomePageState();
 }
 
-class _ClientHomePageState extends State<ClientHomePage> {
+class _ClientHomePageState extends ConsumerState<ClientHomePage> {
   void _onSearchTap() {
     context.push(AppRoutes.serviceCategories);
   }
@@ -33,11 +36,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
   void _onBookServiceTap() {
     // TODO: Navigate to book service page
-  }
-
-  void _onCategoryTap(String categoryName) {
-    // Navigate directly to search result with category
-    context.push('${AppRoutes.searchResult}?query=$categoryName');
   }
 
   @override
@@ -186,22 +184,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     SizedBox(height: AppSizes.spacing + 4.h),
 
                     // Service Categories (Horizontal Scroll)
-                    SizedBox(
-                      height: 44.h,
-                      child: ListView.separated(
-                        padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: MockData.featuredServiceCategories.length,
-                        separatorBuilder: (context, index) => SizedBox(width: AppSizes.spacingSmall),
-                        itemBuilder: (context, index) {
-                          final category = MockData.featuredServiceCategories[index];
-                          return ServiceCategoryChip(
-                            category: category,
-                            onTap: () => _onCategoryTap(category.name),
-                          );
-                        },
-                      ),
-                    ),
+                    _buildServiceCategories(),
                     SizedBox(height: AppSizes.spacing + 4.h),
 
                     // Book Service Button
@@ -242,23 +225,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     SizedBox(height: AppSizes.spacing),
 
                     // Artisans Horizontal List
-                    SizedBox(
-                      height: 270.h,
-                      child: ListView.builder(
-                        padding: EdgeInsets.only(left: AppSizes.spacing),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: MockData.nearbyArtisans.length,
-                        itemBuilder: (context, index) {
-                          final artisan = MockData.nearbyArtisans[index];
-                          return ArtisanCard(
-                            artisan: artisan,
-                            onTap: () {
-                              context.push(AppRoutes.artisanProfile, extra: artisan);
-                            },
-                          );
-                        },
-                      ),
-                    ),
+                    _buildNearbyArtisans(),
                     SizedBox(height: AppSizes.spacingLarge + 8.h),
 
                     // Nearby Stores Section
@@ -306,5 +273,193 @@ class _ClientHomePageState extends State<ClientHomePage> {
         ),
       ),
     );
+  }
+
+  Widget _buildServiceCategories() {
+    final servicesAsync = ref.watch(servicesProvider);
+
+    return servicesAsync.when(
+      data: (services) {
+        if (services.isEmpty) {
+          return SizedBox(
+            height: 44.h,
+            child: Center(
+              child: BodyText(
+                'No services available',
+                size: BodySize.small,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 44.h,
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+            scrollDirection: Axis.horizontal,
+            itemCount: services.length,
+            separatorBuilder: (context, index) => SizedBox(width: AppSizes.spacingSmall),
+            itemBuilder: (context, index) {
+              final service = services[index];
+              return ServiceCategoryChip(
+                service: service,
+                onTap: () => _onCategoryTap(service.name),
+              );
+            },
+          ),
+        );
+      },
+      loading: () => SizedBox(
+        height: 44.h,
+        child: Center(
+          child: SizedBox(
+            width: 20.r,
+            height: 20.r,
+            child: const CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+      error: (error, stack) => SizedBox(
+        height: 44.h,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 16.r,
+                color: Colors.red,
+              ),
+              SizedBox(width: 8.w),
+              BodyText(
+                'Failed to load services',
+                size: BodySize.small,
+                color: Colors.red,
+              ),
+              SizedBox(width: 8.w),
+              TextButton(
+                onPressed: () => ref.refresh(servicesProvider),
+                child: const BodyText(
+                  'Retry',
+                  size: BodySize.small,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNearbyArtisans() {
+    final artisansAsync = ref.watch(nearbyArtisansProvider);
+
+    return artisansAsync.when(
+      data: (artisans) {
+        if (artisans.isEmpty) {
+          return SizedBox(
+            height: 270.h,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.person_search,
+                    size: 48.r,
+                    color: AppColors.textSecondary,
+                  ),
+                  SizedBox(height: 8.h),
+                  BodyText(
+                    'No verified artisans nearby',
+                    size: BodySize.medium,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 310.h, // Increased height for distance and rating info
+          child: ListView.builder(
+            padding: EdgeInsets.only(left: AppSizes.spacing),
+            scrollDirection: Axis.horizontal,
+            itemCount: artisans.length,
+            itemBuilder: (context, index) {
+              final artisan = artisans[index];
+              return ArtisanCard(
+                artisan: artisan,
+                onTap: () {
+                  context.push(AppRoutes.artisanProfile, extra: artisan);
+                },
+              );
+            },
+          ),
+        );
+      },
+      loading: () => SizedBox(
+        height: 270.h,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(strokeWidth: 2),
+              SizedBox(height: 8.h),
+              BodyText(
+                'Finding nearby artisans...',
+                size: BodySize.small,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+      error: (error, stack) => SizedBox(
+        height: 270.h,
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 48.r,
+                  color: Colors.red,
+                ),
+                SizedBox(height: 8.h),
+                BodyText(
+                  'Failed to load artisans',
+                  size: BodySize.medium,
+                  color: Colors.red,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 4.h),
+                BodyText(
+                  error.toString(),
+                  size: BodySize.small,
+                  color: AppColors.textSecondary,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                ),
+                SizedBox(height: 12.h),
+                PrimaryButton(
+                  label: 'Retry',
+                  onPressed: () => ref.refresh(nearbyArtisansProvider),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onCategoryTap(String categoryName) {
+    // Navigate directly to search result with category
+    context.push('${AppRoutes.searchResult}?query=$categoryName');
   }
 }

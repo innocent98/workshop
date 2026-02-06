@@ -9,7 +9,7 @@ class UserResponse {
   final String? profilePictureUrl;
   final String? bio;
   final List<String>? services;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   UserResponse({
     required this.id,
@@ -20,7 +20,7 @@ class UserResponse {
     this.profilePictureUrl,
     this.bio,
     this.services,
-    required this.createdAt,
+    this.createdAt,
   });
 
   factory UserResponse.fromJson(Map<String, dynamic> json) {
@@ -35,7 +35,9 @@ class UserResponse {
       services: json['services'] != null
           ? List<String>.from(json['services'] as List)
           : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
     );
   }
 

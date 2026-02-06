@@ -98,12 +98,16 @@ class _ForgotPasswordOtpPageState extends ConsumerState<ForgotPasswordOtpPage> {
       }
     } catch (e) {
       if (mounted) {
-        String message = 'Failed to resend code. Please try again.';
+        String message = 'Something went wrong. Please try again.';
         if (e is ApiException) {
           message = e.message;
         } else if (e is NetworkException) {
           message = e.message;
+        } else if (e is UnauthorizedException) {
+          message = e.message;
         }
+
+        debugPrint('Resend reset code error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -153,12 +157,16 @@ class _ForgotPasswordOtpPageState extends ConsumerState<ForgotPasswordOtpPage> {
         }
       } catch (e) {
         if (mounted) {
-          String message = 'Invalid or expired code. Please try again.';
+          String message = 'Something went wrong. Please try again.';
           if (e is ApiException) {
             message = e.message;
           } else if (e is NetworkException) {
             message = e.message;
+          } else if (e is UnauthorizedException) {
+            message = e.message;
           }
+
+          debugPrint('Verify reset code error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -178,7 +186,7 @@ class _ForgotPasswordOtpPageState extends ConsumerState<ForgotPasswordOtpPage> {
   @override
   Widget build(BuildContext context) {
     final isOtpComplete = _isOtpComplete();
-
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -271,7 +279,7 @@ class _ForgotPasswordOtpPageState extends ConsumerState<ForgotPasswordOtpPage> {
                           )
                         else
                           BodyText(
-                            '0:${_countdown.toString().padLeft(2, '0')}',
+                            '${(_countdown ~/ 60).toString().padLeft(2, '0')}:${(_countdown % 60).toString().padLeft(2, '0')}',
                             size: BodySize.medium,
                             color: const Color(0xFFE2725B), // Coral
                           ),

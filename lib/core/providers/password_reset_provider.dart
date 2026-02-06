@@ -50,7 +50,7 @@ class PasswordResetNotifier extends Notifier<PasswordResetState> {
     state = state.copyWith(resetToken: response.resetToken);
   }
 
-  Future<void> resetPassword(String newPassword) async {
+  Future<void> resetPassword(String newPassword, String confirmPassword) async {
     if (state.email == null || state.resetToken == null) {
       throw Exception('Reset token not found. Please verify the code first.');
     }
@@ -59,6 +59,7 @@ class PasswordResetNotifier extends Notifier<PasswordResetState> {
       email: state.email!,
       resetToken: state.resetToken!,
       newPassword: newPassword,
+      confirmPassword: confirmPassword,
     );
 
     state = PasswordResetState();

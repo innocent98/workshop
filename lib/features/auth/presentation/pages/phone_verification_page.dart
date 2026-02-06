@@ -49,12 +49,16 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
       await ref.read(registrationProvider.notifier).sendOtp();
     } catch (e) {
       if (mounted) {
-        String message = 'Failed to send OTP. Please try again.';
+        String message = 'Something went wrong. Please try again.';
         if (e is ApiException) {
           message = e.message;
         } else if (e is NetworkException) {
           message = e.message;
+        } else if (e is UnauthorizedException) {
+          message = e.message;
         }
+
+        debugPrint('Send OTP error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -107,12 +111,16 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
         }
       } catch (e) {
         if (mounted) {
-          String message = 'Invalid OTP. Please try again.';
+          String message = 'Something went wrong. Please try again.';
           if (e is ApiException) {
             message = e.message;
           } else if (e is NetworkException) {
             message = e.message;
+          } else if (e is UnauthorizedException) {
+            message = e.message;
           }
+
+          debugPrint('Verify OTP error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -145,12 +153,16 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
       }
     } catch (e) {
       if (mounted) {
-        String message = 'Failed to resend OTP. Please try again.';
+        String message = 'Something went wrong. Please try again.';
         if (e is ApiException) {
           message = e.message;
         } else if (e is NetworkException) {
           message = e.message;
+        } else if (e is UnauthorizedException) {
+          message = e.message;
         }
+
+        debugPrint('Resend OTP error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

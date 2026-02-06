@@ -1,3 +1,5 @@
+import '../../../search/data/models/artisan_search_model.dart';
+
 class Artisan {
   final String id;
   final String name;
@@ -7,6 +9,8 @@ class Artisan {
   final double rating;
   final int jobsCompleted;
   final bool isVerified;
+  final double? distanceKm;
+  final int? ratingsCount;
 
   const Artisan({
     required this.id,
@@ -17,5 +21,33 @@ class Artisan {
     this.rating = 0.0,
     this.jobsCompleted = 0,
     this.isVerified = false,
+    this.distanceKm,
+    this.ratingsCount,
   });
+
+  /// Create Artisan from ArtisanSearchModel (API response)
+  factory Artisan.fromSearchModel(ArtisanSearchModel model) {
+    final fullName = '${model.firstName ?? ''} ${model.lastName ?? ''}'.trim();
+    final serviceName = model.services?.isNotEmpty == true
+        ? model.services!.first.name
+        : 'Artisan';
+
+    // Use profile picture or first service image as avatar
+    final avatar = model.profilePictureUrl ??
+                   (model.services?.isNotEmpty == true ? model.services!.first.imageUrl : null) ??
+                   'assets/images/regular.jpg';
+
+    return Artisan(
+      id: model.id,
+      name: fullName.isNotEmpty ? fullName : 'Unknown',
+      service: serviceName,
+      imageUrl: model.portfolioUrl ?? avatar,
+      avatarUrl: avatar,
+      rating: model.averageRating ?? 0.0,
+      jobsCompleted: 0, // Not available in API
+      isVerified: model.isVerified,
+      distanceKm: model.distanceKm,
+      ratingsCount: model.ratingsCount,
+    );
+  }
 }

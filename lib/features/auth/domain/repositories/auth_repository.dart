@@ -56,5 +56,6 @@ abstract class AuthRepository {
     required String email,
     required String resetToken,
     required String newPassword,
+    required String confirmPassword,
   });
 }

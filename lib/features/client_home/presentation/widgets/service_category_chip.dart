@@ -3,15 +3,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
-import '../../domain/models/service_category.dart';
+import '../../../services/domain/models/service.dart';
 
 class ServiceCategoryChip extends StatelessWidget {
-  final ServiceCategory category;
+  final Service service;
   final VoidCallback? onTap;
 
   const ServiceCategoryChip({
     super.key,
-    required this.category,
+    required this.service,
     this.onTap,
   });
 
@@ -31,14 +31,11 @@ class ServiceCategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              category.icon,
-              size: AppSizes.iconSmall,
-              color: AppColors.textPrimary,
-            ),
+            // Service image from network or fallback icon
+            _buildServiceImage(),
             SizedBox(width: AppSizes.spacingSmall),
             BodyText(
-              category.name,
+              service.name,
               size: BodySize.small,
               fontWeight: FontWeight.w500,
               color: AppColors.textPrimary,
@@ -46,6 +43,52 @@ class ServiceCategoryChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildServiceImage() {
+    if (service.imageUrl != null && service.imageUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        child: Image.network(
+          service.imageUrl!,
+          width: AppSizes.iconSmall,
+          height: AppSizes.iconSmall,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            // Fallback to icon on error
+            return Icon(
+              Icons.category_outlined,
+              size: AppSizes.iconSmall,
+              color: AppColors.textPrimary,
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return SizedBox(
+              width: AppSizes.iconSmall,
+              height: AppSizes.iconSmall,
+              child: Center(
+                child: SizedBox(
+                  width: 12.r,
+                  height: 12.r,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    // Fallback icon if no image URL
+    return Icon(
+      Icons.category_outlined,
+      size: AppSizes.iconSmall,
+      color: AppColors.textPrimary,
     );
   }
 }
