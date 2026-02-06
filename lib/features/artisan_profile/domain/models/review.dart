@@ -5,6 +5,8 @@ class Review {
   final double rating;
   final String comment;
   final DateTime date;
+  final String? artisanResponse;
+  final DateTime createdAt;
 
   const Review({
     required this.id,
@@ -13,5 +15,7 @@ class Review {
     required this.rating,
     required this.comment,
     required this.date,
+    this.artisanResponse,
+    required this.createdAt,
   });
 }

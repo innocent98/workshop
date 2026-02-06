@@ -439,7 +439,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           currentPath == AppRoutes.phoneVerification ||
           currentPath == AppRoutes.serviceSelection ||
           currentPath == AppRoutes.profilePicture)) {
-        final user = ref.read(authProvider);
+        final authAsync = ref.read(authProvider);
+        final user = authAsync.value;
         if (user != null) {
           return user.role == UserRole.artisan
               ? AppRoutes.artisanHome

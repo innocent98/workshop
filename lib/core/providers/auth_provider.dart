@@ -7,26 +7,24 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import 'registration_provider.dart';
 
 /// Auth notifier that manages user authentication state
-class AuthNotifier extends Notifier<User?> {
+class AuthNotifier extends AsyncNotifier<User?> {
   static const String _userKey = 'user_data';
   final TokenStorageService _tokenStorage = TokenStorageService();
   late AuthRepository _repository;
 
   @override
-  User? build() {
+  Future<User?> build() async {
     _repository = ref.read(authRepositoryProvider);
-    // Initialize with null, then load from storage
-    _loadUser();
-    return null;
+    // Load user from storage on initialization
+    return await _loadUser();
   }
 
   /// Load user data from SharedPreferences
-  Future<void> _loadUser() async {
+  Future<User?> _loadUser() async {
     try {
       final hasToken = await _tokenStorage.hasToken();
       if (!hasToken) {
-        state = null;
-        return;
+        return null;
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -34,19 +32,22 @@ class AuthNotifier extends Notifier<User?> {
 
       if (userData != null) {
         final userJson = jsonDecode(userData) as Map<String, dynamic>;
-        state = User.fromJson(userJson);
+        return User.fromJson(userJson);
       } else {
         await logout();
+        return null;
       }
     } catch (e) {
       // If loading fails, clear invalid data
       await logout();
+      return null;
     }
   }
 
   /// Login user with email and password
   Future<void> login(String email, String password) async {
-    try {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
       final response = await _repository.login(
         email: email,
         password: password,
@@ -57,48 +58,52 @@ class AuthNotifier extends Notifier<User?> {
       final user = response.user.toUser();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(user.toJson()));
-      state = user;
-    } catch (e) {
-      rethrow;
+      return user;
+    });
+
+    // If there was an error, rethrow it
+    if (state.hasError) {
+      throw state.error!;
     }
   }
 
   /// Login with existing user data (for auto-login after registration)
   Future<void> loginWithUser(User user) async {
-    try {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(user.toJson()));
-      state = user;
-    } catch (e) {
-      rethrow;
+      return user;
+    });
+
+    if (state.hasError) {
+      throw state.error!;
     }
   }
 
   /// Logout user and clear storage
   Future<void> logout() async {
-    try {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
       await _tokenStorage.deleteToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
-      state = null;
-    } catch (e) {
-      // Handle error silently
-    }
+      return null;
+    });
   }
 
   /// Update user data
   Future<void> updateUser(User user) async {
-    try {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(user.toJson()));
-      state = user;
-    } catch (e) {
-      // Handle error silently
-    }
+      return user;
+    });
   }
 
   /// Check if user is logged in
-  bool get isLoggedIn => state != null;
+  bool get isLoggedIn => state.value != null;
 
   /// Check if user is authenticated (has valid token)
   Future<bool> get isAuthenticated async {
@@ -106,13 +111,13 @@ class AuthNotifier extends Notifier<User?> {
   }
 
   /// Check if user is an artisan
-  bool get isArtisan => state?.role == UserRole.artisan;
+  bool get isArtisan => state.value?.role == UserRole.artisan;
 
   /// Check if user is a client
-  bool get isClient => state?.role == UserRole.client;
+  bool get isClient => state.value?.role == UserRole.client;
 }
 
 /// Provider instance
-final authProvider = NotifierProvider<AuthNotifier, User?>(
+final authProvider = AsyncNotifierProvider<AuthNotifier, User?>(
   AuthNotifier.new,
 );

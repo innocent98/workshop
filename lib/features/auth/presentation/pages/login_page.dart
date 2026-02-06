@@ -43,7 +43,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               _passwordController.text,
             );
 
-        final user = ref.read(authProvider);
+        final authAsync = ref.read(authProvider);
+        final user = authAsync.value;
         if (mounted && user != null) {
           // Request location permission for clients (non-blocking)
           if (user.role == UserRole.client) {
@@ -57,6 +58,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               debugPrint('Location permission request failed: $locationError');
             }
           }
+
+          if (!mounted) return;
 
           if (user.role == UserRole.artisan) {
             context.go(AppRoutes.artisanHome);

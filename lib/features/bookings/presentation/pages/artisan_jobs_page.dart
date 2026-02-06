@@ -25,22 +25,22 @@ class _ArtisanJobsPageState extends State<ArtisanJobsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        title: HeaderText(
-          'Your Jobs',
-          size: HeaderSize.h4,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+      // appBar: AppBar(
+      //   backgroundColor: Colors.white,
+      //   elevation: 0,
+      //   centerTitle: false,
+      //   title: HeaderText(
+      //     'Your Jobs',
+      //     size: HeaderSize.h4,
+      //     fontWeight: FontWeight.w500,
+      //   ),
+      // ),
       body: SafeArea(
         child: Column(
           children: [
             // Main Tab Switcher
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               child: Container(
                 padding: EdgeInsets.all(4.r),
                 decoration: BoxDecoration(

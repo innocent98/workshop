@@ -1,23 +1,34 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/models/user.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
+import '../../../artisan_profile/domain/models/artisan_profile.dart';
+import '../../../artisan_profile/domain/models/wallet_balance.dart';
+import '../../../artisan_profile/presentation/providers/artisan_profile_provider.dart';
+import '../../../artisan_profile/presentation/providers/artisan_wallet_provider.dart';
+import '../../../client_profile/domain/models/client_profile.dart';
+import '../../../client_profile/presentation/providers/client_profile_provider.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends ConsumerState<ProfilePage> {
   File? _image;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
-    final XFile? selectedImage = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? selectedImage =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (selectedImage != null) {
       setState(() {
         _image = File(selectedImage.path);
@@ -27,132 +38,317 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final authAsync = ref.watch(authProvider);
+
+    return authAsync.when(
+      data: (user) {
+        if (user == null) {
+          return _buildErrorState('User not logged in', () {
+            ref.invalidate(authProvider);
+          });
+        }
+
+        return user.role == UserRole.artisan
+            ? _buildArtisanProfile()
+            : _buildClientProfile();
+      },
+      loading: () => _buildLoadingSkeleton(),
+      error: (error, stack) => _buildErrorState(
+        'Failed to load user',
+        () => ref.invalidate(authProvider),
+      ),
+    );
+  }
+
+  Widget _buildArtisanProfile() {
+    final profileAsync = ref.watch(artisanProfileProvider);
+    final walletAsync = ref.watch(artisanWalletProvider);
+    final authAsync = ref.watch(authProvider);
+
+    return profileAsync.when(
+      data: (profile) => walletAsync.when(
+        data: (wallet) => _buildArtisanContent(
+          profile,
+          wallet,
+          authAsync.value?.email,
+          authAsync.value?.phoneNumber,
+        ),
+        loading: () => _buildArtisanContent(
+          profile,
+          null,
+          authAsync.value?.email,
+          authAsync.value?.phoneNumber,
+        ),
+        error: (error, stack) => _buildArtisanContent(
+          profile,
+          null,
+          authAsync.value?.email,
+          authAsync.value?.phoneNumber,
+        ),
+      ),
+      loading: () => _buildLoadingSkeleton(),
+      error: (error, stack) => _buildErrorState(
+        'Failed to load profile',
+        () => ref.invalidate(artisanProfileProvider),
+      ),
+    );
+  }
+
+  Widget _buildClientProfile() {
+    final profileAsync = ref.watch(clientProfileProvider);
+
+    return profileAsync.when(
+      data: (profile) => _buildClientContent(profile),
+      loading: () => _buildLoadingSkeleton(),
+      error: (error, stack) => _buildErrorState(
+        'Failed to load profile',
+        () => ref.invalidate(clientProfileProvider),
+      ),
+    );
+  }
+
+  Widget _buildArtisanContent(
+    ArtisanProfile profile,
+    WalletBalance? wallet,
+    String? email,
+    String? phoneNumber,
+  ) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: BodyText(
-          'Your Profile',
-          size: BodySize.large,
-          fontWeight: FontWeight.w500,
-        ),
-        centerTitle: false,
-      ),
+      appBar: _buildAppBar(),
       body: SingleChildScrollView(
         child: Column(
           children: [
             SizedBox(height: 20.h),
-            // Profile Header
-            Center(
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 2.r),
-                          ),
-                          child: CircleAvatar(
-                            radius: 50.r,
-                            backgroundColor: const Color(0xFFF1F5F5),
-                            backgroundImage: _image != null
-                                ? FileImage(_image!)
-                                : const AssetImage('assets/images/regular.jpg') as ImageProvider,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: EdgeInsets.all(6.r),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 16.r,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  BodyText(
-                    'Paul Chibuikem',
-                    size: BodySize.large,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  SizedBox(height: 4.h),
-                  BodyText(
-                    'Plumber',
-                    size: BodySize.medium,
-                    color: AppColors.textSecondary,
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.location_on, size: 16.r, color: AppColors.primary),
-                      SizedBox(width: 4.w),
-                      BodyText(
-                        'San Francisco, CA',
-                        size: BodySize.small,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            _buildProfileHeader(
+              name: profile.fullName,
+              role: profile.skills?.isNotEmpty == true
+                  ? profile.skills!.first
+                  : 'Artisan',
+              location: profile.location ?? 'Not specified',
+              imageUrl: profile.profilePictureUrl,
             ),
             SizedBox(height: 32.h),
-
-            // Stats Cards
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Row(
-                children: [
-                  _buildStatCard('Completed Jobs', '120'),
-                  SizedBox(width: 12.w),
-                  _buildStatCard('Review', '4.9'),
-                  SizedBox(width: 12.w),
-                  _buildStatCard('Response Time', '1 hr'),
-                ],
-              ),
-            ),
+            _buildArtisanStats(profile, wallet),
             SizedBox(height: 32.h),
-
-            // Profile Sections
-            _buildSectionHeader('Account'),
-            _buildMenuItem('Job History', showDivider: true),
-            _buildMenuItem('Change Password'),
-
-            SizedBox(height: 24.h),
-            _buildSectionHeader('Contact Information'),
-            _buildMenuItem(
-              'Phone Number',
-              subtitle: '+234 708 372 2938',
-              showDivider: true,
+            _buildSections(
+              bio: profile.bio,
+              email: email ?? 'Not available',
+              phoneNumber: phoneNumber ?? 'Not available',
+              isArtisan: true,
             ),
-            _buildMenuItem(
-              'Email',
-              subtitle: 'sophia.carter@email.com',
-            ),
-
-            SizedBox(height: 24.h),
-            _buildSectionHeader('Payment Methods'),
-            _buildMenuItem('Bank Accounts'),
-            
-            SizedBox(height: 40.h),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildClientContent(ClientProfile profile) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _buildAppBar(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            SizedBox(height: 20.h),
+            _buildProfileHeader(
+              name: profile.fullName,
+              role: 'Client',
+              location: 'Location not available',
+              imageUrl: profile.profilePictureUrl,
+            ),
+            SizedBox(height: 32.h),
+            _buildClientStats(profile),
+            SizedBox(height: 32.h),
+            _buildSections(
+              bio: profile.bio,
+              email: profile.email,
+              phoneNumber: profile.phoneNumber,
+              isArtisan: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      title: BodyText(
+        'Your Profile',
+        size: BodySize.large,
+        fontWeight: FontWeight.w500,
+      ),
+      centerTitle: false,
+    );
+  }
+
+  Widget _buildProfileHeader({
+    required String name,
+    required String role,
+    required String location,
+    String? imageUrl,
+  }) {
+    return Center(
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: _pickImage,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      width: 2.r,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 50.r,
+                    backgroundColor: const Color(0xFFF1F5F5),
+                    backgroundImage: _image != null
+                        ? FileImage(_image!)
+                        : (imageUrl != null
+                                ? NetworkImage(imageUrl)
+                                : const AssetImage('assets/images/regular.jpg'))
+                            as ImageProvider,
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: EdgeInsets.all(6.r),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.camera_alt,
+                      size: 16.r,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 16.h),
+          BodyText(
+            name,
+            size: BodySize.large,
+            fontWeight: FontWeight.w500,
+          ),
+          SizedBox(height: 4.h),
+          BodyText(
+            role,
+            size: BodySize.medium,
+            color: AppColors.textSecondary,
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.location_on, size: 16.r, color: AppColors.primary),
+              SizedBox(width: 4.w),
+              BodyText(
+                location,
+                size: BodySize.small,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArtisanStats(ArtisanProfile profile, WalletBalance? wallet) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          _buildStatCard(
+            'Total Earnings',
+            wallet?.formattedEarnings ?? '₦0',
+          ),
+          SizedBox(width: 12.w),
+          _buildStatCard(
+            'Completed Jobs',
+            profile.totalJobsCompleted.toString(),
+          ),
+          SizedBox(width: 12.w),
+          _buildStatCard(
+            'Rating',
+            profile.averageRating > 0
+                ? profile.averageRating.toStringAsFixed(1)
+                : 'N/A',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClientStats(ClientProfile profile) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          _buildStatCard(
+            'Account Status',
+            profile.isActive ? 'Active' : 'Inactive',
+          ),
+          SizedBox(width: 12.w),
+          _buildStatCard(
+            'Email Status',
+            profile.isEmailVerified ? 'Verified' : 'Unverified',
+          ),
+          SizedBox(width: 12.w),
+          _buildStatCard(
+            'Member Since',
+            _formatDate(profile.createdAt),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSections({
+    String? bio,
+    required String email,
+    String? phoneNumber,
+    required bool isArtisan,
+  }) {
+    return Column(
+      children: [
+        _buildSectionHeader('Account'),
+        _buildMenuItem('Job History'),
+        _buildMenuItem('Change Password'),
+        SizedBox(height: 24.h),
+        _buildSectionHeader('Contact Information'),
+        if (phoneNumber != null)
+          _buildMenuItem(
+            'Phone Number',
+            subtitle: phoneNumber,
+            showArrow: false,
+            isClickable: false,
+          ),
+        _buildMenuItem(
+          'Email',
+          subtitle: email,
+          showArrow: false,
+          isClickable: false,
+        ),
+        if (isArtisan) ...[
+          SizedBox(height: 24.h),
+          _buildSectionHeader('Payment Methods'),
+          _buildMenuItem('Bank Accounts'),
+        ],
+        SizedBox(height: 40.h),
+      ],
     );
   }
 
@@ -193,13 +389,19 @@ class _ProfilePageState extends State<ProfilePage> {
         child: BodyText(
           title,
           size: BodySize.medium,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  Widget _buildMenuItem(String title, {String? subtitle, bool showDivider = false}) {
+  Widget _buildMenuItem(
+    String title, {
+    String? subtitle,
+    bool showDivider = false,
+    bool showArrow = true,
+    bool isClickable = true,
+  }) {
     return Column(
       children: [
         ListTile(
@@ -216,8 +418,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   color: AppColors.textSecondary,
                 )
               : null,
-          trailing: Icon(Icons.arrow_forward_ios, size: 16.r, color: AppColors.textPrimary),
-          onTap: () {},
+          trailing: showArrow
+              ? Icon(Icons.arrow_forward_ios,
+                  size: 16.r, color: AppColors.textPrimary)
+              : null,
+          onTap: isClickable ? () {} : null,
         ),
         if (showDivider)
           Padding(
@@ -226,5 +431,114 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
       ],
     );
+  }
+
+  Widget _buildLoadingSkeleton() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _buildAppBar(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            SizedBox(height: 20.h),
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 100.r,
+                    height: 100.r,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey[300],
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Container(
+                    width: 150.w,
+                    height: 20.h,
+                    color: Colors.grey[300],
+                  ),
+                  SizedBox(height: 8.h),
+                  Container(
+                    width: 100.w,
+                    height: 16.h,
+                    color: Colors.grey[300],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 32.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Row(
+                children: [
+                  _buildSkeletonCard(),
+                  SizedBox(width: 12.w),
+                  _buildSkeletonCard(),
+                  SizedBox(width: 12.w),
+                  _buildSkeletonCard(),
+                ],
+              ),
+            ),
+            SizedBox(height: 40.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonCard() {
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        height: 80.h,
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message, VoidCallback onRetry) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _buildAppBar(),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64.r,
+              color: Colors.red,
+            ),
+            SizedBox(height: 16.h),
+            BodyText(
+              message,
+              size: BodySize.medium,
+              color: AppColors.textSecondary,
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton(
+              onPressed: onRetry,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 12.h),
+              ),
+              child: BodyText(
+                'Retry',
+                size: BodySize.medium,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('MMM yyyy').format(date);
   }
 }

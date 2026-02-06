@@ -39,6 +39,7 @@ class ArtisanProfileData {
       comment:
           'I am absolutely thrilled with the custom built-in bookshelves they installed in my home office. From the initial consultation, I felt heard, they took the time to understand exactly the look and functionality I needed.',
       date: DateTime(2025, 11, 27, 7, 25),
+      createdAt: DateTime(2025, 11, 27, 7, 25),
     ),
     Review(
       id: '2',
@@ -47,6 +48,7 @@ class ArtisanProfileData {
       rating: 4.0,
       comment: 'Great service and attention to detail!',
       date: DateTime(2025, 11, 15, 15, 20),
+      createdAt: DateTime(2025, 11, 15, 15, 20),
     ),
     Review(
       id: '3',
@@ -56,6 +58,7 @@ class ArtisanProfileData {
       comment:
           'I called Saviour for an emergency repair on a water-damaged door frame. I was amazed at how quickly he responded. He is highly skilled, fixed the structural issue with precision, and made sure the new trim matched the existing work perfectly. I would definitely use him again for any future woodworking needs.',
       date: DateTime(2025, 10, 15, 10, 13),
+      createdAt: DateTime(2025, 10, 15, 10, 13),
     ),
   ];
 

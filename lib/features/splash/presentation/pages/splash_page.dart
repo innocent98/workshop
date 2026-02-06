@@ -68,15 +68,41 @@ class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProvid
     if (!mounted) return;
 
     if (hasToken) {
-      final user = ref.read(authProvider);
-      if (user != null) {
-        final route = user.role == UserRole.artisan
-            ? AppRoutes.artisanHome
-            : AppRoutes.clientHome;
-        if (mounted) context.go(route);
-      } else {
-        if (mounted) context.go(AppRoutes.login);
-      }
+      // Wait for auth provider to load user data
+      final authAsync = ref.read(authProvider);
+
+      await authAsync.when(
+        data: (user) async {
+          if (user != null) {
+            final route = user.role == UserRole.artisan
+                ? AppRoutes.artisanHome
+                : AppRoutes.clientHome;
+            if (mounted) context.go(route);
+          } else {
+            if (mounted) context.go(AppRoutes.login);
+          }
+        },
+        loading: () async {
+          // Wait a bit for loading to complete
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            final authState = ref.read(authProvider);
+            final user = authState.value;
+            if (user != null) {
+              final route = user.role == UserRole.artisan
+                  ? AppRoutes.artisanHome
+                  : AppRoutes.clientHome;
+              if (mounted) context.go(route);
+            } else {
+              if (mounted) context.go(AppRoutes.login);
+            }
+          }
+        },
+        error: (error, stack) async {
+          // On error, go to login
+          if (mounted) context.go(AppRoutes.login);
+        },
+      );
     } else if (hasCompletedOnboarding) {
       if (mounted) context.go(AppRoutes.login);
     } else {

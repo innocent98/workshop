@@ -1626,6 +1626,230 @@ GET /search/artisans/nearby/summary?latitude=6.5244&longitude=3.3792&radius_km=5
 
 ---
 
+## Wallet Module
+
+### Overview
+The wallet module allows artisans to track their earnings, view payment history, and manage payouts. All wallet endpoints are artisan-only.
+
+### 1. Get Wallet Balance
+
+**Endpoint:** `GET /wallet/balance`
+
+**Authentication:** Required (Artisan only)
+
+**Success Response (200):**
+```json
+{
+  "total_earned": "125000.00",
+  "pending_release": "25000.00",
+  "total_jobs_completed": 15,
+  "total_jobs_paid": 12,
+  "lifetime_earnings": "125000.00"
+}
+```
+
+**Field Descriptions:**
+- `total_earned`: Total amount released to artisan (withdrawn/paid out)
+- `pending_release`: Payments that are SUCCESS (paid by customer) but not yet released to artisan
+- `total_jobs_completed`: Count of completed bookings
+- `total_jobs_paid`: Count of paid bookings (PAID, IN_PROGRESS, or COMPLETED status)
+- `lifetime_earnings`: All-time earnings (currently same as total_earned)
+
+**Error Responses:**
+- **403** - Only artisans can access wallet
+
+**Notes:**
+- Shows real-time balance calculated from payment records
+- Pending release represents funds held in escrow awaiting job completion
+- Total earned only includes RELEASED payments (actual payouts)
+
+---
+
+### 2. Get Earnings History
+
+**Endpoint:** `GET /wallet/earnings`
+
+**Authentication:** Required (Artisan only)
+
+**Query Parameters:**
+- `status` (optional): Filter by payment status (pending, success, released, etc.)
+- `page` (optional, default 1): Page number
+- `page_size` (optional, default 20, max 100): Items per page
+
+**Success Response (200):**
+```json
+{
+  "earnings": [
+    {
+      "payment_id": 1,
+      "payment_reference": "PAY-2026-000001",
+      "booking_id": 1,
+      "booking_reference": "BK-2026-000001",
+      "amount": "7500.00",
+      "status": "success",
+      "customer_name": "Alice Customer",
+      "service_name": "Electrician",
+      "job_date": "2026-02-15T10:00:00Z",
+      "paid_at": "2026-02-05T14:15:00Z",
+      "released_at": null,
+      "created_at": "2026-02-05T14:10:00Z"
+    }
+  ],
+  "total": 25,
+  "page": 1,
+  "page_size": 20,
+  "summary": {
+    "total_amount": "187500.00",
+    "count": 20
+  }
+}
+```
+
+**Error Responses:**
+- **400** - Invalid status filter
+- **403** - Only artisans can access earnings history
+
+**Notes:**
+- Shows all payments related to artisan's bookings
+- Includes booking and customer details for context
+- Summary shows totals for the current page
+- Can filter by status to see only released payments, pending, etc.
+
+---
+
+### 3. Get Payout History
+
+**Endpoint:** `GET /wallet/payouts`
+
+**Authentication:** Required (Artisan only)
+
+**Query Parameters:**
+- `page` (optional, default 1): Page number
+- `page_size` (optional, default 20, max 100): Items per page
+
+**Success Response (200):**
+```json
+{
+  "payouts": [
+    {
+      "payment_id": 1,
+      "payment_reference": "PAY-2026-000001",
+      "payout_reference": "PAYOUT-PAY-2026-000001",
+      "amount": "7500.00",
+      "released_at": "2026-02-15T15:00:00Z",
+      "booking_reference": "BK-2026-000001",
+      "customer_name": "Alice Customer"
+    }
+  ],
+  "total": 10,
+  "page": 1,
+  "page_size": 20
+}
+```
+
+**Error Responses:**
+- **403** - Only artisans can access payout history
+
+**Notes:**
+- Shows only RELEASED payments (actual payouts received)
+- Ordered by release date (most recent first)
+- Includes payout reference for tracking
+- This represents money that has actually been paid out to the artisan
+
+---
+
+### 4. Get Wallet Statistics
+
+**Endpoint:** `GET /wallet/stats`
+
+**Authentication:** Required (Artisan only)
+
+**Success Response (200):**
+```json
+{
+  "total_earnings": "125000.00",
+  "average_job_value": "8333.33",
+  "highest_earning": "25000.00",
+  "lowest_earning": "5000.00",
+  "total_transactions": 15
+}
+```
+
+**Field Descriptions:**
+- `total_earnings`: Sum of all successful payments
+- `average_job_value`: Mean payment amount
+- `highest_earning`: Maximum single payment
+- `lowest_earning`: Minimum single payment
+- `total_transactions`: Count of successful payments
+
+**Error Responses:**
+- **403** - Only artisans can access wallet stats
+
+**Notes:**
+- Useful for analytics and performance tracking
+- Only includes SUCCESS and RELEASED payments
+- Excludes pending, failed, and refunded payments
+
+---
+
+### 5. Request Payout
+
+**Endpoint:** `POST /wallet/payout/request`
+
+**Authentication:** Required (Artisan only)
+
+**Request Body:**
+```json
+{
+  "amount": 50000.00,
+  "account_number": "0123456789",
+  "bank_code": "057",
+  "account_name": "John Artisan"
+}
+```
+
+**Field Requirements:**
+- `amount`: Required, decimal, minimum ₦5,000, must not exceed available balance
+- `account_number`: Required, string, 10-digit bank account number
+- `bank_code`: Required, string, Nigerian bank code (e.g., "057" for Zenith)
+- `account_name`: Required, string, account holder's name
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Payout of ₦50000.00 initiated successfully",
+  "payout_reference": "BATCH-20260205141530",
+  "amount": "50000.00",
+  "account_number": "0123456789",
+  "bank_code": "057",
+  "status": "processing"
+}
+```
+
+**Error Responses:**
+- **400** - Below minimum amount, insufficient balance, or invalid bank details
+- **403** - Only artisans can request payouts
+- **500** - Paystack API error (bank verification failed, transfer failed, etc.)
+
+**Notes:**
+- Minimum payout amount: ₦5,000
+- Available balance = Pending Release (SUCCESS status payments)
+- Bank account is verified with Paystack before processing
+- Multiple payments may be released to fulfill the requested amount
+- Payments are released in chronological order (oldest first)
+- Once released, payment status changes to RELEASED
+
+**Common Bank Codes:**
+- Access Bank: 044
+- GTBank: 058
+- First Bank: 011
+- UBA: 033
+- Zenith Bank: 057
+- [Full list available via Paystack API]
+
+---
+
 ## Additional Notes for Frontend Implementation
 
 ### Profile & Portfolio Module
@@ -1653,15 +1877,794 @@ GET /search/artisans/nearby/summary?latitude=6.5244&longitude=3.3792&radius_km=5
 
 ---
 
-## TODO / Coming Soon
+## Booking Module
 
-- Google OAuth implementation
-- Booking system endpoints
-- Payment integration endpoints
-- Chat messaging endpoints
-- Push notifications endpoints
+### Overview
+The booking system allows customers to book artisan services, make payments via Paystack, track job progress, and leave reviews. The flow follows these status transitions:
+
+**Status Flow:**
+```
+PENDING → ACCEPTED → PAID → IN_PROGRESS → COMPLETED
+   ↓         ↓
+REJECTED  CANCELLED
+```
+
+### 1. Create Booking
+
+**Endpoint:** `POST /bookings`
+
+**Authentication:** Required (Customer only)
+
+**Request Body:**
+```json
+{
+  "artisan_id": "123e4567-e89b-12d3-a456-426614174000",
+  "service_id": 14,
+  "job_description": "Need electrical wiring for new room",
+  "job_date": "2026-02-15T10:00:00Z",
+  "job_address": "123 Main Street, Lagos, Nigeria",
+  "job_latitude": 6.5244,
+  "job_longitude": 3.3792,
+  "budget_min": 5000.00,
+  "budget_max": 10000.00
+}
+```
+
+**Field Requirements:**
+- `artisan_id`: Required, UUID of the artisan
+- `service_id`: Required, integer ID of the service
+- `job_description`: Optional, text description
+- `job_date`: Required, ISO 8601 datetime, must be in the future
+- `job_address`: Required, string (5-500 characters)
+- `job_latitude`: Required, float (-90 to 90)
+- `job_longitude`: Required, float (-180 to 180)
+- `budget_min`: Required, decimal (>= 0)
+- `budget_max`: Required, decimal (>= budget_min)
+
+**Success Response (201):**
+```json
+{
+  "id": 1,
+  "booking_reference": "BK-2026-000001",
+  "customer_id": "customer-uuid",
+  "artisan_id": "artisan-uuid",
+  "service_id": 14,
+  "job_description": "Need electrical wiring for new room",
+  "job_date": "2026-02-15T10:00:00Z",
+  "job_address": "123 Main Street, Lagos, Nigeria",
+  "job_latitude": 6.5244,
+  "job_longitude": 3.3792,
+  "budget_min": "5000.00",
+  "budget_max": "10000.00",
+  "agreed_amount": null,
+  "status": "pending",
+  "accepted_at": null,
+  "paid_at": null,
+  "started_at": null,
+  "completed_at": null,
+  "cancelled_at": null,
+  "completion_notes": null,
+  "completion_images": null,
+  "cancellation_reason": null,
+  "rejection_reason": null,
+  "created_at": "2026-02-05T14:00:00Z",
+  "updated_at": "2026-02-05T14:00:00Z"
+}
+```
+
+**Error Responses:**
+- **400** - Validation error (invalid date, budget range, coordinates)
+- **403** - Only customers can create bookings
+- **404** - Artisan or service not found
 
 ---
 
-**Last Updated:** 2026-01-31
+### 2. List Bookings
+
+**Endpoint:** `GET /bookings`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `status` (optional): Filter by status (pending, accepted, paid, in_progress, completed, cancelled, rejected, disputed)
+- `page` (optional, default 1): Page number
+- `page_size` (optional, default 20, max 100): Items per page
+
+**Success Response (200):**
+```json
+{
+  "bookings": [
+    {
+      "id": 1,
+      "booking_reference": "BK-2026-000001",
+      "status": "pending",
+      ...
+    }
+  ],
+  "total": 5,
+  "page": 1,
+  "page_size": 20
+}
+```
+
+**Notes:**
+- Customers see bookings they created
+- Artisans see bookings assigned to them
+
+---
+
+### 3. Get Single Booking
+
+**Endpoint:** `GET /bookings/{booking_id}`
+
+**Authentication:** Required
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_reference": "BK-2026-000001",
+  "customer_id": "customer-uuid",
+  "artisan_id": "artisan-uuid",
+  ...
+}
+```
+
+**Error Responses:**
+- **403** - User doesn't have permission to view this booking
+- **404** - Booking not found
+
+---
+
+### 4. Get Booking Statistics
+
+**Endpoint:** `GET /bookings/stats`
+
+**Authentication:** Required
+
+**Success Response (200):**
+```json
+{
+  "total_bookings": 10,
+  "pending_bookings": 2,
+  "accepted_bookings": 1,
+  "paid_bookings": 3,
+  "in_progress_bookings": 1,
+  "completed_bookings": 2,
+  "cancelled_bookings": 1,
+  "rejected_bookings": 0,
+  "disputed_bookings": 0
+}
+```
+
+---
+
+### 5. Accept Booking (Artisan)
+
+**Endpoint:** `PATCH /bookings/{booking_id}/accept`
+
+**Authentication:** Required (Artisan only)
+
+**Request Body:**
+```json
+{
+  "agreed_amount": 7500.00
+}
+```
+
+**Field Requirements:**
+- `agreed_amount`: Required, decimal, must be within budget range (budget_min <= agreed_amount <= budget_max)
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_reference": "BK-2026-000001",
+  "agreed_amount": "7500.00",
+  "status": "accepted",
+  "accepted_at": "2026-02-05T14:05:00Z",
+  ...
+}
+```
+
+**Error Responses:**
+- **400** - Agreed amount outside budget range, or booking not in PENDING status
+- **403** - Only assigned artisan can accept
+- **404** - Booking not found
+
+---
+
+### 6. Reject Booking (Artisan)
+
+**Endpoint:** `PATCH /bookings/{booking_id}/reject`
+
+**Authentication:** Required (Artisan only)
+
+**Request Body:**
+```json
+{
+  "rejection_reason": "Schedule conflict, not available on this date"
+}
+```
+
+**Field Requirements:**
+- `rejection_reason`: Required, string (10-500 characters)
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_reference": "BK-2026-000001",
+  "status": "rejected",
+  "rejection_reason": "Schedule conflict, not available on this date",
+  ...
+}
+```
+
+**Error Responses:**
+- **400** - Booking not in PENDING status
+- **403** - Only assigned artisan can reject
+- **404** - Booking not found
+
+---
+
+### 7. Start Booking (Artisan)
+
+**Endpoint:** `PATCH /bookings/{booking_id}/start`
+
+**Authentication:** Required (Artisan only)
+
+**Request Body:** None
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_reference": "BK-2026-000001",
+  "status": "in_progress",
+  "started_at": "2026-02-15T10:15:00Z",
+  ...
+}
+```
+
+**Error Responses:**
+- **400** - Booking not in PAID status
+- **403** - Only assigned artisan can start
+- **404** - Booking not found
+
+---
+
+### 8. Complete Booking (Artisan)
+
+**Endpoint:** `PATCH /bookings/{booking_id}/complete`
+
+**Authentication:** Required (Artisan only)
+
+**Request Body:**
+```json
+{
+  "completion_notes": "Fixed the electrical wiring and tested all outlets",
+  "completion_images": [
+    "https://res.cloudinary.com/workchop/image/upload/v1234/job1.jpg",
+    "https://res.cloudinary.com/workchop/image/upload/v1234/job2.jpg"
+  ]
+}
+```
+
+**Field Requirements:**
+- `completion_notes`: Optional, string (max 1000 characters)
+- `completion_images`: Optional, array of image URLs (max 10 images)
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_reference": "BK-2026-000001",
+  "status": "completed",
+  "completed_at": "2026-02-15T14:30:00Z",
+  "completion_notes": "Fixed the electrical wiring and tested all outlets",
+  "completion_images": [
+    "https://res.cloudinary.com/workchop/image/upload/v1234/job1.jpg",
+    "https://res.cloudinary.com/workchop/image/upload/v1234/job2.jpg"
+  ],
+  ...
+}
+```
+
+**Error Responses:**
+- **400** - Booking not in IN_PROGRESS status
+- **403** - Only assigned artisan can complete
+- **404** - Booking not found
+
+---
+
+### 9. Cancel Booking (Customer)
+
+**Endpoint:** `PATCH /bookings/{booking_id}/cancel`
+
+**Authentication:** Required (Customer only)
+
+**Request Body:**
+```json
+{
+  "cancellation_reason": "Changed my mind, will book later"
+}
+```
+
+**Field Requirements:**
+- `cancellation_reason`: Required, string (10-500 characters)
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_reference": "BK-2026-000001",
+  "status": "cancelled",
+  "cancelled_at": "2026-02-05T14:10:00Z",
+  "cancellation_reason": "Changed my mind, will book later",
+  ...
+}
+```
+
+**Error Responses:**
+- **400** - Can only cancel bookings in PENDING or ACCEPTED status (before payment)
+- **403** - Only booking owner can cancel
+- **404** - Booking not found
+
+**Notes:**
+- Bookings can only be cancelled before payment
+- For paid bookings, contact support for cancellation and refund
+
+---
+
+## Payment Module
+
+### Overview
+Payments are processed via Paystack payment gateway. The system implements a hold-and-release model where funds are held by Paystack until the job is completed, then released to the artisan.
+
+**Paystack Test Cards:**
+- Success: `4084084084084081`
+- Decline: `4084084084084085`
+
+### 1. Initialize Payment
+
+**Endpoint:** `POST /payments/initialize`
+
+**Authentication:** Required (Customer only)
+
+**Request Body:**
+```json
+{
+  "booking_id": 1
+}
+```
+
+**Field Requirements:**
+- `booking_id`: Required, integer, booking must be in ACCEPTED status
+
+**Success Response (201):**
+```json
+{
+  "id": 1,
+  "payment_reference": "PAY-2026-000001",
+  "booking_id": 1,
+  "authorization_url": "https://checkout.paystack.com/bl99r9sm6q7dndg",
+  "amount": "7500.00",
+  "status": "pending",
+  "created_at": "2026-02-05T14:10:00Z"
+}
+```
+
+**Error Responses:**
+- **400** - Booking not in ACCEPTED status, or payment already exists
+- **403** - Only customer who owns the booking can initialize payment
+- **404** - Booking not found
+- **500** - Paystack API error
+
+**Notes:**
+- Redirect user to `authorization_url` to complete payment
+- After payment, Paystack will send a webhook to update the booking status
+- Customer will be redirected back to your app (configure callback URL in Paystack dashboard)
+
+---
+
+### 2. Verify Payment
+
+**Endpoint:** `GET /payments/verify/{payment_reference}`
+
+**Authentication:** Required
+
+**Success Response (200):**
+```json
+{
+  "payment_reference": "PAY-2026-000001",
+  "status": "success",
+  "amount": "7500.00",
+  "paid": true,
+  "message": "Payment verified successfully"
+}
+```
+
+**Error Responses:**
+- **403** - User doesn't have permission to verify this payment
+- **404** - Payment not found
+- **500** - Paystack verification error
+
+**Notes:**
+- Call this endpoint after user returns from Paystack to confirm payment status
+- If `paid: true`, booking status will be updated to PAID
+
+---
+
+### 3. Get Payment Details
+
+**Endpoint:** `GET /payments/{payment_id}`
+
+**Authentication:** Required
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "payment_reference": "PAY-2026-000001",
+  "paystack_reference": "T1234567890",
+  "booking_id": 1,
+  "authorization_url": "https://checkout.paystack.com/bl99r9sm6q7dndg",
+  "amount": "7500.00",
+  "currency": "NGN",
+  "payment_method": "card",
+  "status": "success",
+  "customer_email": "customer@example.com",
+  "customer_name": "Alice Customer",
+  "paid_at": "2026-02-05T14:15:00Z",
+  "released_at": null,
+  "refunded_at": null,
+  "failed_at": null,
+  "payout_reference": null,
+  "created_at": "2026-02-05T14:10:00Z",
+  "updated_at": "2026-02-05T14:15:00Z"
+}
+```
+
+**Error Responses:**
+- **403** - User doesn't have permission to view this payment
+- **404** - Payment not found
+
+---
+
+### 4. Paystack Webhook
+
+**Endpoint:** `POST /payments/webhook`
+
+**Authentication:** None (signature verification)
+
+**Headers:**
+- `x-paystack-signature`: Webhook signature for verification
+
+**Request Body (Paystack sends):**
+```json
+{
+  "event": "charge.success",
+  "data": {
+    "reference": "PAY-2026-000001",
+    "amount": 750000,
+    "status": "success",
+    "customer": {
+      "email": "customer@example.com"
+    },
+    "channel": "card"
+  }
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "status": "success",
+  "message": "Payment processed"
+}
+```
+
+**Notes:**
+- This endpoint is called by Paystack, not your frontend
+- Configure webhook URL in Paystack dashboard: `https://yourdomain.com/api/v1/payments/webhook`
+- Webhook signature is verified for security
+- Automatically updates booking status to PAID when payment succeeds
+
+---
+
+### 5. Release Payment to Artisan
+
+**Endpoint:** `POST /payments/{payment_id}/release`
+
+**Authentication:** Required (Admin or Artisan)
+
+**Request Body (optional):**
+```json
+{
+  "account_number": "0123456789",
+  "bank_code": "057",
+  "account_name": "John Artisan"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "payment_reference": "PAY-2026-000001",
+  "status": "released",
+  "released_at": "2026-02-15T15:00:00Z",
+  "payout_reference": "PAYOUT-PAY-2026-000001",
+  ...
+}
+```
+
+**Error Responses:**
+- **400** - Payment not in SUCCESS status, or booking not COMPLETED
+- **403** - Only assigned artisan can release payment
+- **404** - Payment not found
+- **500** - Paystack transfer error
+
+**Notes:**
+- Payment can only be released after job is completed
+- Funds are transferred from Paystack balance to artisan's bank account
+- In production, this should be admin-only or auto-triggered after review period
+
+---
+
+## Review Module
+
+### Overview
+Customers can review artisans after job completion. Reviews automatically update artisan statistics (average rating, total reviews, jobs completed).
+
+### 1. Create Review
+
+**Endpoint:** `POST /reviews`
+
+**Authentication:** Required (Customer only)
+
+**Request Body:**
+```json
+{
+  "booking_id": 1,
+  "rating": 4.5,
+  "review_text": "Excellent service! Very professional and fixed the issue quickly.",
+  "is_anonymous": false
+}
+```
+
+**Field Requirements:**
+- `booking_id`: Required, integer, booking must be COMPLETED
+- `rating`: Required, float (1.0-5.0), in 0.5 increments (1.0, 1.5, 2.0, etc.)
+- `review_text`: Optional, string (max 1000 characters)
+- `is_anonymous`: Optional, boolean (default false)
+
+**Success Response (201):**
+```json
+{
+  "id": 1,
+  "booking_id": 1,
+  "customer_id": "customer-uuid",
+  "artisan_id": "artisan-uuid",
+  "rating": 4.5,
+  "review_text": "Excellent service! Very professional and fixed the issue quickly.",
+  "is_anonymous": false,
+  "is_flagged": false,
+  "artisan_response": null,
+  "artisan_responded_at": null,
+  "customer_name": "Alice Customer",
+  "artisan_name": "John Electrician",
+  "created_at": "2026-02-15T15:30:00Z",
+  "updated_at": "2026-02-15T15:30:00Z"
+}
+```
+
+**Error Responses:**
+- **400** - Booking not completed, or review already exists
+- **403** - Only customer who owns the booking can review
+- **404** - Booking not found
+
+**Notes:**
+- Only one review per booking
+- Rating must be in 0.5 increments (validated)
+- Automatically updates artisan's average_rating and total_ratings in artisan_profile
+
+---
+
+### 2. Get Artisan Reviews
+
+**Endpoint:** `GET /reviews/artisan/{artisan_id}`
+
+**Authentication:** Not required (public)
+
+**Query Parameters:**
+- `page` (optional, default 1): Page number
+- `page_size` (optional, default 20, max 100): Items per page
+
+**Success Response (200):**
+```json
+{
+  "reviews": [
+    {
+      "id": 1,
+      "booking_id": 1,
+      "customer_id": "customer-uuid",
+      "artisan_id": "artisan-uuid",
+      "rating": 4.5,
+      "review_text": "Excellent service!",
+      "is_anonymous": false,
+      "is_flagged": false,
+      "artisan_response": "Thank you for the kind words!",
+      "artisan_responded_at": "2026-02-15T16:00:00Z",
+      "customer_name": "Alice Customer",
+      "artisan_name": "John Electrician",
+      "created_at": "2026-02-15T15:30:00Z",
+      "updated_at": "2026-02-15T16:00:00Z"
+    }
+  ],
+  "total": 25,
+  "average_rating": 4.3,
+  "rating_distribution": {
+    "1": 0,
+    "2": 1,
+    "3": 3,
+    "4": 8,
+    "5": 13
+  }
+}
+```
+
+**Error Responses:**
+- **404** - Artisan not found
+
+**Notes:**
+- Public endpoint, no authentication required
+- Anonymous reviews hide customer_name (returns null)
+- Excludes flagged reviews
+
+---
+
+### 3. Get Review for Booking
+
+**Endpoint:** `GET /reviews/booking/{booking_id}`
+
+**Authentication:** Required
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_id": 1,
+  "customer_id": "customer-uuid",
+  "artisan_id": "artisan-uuid",
+  "rating": 4.5,
+  "review_text": "Excellent service!",
+  "is_anonymous": false,
+  "is_flagged": false,
+  "artisan_response": "Thank you!",
+  "artisan_responded_at": "2026-02-15T16:00:00Z",
+  "customer_name": "Alice Customer",
+  "artisan_name": "John Electrician",
+  "created_at": "2026-02-15T15:30:00Z",
+  "updated_at": "2026-02-15T16:00:00Z"
+}
+```
+
+**Error Responses:**
+- **403** - User doesn't have permission to view this review
+- **404** - Booking or review not found
+
+---
+
+### 4. Respond to Review (Artisan)
+
+**Endpoint:** `PATCH /reviews/{review_id}/respond`
+
+**Authentication:** Required (Artisan only)
+
+**Request Body:**
+```json
+{
+  "artisan_response": "Thank you for the kind words! It was a pleasure working with you."
+}
+```
+
+**Field Requirements:**
+- `artisan_response`: Required, string (10-500 characters)
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "booking_id": 1,
+  "rating": 4.5,
+  "review_text": "Excellent service!",
+  "artisan_response": "Thank you for the kind words! It was a pleasure working with you.",
+  "artisan_responded_at": "2026-02-15T16:00:00Z",
+  ...
+}
+```
+
+**Error Responses:**
+- **403** - Only the reviewed artisan can respond
+- **404** - Review not found
+
+---
+
+### 5. Get Artisan Review Statistics
+
+**Endpoint:** `GET /reviews/artisan/{artisan_id}/stats`
+
+**Authentication:** Not required (public)
+
+**Success Response (200):**
+```json
+{
+  "artisan_id": "artisan-uuid",
+  "total_reviews": 25,
+  "average_rating": 4.3,
+  "rating_distribution": {
+    "1": 0,
+    "2": 1,
+    "3": 3,
+    "4": 8,
+    "5": 13
+  },
+  "total_jobs_completed": 30
+}
+```
+
+**Error Responses:**
+- **404** - Artisan not found
+
+---
+
+## Additional Notes for Frontend Implementation
+
+### Booking, Payment & Review Module
+
+18. **Booking References:** Format is "BK-YYYY-NNNNNN" (e.g., BK-2026-000001)
+19. **Payment References:** Format is "PAY-YYYY-NNNNNN" (e.g., PAY-2026-000001)
+20. **Decimal Values:** All money fields (budget, agreed_amount, amount) are returned as strings (e.g., "7500.00")
+21. **Coordinates:** Job location uses PostGIS POINT, latitude and longitude are extracted separately
+22. **Completion Images:** Stored as JSON array, parsed automatically in responses
+23. **Status Checks:** Always verify booking status before allowing actions (e.g., can't start an unpaid booking)
+24. **Paystack Integration:** Test with Paystack test keys and test cards before going live
+25. **Review Ratings:** Must be in 0.5 increments (1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)
+26. **Webhook Security:** Paystack webhooks are signature-verified (HMAC SHA512)
+27. **Anonymous Reviews:** When is_anonymous is true, customer_name returns null
+28. **Payment Flow:** Customer → Paystack checkout → Webhook updates status → Artisan gets notified
+29. **Cancellation Policy:** Bookings can only be cancelled before payment (PENDING or ACCEPTED status)
+30. **Review Period:** Reviews can only be created after booking status is COMPLETED
+
+### Wallet Module
+
+31. **Artisan Only:** All wallet endpoints require artisan authentication
+32. **Real-Time Balance:** Wallet balance is calculated dynamically from payment records, not stored separately
+33. **Pending vs Released:** Pending shows funds held in escrow (SUCCESS status), Released shows actual payouts (RELEASED status)
+34. **No Separate Wallet Table:** Wallet data is derived from Payment and Booking tables
+35. **Payment Flow:** Customer pays → SUCCESS (held by Paystack) → Job completed → RELEASED (paid to artisan)
+36. **Earnings History:** Shows all payments with full booking context for easy tracking
+37. **Payout History:** Shows only completed payouts that artisan has received
+38. **Stats Calculation:** Only includes successful and released payments in statistics
+39. **Minimum Payout:** ₦5,000 minimum payout amount enforced
+40. **Payout Request:** Artisans can request withdrawal of available balance to their bank account
+41. **Bank Verification:** Bank accounts are verified via Paystack before processing payouts
+42. **Payout Processing:** Payments are released in chronological order to fulfill requested amount
+43. **Available Balance:** Only SUCCESS status payments (paid but not yet released) can be withdrawn
+44. **Bank Codes:** Use official Nigerian bank codes (057 for Zenith, 044 for Access, etc.)
+
+---
+
+## TODO / Coming Soon
+
+- Google OAuth implementation
+- Chat messaging endpoints
+- Push notifications endpoints
+- Admin endpoints for managing bookings/disputes
+
+---
+
+**Last Updated:** 2026-02-05
 **API Version:** v1
