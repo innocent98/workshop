@@ -1,25 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
-import '../../domain/models/job_request.dart';
+import '../../../bookings/domain/models/artisan_booking.dart';
 
 class JobRequestCard extends StatelessWidget {
-  final JobRequest job;
+  final ArtisanBooking booking;
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
+  final VoidCallback? onCall;
 
   const JobRequestCard({
     super.key,
-    required this.job,
+    required this.booking,
     this.onAccept,
     this.onDecline,
+    this.onCall,
   });
 
   @override
   Widget build(BuildContext context) {
+    final service = booking.serviceName ?? 'Service Request';
+    final clientName = booking.customerName ?? 'Client';
+
+    final neededServices = <String>[];
+    if ((booking.jobDescription ?? '').trim().isNotEmpty) {
+      neededServices.add(booking.jobDescription!.trim());
+    }
+
     return Container(
       width: 0.85.sw,
       margin: EdgeInsets.only(right: 12.w),
@@ -36,38 +47,60 @@ class JobRequestCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 16.r,
-                backgroundImage: AssetImage(job.clientAvatar),
+                backgroundImage: _getAvatarImage(
+                  booking.customerProfilePictureUrl ??
+                      'assets/images/regular.jpg',
+                ),
               ),
               SizedBox(width: 10.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    BodyText(job.service, size: BodySize.medium, fontWeight: FontWeight.w500),
+                    BodyText(
+                      service,
+                      size: BodySize.medium,
+                      fontWeight: FontWeight.w500,
+                    ),
                     Row(
                       children: [
-                        BodyText('Client: ', size: BodySize.small, color: AppColors.textSecondary),
-                        BodyText(job.clientName, size: BodySize.small, fontWeight: FontWeight.w500),
-                        SizedBox(width: 4.w),
-                        Icon(Icons.check_circle, size: 10.r, color: Colors.orange),
+                        BodyText(
+                          'Client: ',
+                          size: BodySize.small,
+                          color: AppColors.textSecondary,
+                        ),
+                        Expanded(
+                          child: BodyText(
+                            clientName,
+                            size: BodySize.small,
+                            fontWeight: FontWeight.w500,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
               BodyText(
-                'N5k - N7k',
+                _formatBudget(booking),
                 size: BodySize.small,
                 fontWeight: FontWeight.w500,
               ),
             ],
           ),
           SizedBox(height: 8.h),
-          BodyText('Needed Service', size: BodySize.small, fontWeight: FontWeight.w500),
+          BodyText(
+            'Needed Service',
+            size: BodySize.small,
+            fontWeight: FontWeight.w500,
+          ),
           SizedBox(height: 4.h),
-          _buildListItem('Door and Window Casing Installation'),
-          _buildListItem('Hardware Installation (Hinges, Drawer Slides, Lo...'),
-          _buildListItem('Advanced Wood Joinery'),
+          if (neededServices.isEmpty)
+            _buildListItem('No extra details provided')
+          else
+            ...neededServices.map(_buildListItem),
           SizedBox(height: 10.h),
           Row(
             children: [
@@ -85,16 +118,20 @@ class JobRequestCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              BodyText(
-                '${job.distance}km away',
-                size: BodySize.small,
-                color: AppColors.textSecondary,
-              ),
+              if (onCall != null)
+                GestureDetector(
+                  onTap: onCall,
+                  child: Icon(
+                    Icons.phone_outlined,
+                    size: 18.r,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
             ],
           ),
           SizedBox(height: 4.h),
           BodyText(
-            'Saturday, 27 Nov, 2025 • 07:25 AM',
+            _formatDateTime(booking.jobDate),
             size: BodySize.small,
             color: AppColors.textSecondary,
           ),
@@ -103,7 +140,8 @@ class JobRequestCard extends StatelessWidget {
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => context.push(AppRoutes.jobDetail, extra: job),
+                  onTap: () =>
+                      context.push(AppRoutes.jobDetail, extra: booking),
                   child: Container(
                     height: 40.h,
                     decoration: BoxDecoration(
@@ -111,7 +149,11 @@ class JobRequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     alignment: Alignment.center,
-                    child: BodyText('View Details', size: BodySize.medium, fontWeight: FontWeight.w600),
+                    child: BodyText(
+                      'View Details',
+                      size: BodySize.medium,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -126,11 +168,24 @@ class JobRequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     alignment: Alignment.center,
-                    child: BodyText('Accept', size: BodySize.medium, color: Colors.white, fontWeight: FontWeight.w600),
+                    child: BodyText(
+                      'Accept',
+                      size: BodySize.medium,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
             ],
+          ),
+          SizedBox(height: 8.h),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: onDecline,
+              child: const Text('Decline'),
+            ),
           ),
         ],
       ),
@@ -156,5 +211,46 @@ class JobRequestCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  ImageProvider _getAvatarImage(String avatar) {
+    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+      return NetworkImage(avatar);
+    }
+    return AssetImage(avatar);
+  }
+
+  String _formatBudget(ArtisanBooking booking) {
+    if (booking.agreedAmount != null) {
+      return '₦${booking.agreedAmount!.toStringAsFixed(0)}';
+    }
+    return '₦${booking.budgetMin.toStringAsFixed(0)} - ₦${booking.budgetMax.toStringAsFixed(0)}';
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final local = dateTime.toLocal();
+    final hour = local.hour == 0
+        ? 12
+        : (local.hour > 12 ? local.hour - 12 : local.hour);
+    final minute = local.minute.toString().padLeft(2, '0');
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${weekdays[local.weekday - 1]}, ${local.day} ${months[local.month - 1]}, ${local.year} • $hour:$minute $period';
   }
 }

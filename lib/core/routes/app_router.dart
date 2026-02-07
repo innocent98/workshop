@@ -24,8 +24,8 @@ import '../../features/artisan_profile/presentation/pages/artisan_profile_page.d
 import '../../features/booking/presentation/pages/instant_service_page.dart';
 import '../../features/booking/presentation/pages/schedule_service_page.dart';
 import '../../features/artisan_home/presentation/pages/job_detail_page.dart';
-import '../../features/artisan_home/domain/models/job_request.dart';
 import '../../features/main_navigation/presentation/pages/artisan_main_navigation_page.dart';
+import '../../features/profile/presentation/pages/job_history_page.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -42,6 +42,7 @@ class AppRoutes {
   static const String instantService = '/instant-service';
   static const String scheduleService = '/schedule-service';
   static const String bookings = '/bookings';
+  static const String jobHistory = '/profile/job-history';
 
   // Auth routes
   static const String login = '/auth/login';
@@ -54,7 +55,8 @@ class AppRoutes {
   // Forgot Password routes
   static const String forgotPasswordEmail = '/auth/forgot-password/email';
   static const String forgotPasswordOtp = '/auth/forgot-password/otp';
-  static const String forgotPasswordNewPassword = '/auth/forgot-password/new-password';
+  static const String forgotPasswordNewPassword =
+      '/auth/forgot-password/new-password';
 }
 
 /// Router configuration provider
@@ -102,20 +104,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: OnboardingCarouselPage(userType: userType),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              const begin = Offset(1.0, 0.0);
-              const end = Offset.zero;
-              const curve = Curves.easeInOut;
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOut;
 
-              var tween = Tween(begin: begin, end: end).chain(
-                CurveTween(curve: curve),
-              );
+                  var tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
 
-              return SlideTransition(
-                position: animation.drive(tween),
-                child: FadeTransition(opacity: animation, child: child),
-              );
-            },
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
           );
         },
       ),
@@ -150,13 +154,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.artisanHome,
         name: 'artisanHome',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ArtisanMainNavigationPage(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
+        pageBuilder: (context, state) {
+          final tab = state.uri.queryParameters['tab'];
+          final initialIndex = tab == 'jobs' ? 1 : 0;
+
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ArtisanMainNavigationPage(initialIndex: initialIndex),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+          );
+        },
       ),
 
       // Job Detail Page
@@ -164,20 +174,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.jobDetail,
         name: 'jobDetail',
         pageBuilder: (context, state) {
-          final job = state.extra as JobRequest;
+          final job = state.extra;
           return CustomTransitionPage(
             key: state.pageKey,
             child: JobDetailPage(job: job),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              const begin = Offset(1.0, 0.0);
-              const end = Offset.zero;
-              const curve = Curves.easeInOut;
-              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-              return SlideTransition(
-                position: animation.drive(tween),
-                child: FadeTransition(opacity: animation, child: child),
-              );
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOut;
+                  var tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
           );
         },
       ),
@@ -200,13 +214,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.searchResult,
         name: 'searchResult',
         pageBuilder: (context, state) {
-          final query = state.uri.queryParameters['query'] ?? state.extra as String? ?? '';
+          final query =
+              state.uri.queryParameters['query'] ??
+              state.extra as String? ??
+              '';
           return CustomTransitionPage(
             key: state.pageKey,
             child: SearchResultPage(query: query),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -220,9 +238,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ArtisanProfilePage(artisan: artisan),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -236,9 +255,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: InstantServicePage(artisan: artisan),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -252,11 +272,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ScheduleServicePage(artisan: artisan),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
+      ),
+
+      GoRoute(
+        path: AppRoutes.jobHistory,
+        name: 'jobHistory',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const JobHistoryPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
       ),
 
       // Auth Routes
@@ -283,9 +316,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: PersonalInformationPage(userType: userType),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -300,9 +334,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: PasswordPage(userType: userType),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -317,9 +352,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: PhoneVerificationPage(userType: userType),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -334,9 +370,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ServiceSelectionPage(userType: userType),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -351,9 +388,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ProfilePicturePage(userType: userType),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -382,9 +420,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ForgotPasswordOtpPage(email: email),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -399,9 +438,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ForgotPasswordNewPasswordPage(email: email),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           );
         },
       ),
@@ -433,12 +473,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoutes.splash;
       }
 
-      if (hasToken && (currentPath == AppRoutes.login ||
-          currentPath == AppRoutes.personalInformation ||
-          currentPath == AppRoutes.password ||
-          currentPath == AppRoutes.phoneVerification ||
-          currentPath == AppRoutes.serviceSelection ||
-          currentPath == AppRoutes.profilePicture)) {
+      if (hasToken &&
+          (currentPath == AppRoutes.login ||
+              currentPath == AppRoutes.personalInformation ||
+              currentPath == AppRoutes.password ||
+              currentPath == AppRoutes.phoneVerification ||
+              currentPath == AppRoutes.serviceSelection ||
+              currentPath == AppRoutes.profilePicture)) {
         final authAsync = ref.read(authProvider);
         final user = authAsync.value;
         if (user != null) {
@@ -453,9 +494,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
     // Error page
     errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Page not found: ${state.matchedLocation}'),
-      ),
+      body: Center(child: Text('Page not found: ${state.matchedLocation}')),
     ),
   );
 });

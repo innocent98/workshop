@@ -43,9 +43,7 @@ abstract class AuthRepository {
     required String password,
   });
 
-  Future<ForgotPasswordResponse> sendPasswordResetCode({
-    required String email,
-  });
+  Future<ForgotPasswordResponse> sendPasswordResetCode({required String email});
 
   Future<VerifyCodeResponse> verifyPasswordResetCode({
     required String email,
@@ -58,4 +56,6 @@ abstract class AuthRepository {
     required String newPassword,
     required String confirmPassword,
   });
+
+  Future<void> logout();
 }

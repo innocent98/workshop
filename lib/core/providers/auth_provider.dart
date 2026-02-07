@@ -85,6 +85,11 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<void> logout() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
+      // Best-effort API logout; still clear local state if remote call fails.
+      try {
+        await _repository.logout();
+      } catch (_) {}
+
       await _tokenStorage.deleteToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);

@@ -45,10 +45,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String userId,
     required String password,
   }) async {
-    final request = RegisterPasswordRequest(
-      userId: userId,
-      password: password,
-    );
+    final request = RegisterPasswordRequest(userId: userId, password: password);
     return await _remoteDataSource.registerPassword(request);
   }
 
@@ -72,10 +69,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String userId,
     required List<String> services,
   }) async {
-    final request = RegisterServicesRequest(
-      userId: userId,
-      services: services,
-    );
+    final request = RegisterServicesRequest(userId: userId, services: services);
     return await _remoteDataSource.registerServices(request);
   }
 
@@ -130,5 +124,10 @@ class AuthRepositoryImpl implements AuthRepository {
       confirmPassword: confirmPassword,
     );
     return await _remoteDataSource.resetPassword(request);
+  }
+
+  @override
+  Future<void> logout() async {
+    return await _remoteDataSource.logout();
   }
 }

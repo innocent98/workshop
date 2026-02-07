@@ -7,22 +7,31 @@ import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../bookings/presentation/pages/earnings_page.dart';
 
 class ArtisanMainNavigationPage extends StatefulWidget {
-  const ArtisanMainNavigationPage({super.key});
+  final int initialIndex;
+
+  const ArtisanMainNavigationPage({super.key, this.initialIndex = 0});
 
   @override
-  State<ArtisanMainNavigationPage> createState() => _ArtisanMainNavigationPageState();
+  State<ArtisanMainNavigationPage> createState() =>
+      _ArtisanMainNavigationPageState();
 }
 
 class _ArtisanMainNavigationPageState extends State<ArtisanMainNavigationPage> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   final List<Widget> _pages = [
     const ArtisanHomePage(),
-    const ArtisanJobsPage(),    // Correctly using ArtisanJobsPage now
+    const ArtisanJobsPage(), // Correctly using ArtisanJobsPage now
     const EarningsPage(),
     const SupportPage(),
     const ProfilePage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   void _onTabChanged(int index) {
     setState(() {
@@ -33,10 +42,7 @@ class _ArtisanMainNavigationPageState extends State<ArtisanMainNavigationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabChanged,

@@ -117,10 +117,7 @@ class AuthRemoteDataSource {
 
   Future<LoginResponse> login(LoginRequest request) async {
     try {
-      final response = await _dio.post(
-        '/auth/login',
-        data: request.toJson(),
-      );
+      final response = await _dio.post('/auth/login', data: request.toJson());
       return LoginResponse.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
@@ -157,10 +154,15 @@ class AuthRemoteDataSource {
 
   Future<void> resetPassword(ResetPasswordRequest request) async {
     try {
-      await _dio.post(
-        '/auth/forgot-password/reset',
-        data: request.toJson(),
-      );
+      await _dio.post('/auth/forgot-password/reset', data: request.toJson());
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _dio.post('/auth/logout');
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -196,7 +198,8 @@ class AuthRemoteDataSource {
           }
         } else {
           // Standard error message handling
-          message = data['message'] as String? ??
+          message =
+              data['message'] as String? ??
               data['detail'] as String? ??
               data['error'] as String? ??
               message;
@@ -220,9 +223,8 @@ class AuthRemoteDataSource {
 
       String message = 'An error occurred. Please try again.';
       if (data is Map<String, dynamic>) {
-        message = data['detail'] as String? ??
-            data['message'] as String? ??
-            message;
+        message =
+            data['detail'] as String? ?? data['message'] as String? ?? message;
       } else {
         // For other types (exceptions, objects), convert to string
         message = data.toString();

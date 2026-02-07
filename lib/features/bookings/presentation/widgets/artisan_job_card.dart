@@ -14,9 +14,14 @@ class ArtisanJobCard extends StatelessWidget {
   final ArtisanJobStatus status;
   final List<String> neededServices;
   final VoidCallback? onActionPressed;
-  final VoidCallback? onMessagePressed;
+  final VoidCallback? onSecondaryActionPressed;
   final VoidCallback? onPhonePressed;
   final VoidCallback? onCardTap;
+  final String? primaryActionLabel;
+  final String? secondaryActionLabel;
+  final String? statusTagLabel;
+  final String? headerLabel;
+  final String? headerTimeInfo;
 
   const ArtisanJobCard({
     super.key,
@@ -28,9 +33,14 @@ class ArtisanJobCard extends StatelessWidget {
     required this.status,
     required this.neededServices,
     this.onActionPressed,
-    this.onMessagePressed,
+    this.onSecondaryActionPressed,
     this.onPhonePressed,
     this.onCardTap,
+    this.primaryActionLabel,
+    this.secondaryActionLabel,
+    this.statusTagLabel,
+    this.headerLabel,
+    this.headerTimeInfo,
   });
 
   @override
@@ -62,9 +72,15 @@ class ArtisanJobCard extends StatelessWidget {
                 children: [
                   _buildProfileSection(),
                   SizedBox(height: 8.h),
-                  BodyText('Needed Service', size: BodySize.small, fontWeight: FontWeight.w500),
+                  BodyText(
+                    'Needed Service',
+                    size: BodySize.small,
+                    fontWeight: FontWeight.w500,
+                  ),
                   SizedBox(height: 4.h),
-                  ...neededServices.map((service) => _buildServiceItem(service)),
+                  ...neededServices.map(
+                    (service) => _buildServiceItem(service),
+                  ),
                   SizedBox(height: 12.h),
                   _buildFooter(),
                 ],
@@ -77,7 +93,8 @@ class ArtisanJobCard extends StatelessWidget {
   }
 
   bool _hasHeader() {
-    return status == ArtisanJobStatus.ongoing || status == ArtisanJobStatus.next;
+    return status == ArtisanJobStatus.ongoing ||
+        status == ArtisanJobStatus.next;
   }
 
   Color _getBackgroundColor() {
@@ -98,11 +115,14 @@ class ArtisanJobCard extends StatelessWidget {
               Container(
                 width: 6.r,
                 height: 6.r,
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
               ),
               SizedBox(width: 6.w),
               BodyText(
-                isOngoing ? 'ONGOING JOB' : 'NEXT JOB',
+                headerLabel ?? (isOngoing ? 'ONGOING JOB' : 'NEXT JOB'),
                 size: BodySize.small,
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
@@ -114,7 +134,7 @@ class ArtisanJobCard extends StatelessWidget {
               Icon(Icons.access_time, size: 12.r, color: Colors.white),
               SizedBox(width: 4.w),
               BodyText(
-                isOngoing ? 'Started 24 mins ago' : 'Starts 00:15:23',
+                headerTimeInfo ?? (isOngoing ? 'In Progress' : 'Upcoming'),
                 size: BodySize.small,
                 color: Colors.white,
               ),
@@ -131,18 +151,30 @@ class ArtisanJobCard extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 16.r,
-          backgroundImage: AssetImage(clientAvatar),
+          backgroundImage: _getAvatarImage(clientAvatar),
         ),
         SizedBox(width: 10.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BodyText(serviceName, size: BodySize.medium, fontWeight: FontWeight.normal),
+              BodyText(
+                serviceName,
+                size: BodySize.medium,
+                fontWeight: FontWeight.normal,
+              ),
               Row(
                 children: [
-                  BodyText('Client: ', size: BodySize.small, color: AppColors.textSecondary),
-                  BodyText(clientName, size: BodySize.small, fontWeight: FontWeight.w500),
+                  BodyText(
+                    'Client: ',
+                    size: BodySize.small,
+                    color: AppColors.textSecondary,
+                  ),
+                  BodyText(
+                    clientName,
+                    size: BodySize.small,
+                    fontWeight: FontWeight.w500,
+                  ),
                   SizedBox(width: 4.w),
                   Icon(Icons.check_circle, size: 10.r, color: Colors.orange),
                 ],
@@ -150,10 +182,18 @@ class ArtisanJobCard extends StatelessWidget {
             ],
           ),
         ),
-        if (status != ArtisanJobStatus.completed && status != ArtisanJobStatus.cancelled)
+        if (status != ArtisanJobStatus.completed &&
+            status != ArtisanJobStatus.cancelled)
           _buildDirectionsButton()
         else if (price != null)
-          BodyText(price!, size: BodySize.small, fontWeight: FontWeight.w500, color: status == ArtisanJobStatus.completed ? AppColors.primary : AppColors.textPrimary),
+          BodyText(
+            price!,
+            size: BodySize.small,
+            fontWeight: FontWeight.w500,
+            color: status == ArtisanJobStatus.completed
+                ? AppColors.primary
+                : AppColors.textPrimary,
+          ),
       ],
     );
   }
@@ -169,7 +209,11 @@ class ArtisanJobCard extends StatelessWidget {
         children: [
           Icon(Icons.near_me, size: 12.r, color: AppColors.textPrimary),
           SizedBox(width: 4.w),
-          BodyText('Directions', size: BodySize.small, fontWeight: FontWeight.w500),
+          BodyText(
+            'Directions',
+            size: BodySize.small,
+            fontWeight: FontWeight.w500,
+          ),
         ],
       ),
     );
@@ -183,7 +227,13 @@ class ArtisanJobCard extends StatelessWidget {
           Icon(Icons.check, size: 12.r, color: AppColors.primary),
           SizedBox(width: 6.w),
           Expanded(
-            child: BodyText(text, size: BodySize.small, color: AppColors.textSecondary, maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: BodyText(
+              text,
+              size: BodySize.small,
+              color: AppColors.textSecondary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -191,14 +241,19 @@ class ArtisanJobCard extends StatelessWidget {
   }
 
   Widget _buildFooter() {
-    if (status == ArtisanJobStatus.completed || status == ArtisanJobStatus.cancelled) {
+    if (status == ArtisanJobStatus.completed ||
+        status == ArtisanJobStatus.cancelled) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildStatusTag(),
           SizedBox(height: 8.h),
           if (timeInfo != null)
-            BodyText(timeInfo!, size: BodySize.small, color: AppColors.textSecondary),
+            BodyText(
+              timeInfo!,
+              size: BodySize.small,
+              color: AppColors.textSecondary,
+            ),
           SizedBox(height: 12.h),
           SizedBox(
             width: double.infinity,
@@ -208,9 +263,15 @@ class ArtisanJobCard extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFBCCBCB),
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
               ),
-              child: BodyText('View Receipt', size: BodySize.medium, fontWeight: FontWeight.w600),
+              child: BodyText(
+                primaryActionLabel ?? 'View Receipt',
+                size: BodySize.medium,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -218,23 +279,60 @@ class ArtisanJobCard extends StatelessWidget {
     }
 
     if (status == ArtisanJobStatus.pending) {
-       return Column(
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStatusTag(label: 'Scheduled', color: const Color(0xFFBCCBCB), textColor: AppColors.primary),
-           SizedBox(height: 12.h),
-          SizedBox(
-            width: double.infinity,
-            height: 40.h,
-            child: ElevatedButton(
-              onPressed: onActionPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+          _buildStatusTag(
+            label: 'Scheduled',
+            color: const Color(0xFFBCCBCB),
+            textColor: AppColors.primary,
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onSecondaryActionPressed,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: const Color(0xFFE2725B),
+                      width: 1.w,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                  child: BodyText(
+                    secondaryActionLabel ?? 'Reject',
+                    size: BodySize.medium,
+                    color: const Color(0xFFE2725B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: BodyText('Start Job', size: BodySize.medium, color: Colors.white, fontWeight: FontWeight.w600),
-            ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: SizedBox(
+                  height: 40.h,
+                  child: ElevatedButton(
+                    onPressed: onActionPressed,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                    child: BodyText(
+                      primaryActionLabel ?? 'Accept',
+                      size: BodySize.medium,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       );
@@ -248,13 +346,18 @@ class ArtisanJobCard extends StatelessWidget {
             onPressed: onActionPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
               elevation: 0,
               minimumSize: Size(double.infinity, 40.h),
               padding: EdgeInsets.zero,
             ),
             child: BodyText(
-              status == ArtisanJobStatus.ongoing ? 'Continue Job' : 'Start Job',
+              primaryActionLabel ??
+                  (status == ArtisanJobStatus.ongoing
+                      ? 'Continue Job'
+                      : 'Start Job'),
               size: BodySize.medium,
               color: Colors.white,
               fontWeight: FontWeight.w600,
@@ -262,18 +365,29 @@ class ArtisanJobCard extends StatelessWidget {
           ),
         ),
         SizedBox(width: 8.w),
-        _buildIconButton(Icons.chat_bubble_outline, onMessagePressed),
-        SizedBox(width: 8.w),
-        _buildIconButton(Icons.phone_outlined, onPhonePressed),
+        if (onPhonePressed != null) ...[
+          _buildIconButton(Icons.phone_outlined, onPhonePressed),
+        ],
       ],
     );
   }
 
   Widget _buildStatusTag({String? label, Color? color, Color? textColor}) {
-    String tagLabel = label ?? (status == ArtisanJobStatus.completed ? 'Completed' : 'Cancelled');
-    Color tagColor = color ?? (status == ArtisanJobStatus.completed ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE));
-    Color tagTextColor = textColor ?? (status == ArtisanJobStatus.completed ? Colors.green : Colors.red);
-    IconData? icon = status == ArtisanJobStatus.completed ? Icons.check_circle : (status == ArtisanJobStatus.cancelled ? Icons.cancel : null);
+    String tagLabel =
+        label ??
+        statusTagLabel ??
+        (status == ArtisanJobStatus.completed ? 'Completed' : 'Cancelled');
+    Color tagColor =
+        color ??
+        (status == ArtisanJobStatus.completed
+            ? const Color(0xFFE8F5E9)
+            : const Color(0xFFFFEBEE));
+    Color tagTextColor =
+        textColor ??
+        (status == ArtisanJobStatus.completed ? Colors.green : Colors.red);
+    IconData? icon = status == ArtisanJobStatus.completed
+        ? Icons.check_circle
+        : (status == ArtisanJobStatus.cancelled ? Icons.cancel : null);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
@@ -288,7 +402,12 @@ class ArtisanJobCard extends StatelessWidget {
             Icon(icon, size: 12.r, color: tagTextColor),
             SizedBox(width: 4.w),
           ],
-          BodyText(tagLabel, size: BodySize.small, color: tagTextColor, fontWeight: FontWeight.bold),
+          BodyText(
+            tagLabel,
+            size: BodySize.small,
+            color: tagTextColor,
+            fontWeight: FontWeight.bold,
+          ),
         ],
       ),
     );
@@ -307,5 +426,12 @@ class ArtisanJobCard extends StatelessWidget {
         child: Icon(icon, color: AppColors.textPrimary, size: 18.r),
       ),
     );
+  }
+
+  ImageProvider _getAvatarImage(String avatar) {
+    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+      return NetworkImage(avatar);
+    }
+    return AssetImage(avatar);
   }
 }

@@ -1,44 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:workchop/features/artisan_home/data/mock_artisan_data.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/widgets/common/loading_indicator.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
+import '../../../../core/utils/phone_launcher.dart';
+import '../../domain/models/artisan_booking.dart';
+import '../providers/artisan_bookings_provider.dart';
 import '../widgets/artisan_job_card.dart';
 
-class ArtisanJobsPage extends StatefulWidget {
+class ArtisanJobsPage extends ConsumerStatefulWidget {
   const ArtisanJobsPage({super.key});
 
   @override
-  State<ArtisanJobsPage> createState() => _ArtisanJobsPageState();
+  ConsumerState<ArtisanJobsPage> createState() => _ArtisanJobsPageState();
 }
 
-class _ArtisanJobsPageState extends State<ArtisanJobsPage> {
+class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
   int _mainTabIndex = 0; // 0: Upcoming, 1: History
   int _filterIndex = 0;
 
   final List<String> _upcomingFilters = ['All', 'Pending', 'Accepted', 'Today'];
-  final List<String> _historyFilters = ['All', 'Completed', 'Cancelled'];
+  final List<String> _historyFilters = [
+    'All',
+    'Completed',
+    'Cancelled',
+    'Rejected',
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final bookingsState = ref.watch(artisanBookingsProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
-      // appBar: AppBar(
-      //   backgroundColor: Colors.white,
-      //   elevation: 0,
-      //   centerTitle: false,
-      //   title: HeaderText(
-      //     'Your Jobs',
-      //     size: HeaderSize.h4,
-      //     fontWeight: FontWeight.w500,
-      //   ),
-      // ),
       body: SafeArea(
         child: Column(
           children: [
-            // Main Tab Switcher
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               child: Container(
@@ -56,30 +57,93 @@ class _ArtisanJobsPageState extends State<ArtisanJobsPage> {
               ),
             ),
             SizedBox(height: 16.h),
-
-            // Secondary Filter Chips
             SizedBox(
               height: 32.h,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
-                itemCount: _mainTabIndex == 0 ? _upcomingFilters.length : _historyFilters.length,
+                itemCount: _mainTabIndex == 0
+                    ? _upcomingFilters.length
+                    : _historyFilters.length,
                 itemBuilder: (context, index) {
-                  final filters = _mainTabIndex == 0 ? _upcomingFilters : _historyFilters;
+                  final filters = _mainTabIndex == 0
+                      ? _upcomingFilters
+                      : _historyFilters;
                   return _buildFilterChip(filters[index], index);
                 },
               ),
             ),
             SizedBox(height: 16.h),
-
-            // History Summary Header
-            if (_mainTabIndex == 1) _buildHistorySummary(),
-
-            // Jobs List
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                children: _mainTabIndex == 0 ? _buildUpcomingList() : _buildHistoryList(),
+            bookingsState.when(
+              data: (bookings) {
+                final filtered = _getFilteredBookings(bookings);
+                return Expanded(
+                  child: Column(
+                    children: [
+                      if (_mainTabIndex == 1) _buildHistorySummary(bookings),
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: () => ref
+                              .read(artisanBookingsProvider.notifier)
+                              .refresh(),
+                          child: filtered.isEmpty
+                              ? ListView(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  children: [
+                                    SizedBox(height: 96.h),
+                                    Center(
+                                      child: BodyText(
+                                        'No jobs found',
+                                        size: BodySize.medium,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ListView(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16.w,
+                                  ),
+                                  children: filtered
+                                      .map(
+                                        (booking) =>
+                                            _buildBookingCard(context, booking),
+                                      )
+                                      .toList(),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () =>
+                  const Expanded(child: Center(child: LoadingIndicator())),
+              error: (error, _) => Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        BodyText(
+                          error.toString(),
+                          size: BodySize.small,
+                          color: Colors.red,
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 12.h),
+                        ElevatedButton(
+                          onPressed: () => ref
+                              .read(artisanBookingsProvider.notifier)
+                              .refresh(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -89,7 +153,7 @@ class _ArtisanJobsPageState extends State<ArtisanJobsPage> {
   }
 
   Widget _buildMainTab(String label, int index) {
-    bool isActive = _mainTabIndex == index;
+    final isActive = _mainTabIndex == index;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() {
@@ -115,7 +179,7 @@ class _ArtisanJobsPageState extends State<ArtisanJobsPage> {
   }
 
   Widget _buildFilterChip(String label, int index) {
-    bool isActive = _filterIndex == index;
+    final isActive = _filterIndex == index;
     return GestureDetector(
       onTap: () => setState(() => _filterIndex = index),
       child: Container(
@@ -136,7 +200,71 @@ class _ArtisanJobsPageState extends State<ArtisanJobsPage> {
     );
   }
 
-  Widget _buildHistorySummary() {
+  List<ArtisanBooking> _getFilteredBookings(List<ArtisanBooking> bookings) {
+    final base = _mainTabIndex == 0
+        ? bookings.where((booking) => booking.isUpcoming).toList()
+        : bookings.where((booking) => booking.isHistory).toList();
+
+    final now = DateTime.now();
+
+    if (_mainTabIndex == 0) {
+      final filter = _upcomingFilters[_filterIndex];
+      if (filter == 'Pending') {
+        return base
+            .where((booking) => booking.status == ArtisanBookingStatus.pending)
+            .toList();
+      }
+      if (filter == 'Accepted') {
+        return base
+            .where(
+              (booking) =>
+                  booking.status == ArtisanBookingStatus.accepted ||
+                  booking.status == ArtisanBookingStatus.paid,
+            )
+            .toList();
+      }
+      if (filter == 'Today') {
+        return base
+            .where(
+              (booking) =>
+                  booking.jobDate.year == now.year &&
+                  booking.jobDate.month == now.month &&
+                  booking.jobDate.day == now.day,
+            )
+            .toList();
+      }
+      return base;
+    }
+
+    final filter = _historyFilters[_filterIndex];
+    if (filter == 'Completed') {
+      return base
+          .where((booking) => booking.status == ArtisanBookingStatus.completed)
+          .toList();
+    }
+    if (filter == 'Cancelled') {
+      return base
+          .where((booking) => booking.status == ArtisanBookingStatus.cancelled)
+          .toList();
+    }
+    if (filter == 'Rejected') {
+      return base
+          .where((booking) => booking.status == ArtisanBookingStatus.rejected)
+          .toList();
+    }
+
+    return base;
+  }
+
+  Widget _buildHistorySummary(List<ArtisanBooking> bookings) {
+    final history = bookings.where(
+      (booking) => booking.status == ArtisanBookingStatus.completed,
+    );
+    final totalEarned = history.fold<double>(
+      0,
+      (sum, booking) => sum + (booking.agreedAmount ?? booking.budgetMin),
+    );
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
       child: Row(
@@ -144,95 +272,400 @@ class _ArtisanJobsPageState extends State<ArtisanJobsPage> {
         children: [
           Row(
             children: [
-              BodyText('Total Earned: ', size: BodySize.medium, fontWeight: FontWeight.w500),
-              BodyText('₦140,000', size: BodySize.medium, color: const Color(0xFFE2725B), fontWeight: FontWeight.w500),
+              BodyText(
+                'Total Earned: ',
+                size: BodySize.medium,
+                fontWeight: FontWeight.w500,
+              ),
+              BodyText(
+                '₦${totalEarned.toStringAsFixed(0)}',
+                size: BodySize.medium,
+                color: const Color(0xFFE2725B),
+                fontWeight: FontWeight.w500,
+              ),
             ],
           ),
-          BodyText('From 2 jobs', size: BodySize.small, color: AppColors.textSecondary),
+          BodyText(
+            'From ${history.length} jobs',
+            size: BodySize.small,
+            color: AppColors.textSecondary,
+          ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildUpcomingList() {
-    final mockJob = MockArtisanData.jobRequests[0];
-    return [
-      ArtisanJobCard(
-        status: ArtisanJobStatus.ongoing,
-        serviceName: 'Leaking Faucet Repair',
-        clientName: 'Idem Etop',
-        clientAvatar: 'assets/images/regular.jpg',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-      ArtisanJobCard(
-        status: ArtisanJobStatus.next,
-        serviceName: 'Leaking Faucet Repair',
-        clientName: 'Idem Etop',
-        clientAvatar: 'assets/images/regular.jpg',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-      ArtisanJobCard(
-        status: ArtisanJobStatus.pending,
-        serviceName: 'Plumbing Repair',
-        clientName: 'Yannic Bazeel',
-        clientAvatar: 'assets/images/regular.jpg',
-        price: 'N5k - N7k',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
+  Widget _buildBookingCard(BuildContext context, ArtisanBooking booking) {
+    final clientName = booking.customerName ?? 'Client';
+    final serviceName = booking.serviceName ?? 'Service Request';
+    final avatar =
+        booking.customerProfilePictureUrl ?? 'assets/images/regular.jpg';
+
+    final neededServices = <String>[
+      if (booking.jobDescription != null &&
+          booking.jobDescription!.trim().isNotEmpty)
+        booking.jobDescription!.trim(),
     ];
+
+    final timeInfo = _formatDateTime(booking.jobDate);
+
+    switch (booking.status) {
+      case ArtisanBookingStatus.pending:
+        return ArtisanJobCard(
+          status: ArtisanJobStatus.pending,
+          serviceName: serviceName,
+          clientName: clientName,
+          clientAvatar: avatar,
+          price: _formatBudget(booking),
+          timeInfo: timeInfo,
+          neededServices: neededServices,
+          primaryActionLabel: 'Accept',
+          secondaryActionLabel: 'Reject',
+          onActionPressed: () => _onAcceptPressed(booking),
+          onSecondaryActionPressed: () => _onRejectPressed(booking),
+          onPhonePressed: () => _callClient(booking),
+          onCardTap: () => _openBookingDetail(booking),
+        );
+
+      case ArtisanBookingStatus.accepted:
+        return ArtisanJobCard(
+          status: ArtisanJobStatus.next,
+          serviceName: serviceName,
+          clientName: clientName,
+          clientAvatar: avatar,
+          price: _formatAgreedAmount(booking),
+          timeInfo: timeInfo,
+          headerLabel: 'ACCEPTED',
+          headerTimeInfo: 'Awaiting payment',
+          primaryActionLabel: 'View Details',
+          neededServices: neededServices,
+          onActionPressed: () => _openBookingDetail(booking),
+          onPhonePressed: () => _callClient(booking),
+          onCardTap: () => _openBookingDetail(booking),
+        );
+
+      case ArtisanBookingStatus.paid:
+        return ArtisanJobCard(
+          status: ArtisanJobStatus.next,
+          serviceName: serviceName,
+          clientName: clientName,
+          clientAvatar: avatar,
+          price: _formatAgreedAmount(booking),
+          timeInfo: timeInfo,
+          headerLabel: 'PAID JOB',
+          headerTimeInfo: 'Ready to start',
+          primaryActionLabel: 'Start Job',
+          neededServices: neededServices,
+          onActionPressed: () => _onStartPressed(booking),
+          onPhonePressed: () => _callClient(booking),
+          onCardTap: () => _openBookingDetail(booking),
+        );
+
+      case ArtisanBookingStatus.inProgress:
+        return ArtisanJobCard(
+          status: ArtisanJobStatus.ongoing,
+          serviceName: serviceName,
+          clientName: clientName,
+          clientAvatar: avatar,
+          price: _formatAgreedAmount(booking),
+          timeInfo: timeInfo,
+          primaryActionLabel: 'Continue Job',
+          neededServices: neededServices,
+          onActionPressed: () => _openBookingDetail(booking),
+          onPhonePressed: () => _callClient(booking),
+          onCardTap: () => _openBookingDetail(booking),
+        );
+
+      case ArtisanBookingStatus.completed:
+        return ArtisanJobCard(
+          status: ArtisanJobStatus.completed,
+          serviceName: serviceName,
+          clientName: clientName,
+          clientAvatar: avatar,
+          price: _formatAgreedAmount(booking),
+          timeInfo: timeInfo,
+          primaryActionLabel: 'View Details',
+          neededServices: neededServices,
+          onActionPressed: () => _openBookingDetail(booking),
+          onPhonePressed: () => _callClient(booking),
+          onCardTap: () => _openBookingDetail(booking),
+        );
+
+      case ArtisanBookingStatus.rejected:
+        return ArtisanJobCard(
+          status: ArtisanJobStatus.cancelled,
+          serviceName: serviceName,
+          clientName: clientName,
+          clientAvatar: avatar,
+          price: _formatBudget(booking),
+          timeInfo: timeInfo,
+          primaryActionLabel: 'View Details',
+          statusTagLabel: 'Rejected',
+          neededServices: neededServices,
+          onActionPressed: () => _openBookingDetail(booking),
+          onPhonePressed: () => _callClient(booking),
+          onCardTap: () => _openBookingDetail(booking),
+        );
+
+      case ArtisanBookingStatus.cancelled:
+      case ArtisanBookingStatus.disputed:
+      case ArtisanBookingStatus.unknown:
+        return ArtisanJobCard(
+          status: ArtisanJobStatus.cancelled,
+          serviceName: serviceName,
+          clientName: clientName,
+          clientAvatar: avatar,
+          price: _formatBudget(booking),
+          timeInfo: timeInfo,
+          primaryActionLabel: 'View Details',
+          statusTagLabel: booking.status == ArtisanBookingStatus.disputed
+              ? 'Disputed'
+              : null,
+          neededServices: neededServices,
+          onActionPressed: () => _openBookingDetail(booking),
+          onPhonePressed: () => _callClient(booking),
+          onCardTap: () => _openBookingDetail(booking),
+        );
+    }
   }
 
-  List<Widget> _buildHistoryList() {
-    final mockJob = MockArtisanData.jobRequests[0];
-    return [
-      ArtisanJobCard(
-        status: ArtisanJobStatus.completed,
-        serviceName: 'Plumbing Repair',
-        clientName: 'Yannic Bazeel',
-        clientAvatar: 'assets/images/regular.jpg',
-        price: '₦ 7,000',
-        timeInfo: 'Saturday, 27 Nov, 2025 • 07:25 AM',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () {},
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
-      ArtisanJobCard(
-        status: ArtisanJobStatus.cancelled,
-        serviceName: 'Plumbing Repair',
-        clientName: 'Yannic Bazeel',
-        clientAvatar: 'assets/images/regular.jpg',
-        price: 'N7k',
-        timeInfo: 'Saturday, 27 Nov, 2025 • 07:25 AM',
-        neededServices: const [
-          'Door and Window Casing Installation',
-          'Hardware Installation (Hinges, Drawer Slides, Locks)',
-          'Advanced Wood Joinery',
-        ],
-        onActionPressed: () {},
-        onCardTap: () => context.push(AppRoutes.jobDetail, extra: mockJob),
-      ),
+  Future<void> _onAcceptPressed(ArtisanBooking booking) async {
+    final agreedAmount = await _showAmountInputDialog(booking);
+    if (agreedAmount == null) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(artisanBookingsProvider.notifier)
+          .acceptBooking(bookingId: booking.id, agreedAmount: agreedAmount);
+
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking accepted successfully')),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _onRejectPressed(ArtisanBooking booking) async {
+    final reason = await _showTextInputDialog(
+      title: 'Reject Booking',
+      hint: 'Enter rejection reason',
+      minLength: 10,
+    );
+
+    if (reason == null) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(artisanBookingsProvider.notifier)
+          .rejectBooking(bookingId: booking.id, rejectionReason: reason);
+
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booking rejected')));
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _onStartPressed(ArtisanBooking booking) async {
+    try {
+      await ref
+          .read(artisanBookingsProvider.notifier)
+          .startBooking(bookingId: booking.id);
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Job started')));
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  void _openBookingDetail(ArtisanBooking booking) {
+    context.push(AppRoutes.jobDetail, extra: booking);
+  }
+
+  Future<void> _callClient(ArtisanBooking booking) async {
+    final phone = booking.customerPhoneNumber;
+    if (phone == null || phone.trim().isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Client phone number is not available')),
+      );
+      return;
+    }
+
+    final launched = await launchPhoneDialer(phone);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unable to open dialer')));
+    }
+  }
+
+  String _formatBudget(ArtisanBooking booking) {
+    return '₦${booking.budgetMin.toStringAsFixed(0)} - ₦${booking.budgetMax.toStringAsFixed(0)}';
+  }
+
+  String _formatAgreedAmount(ArtisanBooking booking) {
+    final amount = booking.agreedAmount;
+    if (amount == null) {
+      return _formatBudget(booking);
+    }
+    return '₦${amount.toStringAsFixed(0)}';
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final local = dateTime.toLocal();
+    final hour = local.hour == 0
+        ? 12
+        : (local.hour > 12 ? local.hour - 12 : local.hour);
+    final minute = local.minute.toString().padLeft(2, '0');
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
+
+    return '${weekdays[local.weekday - 1]}, ${local.day} ${months[local.month - 1]}, ${local.year} • $hour:$minute $period';
+  }
+
+  Future<double?> _showAmountInputDialog(ArtisanBooking booking) async {
+    final controller = TextEditingController(
+      text: (((booking.budgetMin + booking.budgetMax) / 2)).toStringAsFixed(0),
+    );
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Accept Booking'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Set amount between ₦${booking.budgetMin.toStringAsFixed(0)} and ₦${booking.budgetMax.toStringAsFixed(0)}',
+              ),
+              SizedBox(height: 10.h),
+              TextField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Agreed amount',
+                  prefixText: '₦ ',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final amount = double.tryParse(controller.text.trim());
+                if (amount == null) {
+                  return;
+                }
+                Navigator.pop(context, amount);
+              },
+              child: const Text('Accept'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
+  }
+
+  Future<String?> _showTextInputDialog({
+    required String title,
+    required String hint,
+    int minLength = 1,
+  }) async {
+    final controller = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            minLines: 3,
+            maxLines: 5,
+            decoration: InputDecoration(hintText: hint),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                if (value.length < minLength) {
+                  return;
+                }
+                Navigator.pop(context, value);
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
   }
 }
