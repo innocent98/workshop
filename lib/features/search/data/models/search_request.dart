@@ -5,7 +5,7 @@ class SearchArtisansRequest {
   final bool verifiedOnly;
   final int? limit;
   final int? offset;
-  final String? serviceId;
+  final List<String>? serviceIds;
 
   const SearchArtisansRequest({
     required this.latitude,
@@ -14,20 +14,24 @@ class SearchArtisansRequest {
     this.verifiedOnly = true,
     this.limit,
     this.offset,
-    this.serviceId,
+    this.serviceIds,
   });
 
   Map<String, dynamic> toQueryParameters() {
+    final clampedRadius = radiusKm.clamp(0.1, 100.0);
+
     final params = <String, dynamic>{
       'latitude': latitude,
       'longitude': longitude,
-      'radius_km': radiusKm,
+      'radius_km': clampedRadius,
       'verified_only': verifiedOnly,
     };
 
     if (limit != null) params['limit'] = limit;
     if (offset != null) params['offset'] = offset;
-    if (serviceId != null) params['service_id'] = serviceId;
+    if (serviceIds != null && serviceIds!.isNotEmpty) {
+      params['service_ids'] = serviceIds!.join(',');
+    }
 
     return params;
   }

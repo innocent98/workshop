@@ -8,10 +8,7 @@ import '../../domain/models/review.dart';
 class ReviewItemWidget extends StatelessWidget {
   final Review review;
 
-  const ReviewItemWidget({
-    super.key,
-    required this.review,
-  });
+  const ReviewItemWidget({super.key, required this.review});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +26,10 @@ class ReviewItemWidget extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 16.r,
-                backgroundImage: AssetImage(review.reviewerAvatarUrl),
+                backgroundImage: _resolveAvatar(review.reviewerAvatarUrl),
+                child: review.reviewerAvatarUrl.isEmpty
+                    ? Icon(Icons.person, size: 14.r)
+                    : null,
               ),
               SizedBox(width: AppSizes.spacingSmall),
               Expanded(
@@ -75,9 +75,34 @@ class ReviewItemWidget extends StatelessWidget {
     );
   }
 
+  ImageProvider? _resolveAvatar(String avatarUrl) {
+    if (avatarUrl.isEmpty) {
+      return null;
+    }
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+      return NetworkImage(avatarUrl);
+    }
+    return AssetImage(avatarUrl);
+  }
+
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final hour = date.hour > 12
+        ? date.hour - 12
+        : (date.hour == 0 ? 12 : date.hour);
     final period = date.hour >= 12 ? 'PM' : 'AM';
     final minute = date.minute.toString().padLeft(2, '0');
 

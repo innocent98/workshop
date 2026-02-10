@@ -24,6 +24,8 @@ class ArtisanProfile {
   final double? hourlyRateMin;
   final double? hourlyRateMax;
   final int? yearsOfExperience;
+  final String? specialization;
+  final double? serviceRadiusKm;
   final List<String>? skills;
   final String? location;
 
@@ -38,6 +40,8 @@ class ArtisanProfile {
     this.hourlyRateMin,
     this.hourlyRateMax,
     this.yearsOfExperience,
+    this.specialization,
+    this.serviceRadiusKm,
     this.skills,
     this.location,
   });
@@ -53,6 +57,8 @@ class ArtisanProfile {
     double? hourlyRateMin,
     double? hourlyRateMax,
     int? yearsOfExperience,
+    String? specialization,
+    double? serviceRadiusKm,
     List<String>? skills,
     String? location,
   }) {
@@ -67,6 +73,8 @@ class ArtisanProfile {
       hourlyRateMin: hourlyRateMin ?? this.hourlyRateMin,
       hourlyRateMax: hourlyRateMax ?? this.hourlyRateMax,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
+      specialization: specialization ?? this.specialization,
+      serviceRadiusKm: serviceRadiusKm ?? this.serviceRadiusKm,
       skills: skills ?? this.skills,
       location: location ?? this.location,
     );

@@ -12,7 +12,6 @@ import '../../../../core/widgets/indicators/step_progress_indicator.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/providers/registration_provider.dart';
 import '../../../../core/providers/auth_provider.dart';
-import '../../../../core/providers/location_provider.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/image_compressor.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
@@ -20,10 +19,7 @@ import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 class ProfilePicturePage extends ConsumerStatefulWidget {
   final UserType userType;
 
-  const ProfilePicturePage({
-    super.key,
-    required this.userType,
-  });
+  const ProfilePicturePage({super.key, required this.userType});
 
   @override
   ConsumerState<ProfilePicturePage> createState() => _ProfilePicturePageState();
@@ -85,7 +81,9 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Camera permission is permanently denied. Please enable it in settings.'),
+              content: const Text(
+                'Camera permission is permanently denied. Please enable it in settings.',
+              ),
               backgroundColor: AppColors.error,
               action: SnackBarAction(
                 label: 'Settings',
@@ -141,45 +139,47 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
 
     try {
       if (_selectedImage != null) {
-        final isValidSize = await ImageCompressor.validateFileSize(_selectedImage!);
+        final isValidSize = await ImageCompressor.validateFileSize(
+          _selectedImage!,
+        );
         if (!isValidSize) {
           throw Exception('Image size exceeds 5MB limit');
         }
 
         final compressedImage = await ImageCompressor.compress(_selectedImage!);
         if (compressedImage != null) {
-          await ref.read(registrationProvider.notifier).uploadProfilePicture(compressedImage);
+          await ref
+              .read(registrationProvider.notifier)
+              .uploadProfilePicture(compressedImage);
         }
       }
 
       final registrationData = ref.read(registrationProvider).value;
-      if (registrationData?.email == null || registrationData?.password == null) {
-        throw Exception('Registration data not found. Please start registration again.');
+      if (registrationData?.email == null ||
+          registrationData?.password == null) {
+        throw Exception(
+          'Registration data not found. Please start registration again.',
+        );
       }
 
-      await ref.read(authProvider.notifier).login(
-            registrationData!.email!,
-            registrationData.password!,
-          );
+      await ref
+          .read(authProvider.notifier)
+          .login(registrationData!.email!, registrationData.password!);
 
       ref.read(registrationProvider.notifier).clearRegistration();
 
-      // Request location permission for clients (non-blocking)
-      if (widget.userType == UserType.client) {
-        try {
-          await ref.read(locationProvider.notifier).requestPermission();
-        } catch (locationError) {
-          // Log but don't block registration - location is optional
-          debugPrint('Location permission request failed: $locationError');
-        }
-      }
-
-      if (mounted) {
-        final homePath = widget.userType == UserType.artisan
-            ? AppRoutes.artisanHome
-            : AppRoutes.clientHome;
-        context.go(homePath);
-      }
+      final isClient = widget.userType == UserType.client;
+      final homePath = widget.userType == UserType.artisan
+          ? AppRoutes.artisanHome
+          : AppRoutes.clientHome;
+      if (!mounted) return;
+      context.go(
+        AppRoutes.locationGate,
+        extra: {
+          'scope': isClient ? 'client' : 'artisan',
+          'nextRoute': homePath,
+        },
+      );
     } catch (e) {
       if (mounted) {
         String message = 'Something went wrong. Please try again.';
@@ -196,10 +196,7 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
         debugPrint('Profile picture completion error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -255,10 +252,7 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
                   ),
 
                   // Progress Indicator
-                  const StepProgressIndicator(
-                    totalSteps: 4,
-                    currentStep: 3,
-                  ),
+                  const StepProgressIndicator(totalSteps: 4, currentStep: 3),
                 ],
               ),
             ),
@@ -297,7 +291,9 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
                         height: 200.w,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFD9D9D9), // Light gray placeholder
+                          color: const Color(
+                            0xFFD9D9D9,
+                          ), // Light gray placeholder
                           image: _selectedImage != null
                               ? DecorationImage(
                                   image: FileImage(_selectedImage!),
@@ -382,11 +378,16 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
                     Container(
                       decoration: BoxDecoration(
                         color: _isBioFocused || _bioController.text.isNotEmpty
-                            ? const Color(0xFFE0F2F1) // Light mint when focused/filled
+                            ? const Color(
+                                0xFFE0F2F1,
+                              ) // Light mint when focused/filled
                             : const Color(0xFFE8E8E8), // Light gray when empty
                         borderRadius: BorderRadius.circular(12.r),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 9.h,
+                      ),
                       child: TextField(
                         controller: _bioController,
                         focusNode: _bioFocusNode,

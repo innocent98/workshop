@@ -34,7 +34,14 @@ class LocationData {
 class LocationNotifier extends AsyncNotifier<LocationData> {
   final _logger = Logger();
   final _locationService = LocationService();
-  static const _permissionRequestedKey = 'location_permission_requested';
+  static const _permissionRequestedKeyPrefix = 'location_permission_requested';
+
+  String _permissionRequestedKey(String? scope) {
+    if (scope == null || scope.trim().isEmpty) {
+      return _permissionRequestedKeyPrefix;
+    }
+    return '${_permissionRequestedKeyPrefix}_${scope.trim()}';
+  }
 
   @override
   Future<LocationData> build() async {
@@ -84,10 +91,10 @@ class LocationNotifier extends AsyncNotifier<LocationData> {
   }
 
   /// Request location permission and update location
-  Future<bool> requestPermission() async {
+  Future<bool> requestPermission({String? scope}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_permissionRequestedKey, true);
+      await prefs.setBool(_permissionRequestedKey(scope), true);
 
       final granted = await _locationService.requestPermission();
 
@@ -95,24 +102,28 @@ class LocationNotifier extends AsyncNotifier<LocationData> {
         // Get current location
         final position = await _locationService.getCurrentLocation();
         if (position != null) {
-          state = AsyncData(LocationData(
-            latitude: position.latitude,
-            longitude: position.longitude,
-            permissionGranted: true,
-            isUsingFallback: false,
-          ));
+          state = AsyncData(
+            LocationData(
+              latitude: position.latitude,
+              longitude: position.longitude,
+              permissionGranted: true,
+              isUsingFallback: false,
+            ),
+          );
           return true;
         }
       }
 
       // If permission denied or location unavailable, use fallback
       final fallback = _locationService.getFallbackLocation();
-      state = AsyncData(LocationData(
-        latitude: fallback.latitude,
-        longitude: fallback.longitude,
-        permissionGranted: granted,
-        isUsingFallback: true,
-      ));
+      state = AsyncData(
+        LocationData(
+          latitude: fallback.latitude,
+          longitude: fallback.longitude,
+          permissionGranted: granted,
+          isUsingFallback: true,
+        ),
+      );
 
       return granted;
     } catch (e) {
@@ -122,9 +133,9 @@ class LocationNotifier extends AsyncNotifier<LocationData> {
   }
 
   /// Check if permission has been requested before
-  Future<bool> hasRequestedPermissionBefore() async {
+  Future<bool> hasRequestedPermissionBefore({String? scope}) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_permissionRequestedKey) ?? false;
+    return prefs.getBool(_permissionRequestedKey(scope)) ?? false;
   }
 
   /// Refresh current location

@@ -3,26 +3,33 @@ class ServiceModel {
   final String name;
   final String? description;
   final String? imageUrl;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const ServiceModel({
     required this.id,
     required this.name,
     this.description,
     this.imageUrl,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
+    final createdAtRaw = json['created_at'];
+    final updatedAtRaw = json['updated_at'];
+
     return ServiceModel(
-      id: json['id'] as String,
-      name: json['name'] as String,
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
       description: json['description'] as String?,
-      imageUrl: json['image_url'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      imageUrl: json['image_url'] as String? ?? json['image'] as String?,
+      createdAt: createdAtRaw is String
+          ? DateTime.tryParse(createdAtRaw)
+          : null,
+      updatedAt: updatedAtRaw is String
+          ? DateTime.tryParse(updatedAtRaw)
+          : null,
     );
   }
 
@@ -32,8 +39,8 @@ class ServiceModel {
       'name': name,
       'description': description,
       'image_url': imageUrl,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 }

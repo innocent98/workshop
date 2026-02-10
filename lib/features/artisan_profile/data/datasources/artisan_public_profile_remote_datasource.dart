@@ -10,18 +10,31 @@ class ArtisanPublicProfileRemoteDataSource {
 
   /// Fetch public profile for an artisan
   /// GET /profiles/artisans/{artisan_id}
-  Future<ArtisanPublicProfileResponseModel> fetchPublicProfile(String artisanId) async {
+  Future<ArtisanPublicProfileResponseModel> fetchPublicProfile(
+    String artisanId,
+  ) async {
     final response = await _dio.get('/profiles/artisans/$artisanId');
-    return ArtisanPublicProfileResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return ArtisanPublicProfileResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Fetch portfolio items for an artisan
   /// GET /profiles/artisans/{artisan_id}/portfolio
-  Future<List<PortfolioItemResponseModel>> fetchArtisanPortfolio(String artisanId) async {
+  Future<List<PortfolioItemResponseModel>> fetchArtisanPortfolio(
+    String artisanId,
+  ) async {
     final response = await _dio.get('/profiles/artisans/$artisanId/portfolio');
-    final items = response.data['items'] as List? ?? [];
+    final data = response.data;
+    final items = data is List
+        ? data
+        : (data is Map<String, dynamic> ? (data['items'] as List? ?? []) : []);
+
     return items
-        .map((json) => PortfolioItemResponseModel.fromJson(json as Map<String, dynamic>))
+        .map(
+          (json) =>
+              PortfolioItemResponseModel.fromJson(json as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -34,10 +47,7 @@ class ArtisanPublicProfileRemoteDataSource {
   }) async {
     final response = await _dio.get(
       '/reviews/artisan/$artisanId',
-      queryParameters: {
-        'page': page,
-        'page_size': pageSize,
-      },
+      queryParameters: {'page': page, 'page_size': pageSize},
     );
     return ReviewsResponseModel.fromJson(response.data as Map<String, dynamic>);
   }

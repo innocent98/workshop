@@ -20,12 +20,12 @@ class PortfolioItemResponseModel {
 
   factory PortfolioItemResponseModel.fromJson(Map<String, dynamic> json) {
     return PortfolioItemResponseModel(
-      id: json['id'] as String,
-      imageUrl: json['image_url'] as String,
-      title: json['title'] as String,
+      id: (json['id'] ?? '').toString(),
+      imageUrl: (json['image_url'] ?? '').toString(),
+      title: (json['title'] ?? 'Untitled project').toString(),
       description: json['description'] as String?,
       projectDate: json['project_date'] as String?,
-      displayOrder: json['display_order'] as int?,
+      displayOrder: (json['display_order'] as num?)?.toInt(),
     );
   }
 

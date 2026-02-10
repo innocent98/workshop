@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:logger/logger.dart';
 
@@ -56,7 +58,9 @@ class LocationService {
     try {
       final hasPermission = await hasLocationPermission();
       if (!hasPermission) {
-        _logger.w('Location permission not granted, cannot get current location');
+        _logger.w(
+          'Location permission not granted, cannot get current location',
+        );
         return null;
       }
 
@@ -72,8 +76,23 @@ class LocationService {
         timeLimit: const Duration(seconds: 10),
       );
 
-      _logger.i('Current location: ${position.latitude}, ${position.longitude}');
+      _logger.i(
+        'Current location: ${position.latitude}, ${position.longitude}',
+      );
       return position;
+    } on TimeoutException {
+      _logger.w(
+        'Current location request timed out, trying last known position',
+      );
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        _logger.i(
+          'Using last known location: ${lastKnown.latitude}, ${lastKnown.longitude}',
+        );
+        return lastKnown;
+      }
+      _logger.w('No last known location available after timeout');
+      return null;
     } catch (e) {
       _logger.e('Error getting current location: $e');
       return null;
@@ -82,7 +101,9 @@ class LocationService {
 
   /// Get fallback location (Lagos coordinates)
   Position getFallbackLocation() {
-    _logger.i('Using fallback location: Lagos ($fallbackLatitude, $fallbackLongitude)');
+    _logger.i(
+      'Using fallback location: Lagos ($fallbackLatitude, $fallbackLongitude)',
+    );
     return Position(
       latitude: fallbackLatitude,
       longitude: fallbackLongitude,

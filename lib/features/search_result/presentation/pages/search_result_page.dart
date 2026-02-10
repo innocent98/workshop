@@ -1,40 +1,124 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/providers/location_provider.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
-import '../../data/search_result_data.dart';
+import '../../../client_profile/presentation/providers/client_profile_provider.dart';
+import '../../../search/presentation/providers/search_artisans_by_query_provider.dart';
 import '../widgets/artisan_result_card.dart';
-import '../widgets/store_result_card.dart';
-import '../widgets/filter_tab_selector.dart';
+import '../../../search/presentation/providers/search_history_provider.dart';
+import 'service_location_picker_page.dart';
 
-class SearchResultPage extends StatefulWidget {
+class SearchResultPage extends ConsumerStatefulWidget {
   final String query;
 
-  const SearchResultPage({
-    super.key,
-    required this.query,
-  });
+  const SearchResultPage({super.key, required this.query});
 
   @override
-  State<SearchResultPage> createState() => _SearchResultPageState();
+  ConsumerState<SearchResultPage> createState() => _SearchResultPageState();
 }
 
-class _SearchResultPageState extends State<SearchResultPage> {
-  FilterTab _selectedTab = FilterTab.all;
+class _SearchResultPageState extends ConsumerState<SearchResultPage> {
+  ServiceLocationSelection? _selectedLocation;
 
-  void _onTabChanged(FilterTab tab) {
-    setState(() {
-      _selectedTab = tab;
-    });
+  double? get _selectedLat => _selectedLocation?.latitude;
+  double? get _selectedLon => _selectedLocation?.longitude;
+
+  SearchArtisansQueryInput _currentSearchInput({
+    required double fallbackLat,
+    required double fallbackLon,
+  }) {
+    return SearchArtisansQueryInput(
+      query: widget.query,
+      latitude: _selectedLat ?? fallbackLat,
+      longitude: _selectedLon ?? fallbackLon,
+    );
+  }
+
+  Future<void> _openLocationPicker({
+    required double latitude,
+    required double longitude,
+    String? address,
+  }) async {
+    final picked = await Navigator.of(context).push<ServiceLocationSelection>(
+      MaterialPageRoute(
+        builder: (_) => ServiceLocationPickerPage(
+          initialLatitude: latitude,
+          initialLongitude: longitude,
+          initialAddress: address,
+        ),
+      ),
+    );
+
+    if (picked == null) return;
+
+    if (!mounted) return;
+    setState(() => _selectedLocation = picked);
+    ref.invalidate(
+      searchArtisansByQueryProvider(
+        SearchArtisansQueryInput(
+          query: widget.query,
+          latitude: picked.latitude,
+          longitude: picked.longitude,
+        ),
+      ),
+    );
+
+    try {
+      await ref
+          .read(clientProfileRemoteDataSourceProvider)
+          .updateMyLocation(
+            latitude: picked.latitude,
+            longitude: picked.longitude,
+            address: picked.address,
+          );
+      ref.invalidate(clientProfileProvider);
+    } catch (_) {}
+  }
+
+  Future<void> _onRefresh() async {
+    final clientProfile = ref.read(clientProfileProvider).asData?.value;
+    final location = ref.read(locationProvider).asData?.value;
+
+    final lat =
+        _selectedLat ?? clientProfile?.locationLatitude ?? location?.latitude;
+    final lon =
+        _selectedLon ?? clientProfile?.locationLongitude ?? location?.longitude;
+
+    if (lat == null || lon == null) return;
+
+    final input = _currentSearchInput(fallbackLat: lat, fallbackLon: lon);
+    ref.invalidate(searchArtisansByQueryProvider(input));
+    await ref.read(searchArtisansByQueryProvider(input).future);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Filter content based on selected tab
-    final showArtisans = _selectedTab == FilterTab.all || _selectedTab == FilterTab.artisans;
-    final showStores = _selectedTab == FilterTab.all || _selectedTab == FilterTab.stores;
+    final clientProfileAsync = ref.watch(clientProfileProvider);
+    final locationAsync = ref.watch(locationProvider);
+
+    final clientProfile = clientProfileAsync.asData?.value;
+    final location = locationAsync.asData?.value;
+
+    final fallbackLat = location?.latitude ?? 6.5244;
+    final fallbackLon = location?.longitude ?? 3.3792;
+    final effectiveLat =
+        _selectedLat ?? clientProfile?.locationLatitude ?? fallbackLat;
+    final effectiveLon =
+        _selectedLon ?? clientProfile?.locationLongitude ?? fallbackLon;
+    final effectiveAddress =
+        _selectedLocation?.address ??
+        clientProfile?.locationAddress ??
+        '${effectiveLat.toStringAsFixed(5)}, ${effectiveLon.toStringAsFixed(5)}';
+
+    final searchInput = _currentSearchInput(
+      fallbackLat: effectiveLat,
+      fallbackLon: effectiveLon,
+    );
+    final artisansAsync = ref.watch(searchArtisansByQueryProvider(searchInput));
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -47,34 +131,46 @@ class _SearchResultPageState extends State<SearchResultPage> {
               child: Row(
                 children: [
                   // Back Button
-                  GestureDetector(
-                    onTap: () => context.pop(),
-                    child: Icon(
-                      Icons.arrow_back,
-                      size: 24.r,
-                      color: AppColors.textPrimary,
+                  SizedBox(
+                    width: 32.w,
+                    child: GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Icon(
+                        Icons.arrow_back,
+                        size: 24.r,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
 
                   // Search Query Text
                   Expanded(
-                    child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
                       child: HeaderText(
                         widget.query,
                         size: HeaderSize.h4,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
 
                   // Search Icon
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Open search
-                    },
-                    child: Icon(
-                      Icons.search,
-                      size: 24.r,
-                      color: AppColors.textPrimary,
+                  SizedBox(
+                    width: 32.w,
+                    child: GestureDetector(
+                      onTap: () {
+                        ref
+                            .read(searchHistoryProvider.notifier)
+                            .addSearch(widget.query);
+                      },
+                      child: Icon(
+                        Icons.search,
+                        size: 24.r,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -95,18 +191,24 @@ class _SearchResultPageState extends State<SearchResultPage> {
                         color: AppColors.textSecondary,
                       ),
                       SizedBox(width: 4.w),
-                      BodyText(
-                        '24, New Stadium Road, Uyo, AKS',
-                        size: BodySize.small,
-                        color: AppColors.textSecondary,
+                      Expanded(
+                        child: BodyText(
+                          effectiveAddress,
+                          size: BodySize.small,
+                          color: AppColors.textSecondary,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                   SizedBox(height: 4.h),
                   GestureDetector(
-                    onTap: () {
-                      // TODO: Edit location
-                    },
+                    onTap: () => _openLocationPicker(
+                      latitude: effectiveLat,
+                      longitude: effectiveLon,
+                      address: effectiveAddress,
+                    ),
                     child: const BodyText(
                       'Edit service location',
                       size: BodySize.small,
@@ -119,94 +221,103 @@ class _SearchResultPageState extends State<SearchResultPage> {
             ),
             SizedBox(height: AppSizes.spacing),
 
-            // Filter Tabs
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-              child: FilterTabSelector(
-                selectedTab: _selectedTab,
-                onTabChanged: _onTabChanged,
-              ),
-            ),
-            SizedBox(height: AppSizes.spacing + 4.h),
-
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Artisans Section
-                    if (showArtisans) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: artisansAsync.when(
+                  data: (artisans) {
+                    if (artisans.isEmpty) {
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSizes.spacing,
+                        ),
                         children: [
-                          const BodyText(
-                            'Artisans near you',
-                            size: BodySize.medium,
-                            fontWeight: FontWeight.bold,
+                          SizedBox(height: 120.h),
+                          Icon(
+                            Icons.person_search,
+                            size: 50.r,
+                            color: AppColors.textSecondary,
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              // TODO: Navigate to all artisans
-                            },
-                            child: BodyText(
-                              'See all',
-                              size: BodySize.small,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          SizedBox(height: 8.h),
+                          BodyText(
+                            'No artisans found for "${widget.query}"',
+                            size: BodySize.medium,
+                            color: AppColors.textSecondary,
+                            textAlign: TextAlign.center,
                           ),
                         ],
+                      );
+                    }
+
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(
+                        AppSizes.spacing,
+                        0,
+                        AppSizes.spacing,
+                        AppSizes.spacingLarge,
                       ),
-                      SizedBox(height: AppSizes.spacing),
-
-                      // Artisan Cards
-                      ...SearchResultData.artisans.map((artisan) {
-                        final distances = ['3m away', '34km away', 'Ogun State'];
-                        final index = SearchResultData.artisans.indexOf(artisan);
-                        return ArtisanResultCard(
-                          artisan: artisan,
-                          distance: distances[index % distances.length],
-                        );
-                      }),
-
-                      SizedBox(height: AppSizes.spacing + 4.h),
+                      children: [
+                        const BodyText(
+                          'Artisans near you',
+                          size: BodySize.medium,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        SizedBox(height: AppSizes.spacing),
+                        ...artisans.map(
+                          (artisan) => ArtisanResultCard(
+                            key: ValueKey(artisan.id),
+                            artisan: artisan,
+                            distance: artisan.distanceKm != null
+                                ? '${artisan.distanceKm!.toStringAsFixed(1)} km away'
+                                : null,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 240),
+                      Center(child: CircularProgressIndicator()),
                     ],
-
-                    // Stores Section
-                    if (showStores) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const BodyText(
-                            'Nearby stores',
-                            size: BodySize.medium,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              // TODO: Navigate to all stores
-                            },
-                            child: BodyText(
-                              'See all',
-                              size: BodySize.small,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                  ),
+                  error: (error, _) => ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.all(AppSizes.spacing),
+                    children: [
+                      SizedBox(height: 120.h),
+                      Icon(
+                        Icons.error_outline,
+                        size: 44.r,
+                        color: AppColors.error,
                       ),
-                      SizedBox(height: AppSizes.spacing),
-
-                      // Store Cards
-                      ...SearchResultData.stores.map((store) => StoreResultCard(
-                            store: store,
-                          )),
-
-                      SizedBox(height: AppSizes.spacingLarge),
+                      SizedBox(height: 10.h),
+                      BodyText(
+                        'Failed to load artisans',
+                        size: BodySize.medium,
+                        color: AppColors.error,
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 4.h),
+                      BodyText(
+                        error.toString(),
+                        size: BodySize.small,
+                        color: AppColors.textSecondary,
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 8.h),
+                      TextButton(
+                        onPressed: () => ref.invalidate(
+                          searchArtisansByQueryProvider(searchInput),
+                        ),
+                        child: const Text('Retry'),
+                      ),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

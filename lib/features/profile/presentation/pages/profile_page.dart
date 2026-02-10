@@ -16,6 +16,8 @@ import '../../../artisan_profile/presentation/providers/artisan_profile_provider
 import '../../../artisan_profile/presentation/providers/artisan_wallet_provider.dart';
 import '../../../client_profile/domain/models/client_profile.dart';
 import '../../../client_profile/presentation/providers/client_profile_provider.dart';
+import 'artisan_portfolio_management_page.dart';
+import 'artisan_profile_edit_page.dart';
 import '../providers/profile_actions_provider.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -115,6 +117,34 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
+  Future<void> _openArtisanEditProfile({
+    required ArtisanProfile profile,
+    String? phoneNumber,
+  }) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            ArtisanProfileEditPage(profile: profile, phoneNumber: phoneNumber),
+      ),
+    );
+
+    if (updated == true) {
+      ref.invalidate(artisanProfileProvider);
+      ref.invalidate(authProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Artisan profile updated')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openPortfolioManager() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ArtisanPortfolioManagementPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authAsync = ref.watch(authProvider);
@@ -211,6 +241,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             _buildArtisanStats(profile, wallet),
             SizedBox(height: 32.h),
             _buildSections(
+              artisanProfile: profile,
               bio: profile.bio,
               email: email ?? 'Not available',
               phoneNumber: phoneNumber ?? 'Not available',
@@ -233,7 +264,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             _buildProfileHeader(
               name: profile.fullName,
               role: 'Client',
-              location: 'Location not available',
+              location: profile.locationAddress ?? 'Location not available',
               imageUrl: profile.profilePictureUrl,
             ),
             SizedBox(height: 32.h),
@@ -390,12 +421,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             'Account Status',
             profile.isActive ? 'Active' : 'Inactive',
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 8.w),
           _buildStatCard(
             'Email Status',
             profile.isEmailVerified ? 'Verified' : 'Unverified',
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 8.w),
           _buildStatCard('Member Since', _formatDate(profile.createdAt)),
         ],
       ),
@@ -403,6 +434,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Widget _buildSections({
+    ArtisanProfile? artisanProfile,
     String? bio,
     required String email,
     String? phoneNumber,
@@ -411,6 +443,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return Column(
       children: [
         _buildSectionHeader('Account'),
+        if (isArtisan && artisanProfile != null)
+          _buildMenuItem(
+            'Edit Profile',
+            onTap: () => _openArtisanEditProfile(
+              profile: artisanProfile,
+              phoneNumber: phoneNumber,
+            ),
+          ),
+        if (isArtisan)
+          _buildMenuItem('Manage Portfolio', onTap: _openPortfolioManager),
         _buildMenuItem(
           'Job History',
           onTap: () => context.push(AppRoutes.jobHistory),
@@ -473,7 +515,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildStatCard(String label, String value) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
+        padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 4.w),
         decoration: BoxDecoration(
           color: const Color(0xFFF1F5F5),
           borderRadius: BorderRadius.circular(12.r),
@@ -482,14 +524,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           children: [
             BodyText(
               label,
-              size: BodySize.small,
+              size: BodySize.tiny,
               color: AppColors.textSecondary,
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8.h),
             BodyText(
               value,
-              size: BodySize.medium,
+              size: BodySize.small,
               fontWeight: FontWeight.w500,
               color: AppColors.primary,
             ),

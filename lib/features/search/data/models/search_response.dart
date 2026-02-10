@@ -10,11 +10,16 @@ class SearchArtisansResponse {
   });
 
   factory SearchArtisansResponse.fromJson(Map<String, dynamic> json) {
+    final rawArtisans =
+        (json['artisans'] ?? json['results']) as List? ?? const [];
+    final total =
+        (json['total_count'] ?? json['total']) as int? ?? rawArtisans.length;
+
     return SearchArtisansResponse(
-      artisans: (json['artisans'] as List)
+      artisans: rawArtisans
           .map((a) => ArtisanSearchModel.fromJson(a as Map<String, dynamic>))
           .toList(),
-      totalCount: json['total_count'] as int? ?? 0,
+      totalCount: total,
     );
   }
 }

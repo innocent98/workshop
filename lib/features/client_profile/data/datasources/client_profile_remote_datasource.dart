@@ -11,4 +11,24 @@ class ClientProfileRemoteDataSource {
       response.data as Map<String, dynamic>,
     );
   }
+
+  Future<ClientProfileResponseModel> updateMyLocation({
+    required double latitude,
+    required double longitude,
+    String? address,
+  }) async {
+    final response = await _dio.put(
+      '/profiles/customers/me',
+      data: {
+        'location': {
+          'latitude': latitude,
+          'longitude': longitude,
+          if (address != null && address.trim().isNotEmpty) 'address': address,
+        },
+      },
+    );
+    return ClientProfileResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
 }

@@ -16,10 +16,7 @@ import '../../domain/models/artisan_public_profile.dart';
 class ArtisanProfilePage extends ConsumerStatefulWidget {
   final Artisan artisan;
 
-  const ArtisanProfilePage({
-    super.key,
-    required this.artisan,
-  });
+  const ArtisanProfilePage({super.key, required this.artisan});
 
   @override
   ConsumerState<ArtisanProfilePage> createState() => _ArtisanProfilePageState();
@@ -44,7 +41,9 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(artisanPublicProfileProvider(widget.artisan.id));
+    final profileAsync = ref.watch(
+      artisanPublicProfileProvider(widget.artisan.id),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -80,10 +79,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
           ),
           Expanded(
             child: Center(
-              child: HeaderText(
-                'Artisan Info',
-                size: HeaderSize.h4,
-              ),
+              child: HeaderText('Artisan Info', size: HeaderSize.h4),
             ),
           ),
           GestureDetector(
@@ -127,7 +123,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
       children: [
         CircleAvatar(
           radius: 20.r,
-          backgroundImage: AssetImage(widget.artisan.avatarUrl),
+          backgroundImage: _resolveImageProvider(widget.artisan.avatarUrl),
         ),
         SizedBox(width: AppSizes.spacingSmall),
         Expanded(
@@ -144,11 +140,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                     fontWeight: FontWeight.w600,
                   ),
                   if (widget.artisan.isVerified)
-                    Icon(
-                      Icons.verified,
-                      size: 16.r,
-                      color: Colors.red,
-                    ),
+                    Icon(Icons.verified, size: 16.r, color: Colors.red),
                   if (profile.specialization != null)
                     BodyText(
                       profile.specialization!,
@@ -183,6 +175,13 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
     );
   }
 
+  ImageProvider _resolveImageProvider(String imageUrl) {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return NetworkImage(imageUrl);
+    }
+    return AssetImage(imageUrl);
+  }
+
   Widget _buildRatingSection(ArtisanPublicProfile profile) {
     final reviewsAsync = ref.watch(artisanReviewsProvider(widget.artisan.id));
 
@@ -200,7 +199,9 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
             Row(
               children: List.generate(5, (index) {
                 return Icon(
-                  index < profile.averageRating.floor() ? Icons.star : Icons.star_border,
+                  index < profile.averageRating.floor()
+                      ? Icons.star
+                      : Icons.star_border,
                   size: 14.r,
                   color: AppColors.primary,
                 );
@@ -414,7 +415,8 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
               color: AppColors.textSecondary,
             ),
           ],
-          if (profile.hourlyRateMin != null && profile.hourlyRateMax != null) ...[
+          if (profile.hourlyRateMin != null &&
+              profile.hourlyRateMax != null) ...[
             SizedBox(height: AppSizes.spacingLarge),
             const BodyText(
               'Hourly Rate',
@@ -435,7 +437,9 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
   }
 
   Widget _buildPortfolioTab() {
-    final portfolioAsync = ref.watch(artisanPortfolioProvider(widget.artisan.id));
+    final portfolioAsync = ref.watch(
+      artisanPortfolioProvider(widget.artisan.id),
+    );
 
     return portfolioAsync.when(
       data: (items) {
@@ -453,14 +457,18 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
           ),
           itemCount: items.length,
           itemBuilder: (context, index) {
-            return PortfolioItemWidget(item: items[index]);
+            return PortfolioItemWidget(
+              key: ValueKey(items[index].id),
+              item: items[index],
+            );
           },
         );
       },
       loading: () => _buildPortfolioSkeleton(),
-      error: (error, stack) => _buildErrorWithRetry('Failed to load portfolio', () {
-        ref.invalidate(artisanPortfolioProvider(widget.artisan.id));
-      }),
+      error: (error, stack) =>
+          _buildErrorWithRetry('Failed to load portfolio', () {
+            ref.invalidate(artisanPortfolioProvider(widget.artisan.id));
+          }),
     );
   }
 
@@ -479,9 +487,10 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
         );
       },
       loading: () => _buildReviewsSkeleton(),
-      error: (error, stack) => _buildErrorWithRetry('Failed to load reviews', () {
-        ref.invalidate(artisanReviewsProvider(widget.artisan.id));
-      }),
+      error: (error, stack) =>
+          _buildErrorWithRetry('Failed to load reviews', () {
+            ref.invalidate(artisanReviewsProvider(widget.artisan.id));
+          }),
     );
   }
 
@@ -516,17 +525,9 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48.r,
-              color: AppColors.error,
-            ),
+            Icon(Icons.error_outline, size: 48.r, color: AppColors.error),
             SizedBox(height: AppSizes.spacing),
-            BodyText(
-              message,
-              size: BodySize.medium,
-              color: AppColors.error,
-            ),
+            BodyText(message, size: BodySize.medium, color: AppColors.error),
             SizedBox(height: AppSizes.spacing),
             TextButton(
               onPressed: onRetry,

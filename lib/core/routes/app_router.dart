@@ -18,6 +18,7 @@ import '../../features/auth/presentation/pages/forgot_password_email_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_new_password_page.dart';
 import '../../features/client_home/presentation/pages/service_categories_page.dart';
+import '../../features/client_home/presentation/pages/all_artisans_page.dart';
 import '../../features/main_navigation/presentation/pages/main_navigation_page.dart';
 import '../../features/search_result/presentation/pages/search_result_page.dart';
 import '../../features/artisan_profile/presentation/pages/artisan_profile_page.dart';
@@ -26,6 +27,7 @@ import '../../features/booking/presentation/pages/schedule_service_page.dart';
 import '../../features/artisan_home/presentation/pages/job_detail_page.dart';
 import '../../features/main_navigation/presentation/pages/artisan_main_navigation_page.dart';
 import '../../features/profile/presentation/pages/job_history_page.dart';
+import '../../features/location/presentation/pages/location_gate_page.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -37,12 +39,14 @@ class AppRoutes {
   static const String artisanHome = '/artisan-home';
   static const String jobDetail = '/job-detail';
   static const String serviceCategories = '/service-categories';
+  static const String allArtisans = '/all-artisans';
   static const String searchResult = '/search-result';
   static const String artisanProfile = '/artisan-profile';
   static const String instantService = '/instant-service';
   static const String scheduleService = '/schedule-service';
   static const String bookings = '/bookings';
   static const String jobHistory = '/profile/job-history';
+  static const String locationGate = '/location-gate';
 
   // Auth routes
   static const String login = '/auth/login';
@@ -207,6 +211,37 @@ final routerProvider = Provider<GoRouter>((ref) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
+      ),
+
+      GoRoute(
+        path: AppRoutes.allArtisans,
+        name: 'allArtisans',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AllArtisansPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      ),
+
+      GoRoute(
+        path: AppRoutes.locationGate,
+        name: 'locationGate',
+        pageBuilder: (context, state) {
+          final args = state.extra as Map<String, String>? ?? const {};
+          final scope = args['scope'] ?? 'client';
+          final nextRoute = args['nextRoute'] ?? AppRoutes.login;
+
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: LocationGatePage(scope: scope, nextRoute: nextRoute),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+          );
+        },
       ),
 
       // Search Result Page

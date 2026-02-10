@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'https://04a8-102-90-100-3.ngrok-free.app/api/v1';
+  static const String baseUrl = 'https://23aa-102-90-100-239.ngrok-free.app/api/v1';
 
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

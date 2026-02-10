@@ -7,10 +7,8 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
-import '../../data/mock_data.dart';
 import '../widgets/service_category_chip.dart';
 import '../widgets/artisan_card.dart';
-import '../widgets/nearby_store_card.dart';
 import '../../../services/presentation/providers/services_provider.dart';
 import '../../../search/presentation/providers/nearby_artisans_provider.dart';
 
@@ -22,6 +20,13 @@ class ClientHomePage extends ConsumerStatefulWidget {
 }
 
 class _ClientHomePageState extends ConsumerState<ClientHomePage> {
+  Future<void> _onRefresh() async {
+    await Future.wait([
+      ref.refresh(servicesProvider.future),
+      ref.refresh(nearbyArtisansProvider.future),
+    ]);
+  }
+
   void _onSearchTap() {
     context.push(AppRoutes.serviceCategories);
   }
@@ -46,226 +51,294 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
         child: Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Section with Search Bar
-                    Padding(
-                      padding: EdgeInsets.all(
-                        AppSizes.spacing,
-                      ),
-                      child: Row(
-                        children: [
-                          // Search Bar
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: _onSearchTap,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: AppSizes.spacing,
-                                  vertical: 14.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5F5F5), // Search bar background
-                                  borderRadius: BorderRadius.circular(AppSizes.radius),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.search,
-                                      size: AppSizes.iconSize,
-                                      color: AppColors.textSecondary,
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Section with Search Bar
+                      Padding(
+                        padding: EdgeInsets.all(AppSizes.spacing),
+                        child: Row(
+                          children: [
+                            // Search Bar
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _onSearchTap,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: AppSizes.spacing,
+                                    vertical: 14.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFFF5F5F5,
+                                    ), // Search bar background
+                                    borderRadius: BorderRadius.circular(
+                                      AppSizes.radius,
                                     ),
-                                    SizedBox(width: AppSizes.spacingSmall + 4.w),
-                                    BodyText(
-                                      'What service do you need?',
-                                      size: BodySize.small,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.search,
+                                        size: AppSizes.iconSize,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                      SizedBox(
+                                        width: AppSizes.spacingSmall + 4.w,
+                                      ),
+                                      BodyText(
+                                        'What service do you need?',
+                                        size: BodySize.small,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: AppSizes.spacing - 4.w),
+                            SizedBox(width: AppSizes.spacing - 4.w),
 
-                          // Notification Bell
-                          GestureDetector(
-                            onTap: _onNotificationTap,
-                            child: Stack(
-                              children: [
-                                Icon(
-                                  Icons.notifications_outlined,
-                                  size: 28.r,
-                                  color: AppColors.textPrimary,
-                                ),
-                                // Red dot indicator
-                                Positioned(
-                                  right: 4,
-                                  top: 4,
-                                  child: Container(
-                                    width: 8.r,
-                                    height: 8.r,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFF0000),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Call Banner
-                    Container(
-                      // margin: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: AppSizes.caption,
-                        vertical: 8.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2725B),
-                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: AppSizes.caption,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            // Notification Bell
+                            GestureDetector(
+                              onTap: _onNotificationTap,
+                              child: Stack(
                                 children: [
-                                  TextSpan(
-                                    text: 'CALL US TO GET AN ARTISAN ',
-                                    style: TextStyle(fontSize: AppSizes.caption,)
+                                  Icon(
+                                    Icons.notifications_outlined,
+                                    size: 28.r,
+                                    color: AppColors.textPrimary,
                                   ),
-                                  TextSpan(
-                                    text: '0702 500 0478',
-                                    style: TextStyle(
-                                      fontSize: AppSizes.caption,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                  // Red dot indicator
+                                  Positioned(
+                                    right: 4,
+                                    top: 4,
+                                    child: Container(
+                                      width: 8.r,
+                                      height: 8.r,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFF0000),
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+
+                      // Call Banner
+                      Container(
+                        // margin: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSizes.caption,
+                          vertical: 8.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2725B),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusSmall,
                           ),
-                          SizedBox(width: AppSizes.caption),
-                          GestureDetector(
-                            onTap: _onCallNowTap,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: AppSizes.spacingSmall,
-                                vertical: AppSizes.spacingSmall,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    fontSize: AppSizes.caption,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: 'CALL US TO GET AN ARTISAN ',
+                                      style: TextStyle(
+                                        fontSize: AppSizes.caption,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: '0702 500 0478',
+                                      style: TextStyle(
+                                        fontSize: AppSizes.caption,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            SizedBox(width: AppSizes.caption),
+                            GestureDetector(
+                              onTap: _onCallNowTap,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: AppSizes.spacingSmall,
+                                  vertical: AppSizes.spacingSmall,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6.r),
+                                ),
+                                child: BodyText(
+                                  'CALL NOW',
+                                  size: BodySize.small,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFE2725B),
+                                ),
                               ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: AppSizes.spacing + 4.h),
+
+                      // Service Categories (Horizontal Scroll)
+                      _buildServiceCategories(),
+                      SizedBox(height: AppSizes.spacing + 4.h),
+
+                      // Book Service Button
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSizes.spacing,
+                        ),
+                        child: PrimaryButton(
+                          label: 'Book Service',
+                          onPressed: _onBookServiceTap,
+                        ),
+                      ),
+                      SizedBox(height: AppSizes.spacingLarge + 8.h),
+
+                      // Verified Artisans Nearby Section
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSizes.spacing,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const BodyText(
+                              'Verified artisans nearby',
+                              size: BodySize.large,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                context.push(AppRoutes.allArtisans);
+                              },
                               child: BodyText(
-                                'CALL NOW',
+                                'See all',
                                 size: BodySize.small,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFFE2725B),
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: AppSizes.spacing + 4.h),
+                      SizedBox(height: AppSizes.spacing),
 
-                    // Service Categories (Horizontal Scroll)
-                    _buildServiceCategories(),
-                    SizedBox(height: AppSizes.spacing + 4.h),
+                      // Artisans Horizontal List
+                      _buildNearbyArtisans(),
+                      SizedBox(height: AppSizes.spacingLarge + 8.h),
 
-                    // Book Service Button
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                      child: PrimaryButton(
-                        label: 'Book Service',
-                        onPressed: _onBookServiceTap,
+                      // How It Works Section
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSizes.spacing,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const BodyText(
+                              'How it works',
+                              size: BodySize.large,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            GestureDetector(
+                              onTap: _showHowItWorksModal,
+                              child: BodyText(
+                                'Open',
+                                size: BodySize.small,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: AppSizes.spacingLarge + 8.h),
+                      SizedBox(height: AppSizes.spacing),
 
-                    // Verified Artisans Nearby Section
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const BodyText(
-                            'Verified artisans nearby',
-                            size: BodySize.large,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              // TODO: Navigate to all artisans page
-                            },
-                            child: BodyText(
-                              'See all',
-                              size: BodySize.small,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
+                      // How It Works Walkthrough Card
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSizes.spacing,
+                        ),
+                        child: GestureDetector(
+                          onTap: _showHowItWorksModal,
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(14.r),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F5),
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 38.w,
+                                  height: 38.h,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
+                                  child: Icon(
+                                    Icons.play_lesson_outlined,
+                                    color: AppColors.primary,
+                                    size: 20.r,
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      BodyText(
+                                        'Service booking walkthrough',
+                                        size: BodySize.medium,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      SizedBox(height: 2.h),
+                                      BodyText(
+                                        'See the steps from request to completion.',
+                                        size: BodySize.small,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: AppColors.textSecondary,
+                                  size: 24.r,
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: AppSizes.spacing),
-
-                    // Artisans Horizontal List
-                    _buildNearbyArtisans(),
-                    SizedBox(height: AppSizes.spacingLarge + 8.h),
-
-                    // Nearby Stores Section
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const BodyText(
-                            'Nearby stores',
-                            size: BodySize.large,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              // TODO: Navigate to all stores page
-                            },
-                            child: BodyText(
-                              'See all',
-                              size: BodySize.small,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: AppSizes.spacing),
-
-                    // Nearby Stores List
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                      child: Column(
-                        children: MockData.nearbyStores
-                            .map((store) => NearbyStoreCard(store: store))
-                            .toList(),
-                      ),
-                    ),
-                    SizedBox(height: AppSizes.spacingLarge),
-                  ],
+                      SizedBox(height: AppSizes.spacingLarge),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -299,7 +372,8 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
             padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
             scrollDirection: Axis.horizontal,
             itemCount: services.length,
-            separatorBuilder: (context, index) => SizedBox(width: AppSizes.spacingSmall),
+            separatorBuilder: (context, index) =>
+                SizedBox(width: AppSizes.spacingSmall),
             itemBuilder: (context, index) {
               final service = services[index];
               return ServiceCategoryChip(
@@ -326,11 +400,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 16.r,
-                color: Colors.red,
-              ),
+              Icon(Icons.error_outline, size: 16.r, color: Colors.red),
               SizedBox(width: 8.w),
               BodyText(
                 'Failed to load services',
@@ -425,11 +495,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48.r,
-                  color: Colors.red,
-                ),
+                Icon(Icons.error_outline, size: 48.r, color: Colors.red),
                 SizedBox(height: 8.h),
                 BodyText(
                   'Failed to load artisans',
@@ -454,6 +520,129 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showHowItWorksModal() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 24.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD8E0E0),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                BodyText(
+                  'How it works',
+                  size: BodySize.large,
+                  fontWeight: FontWeight.w700,
+                ),
+                SizedBox(height: 12.h),
+                _buildWalkthroughStep(
+                  step: '1',
+                  title: 'Choose a service',
+                  subtitle: 'Search and select what you need.',
+                ),
+                _buildWalkthroughStep(
+                  step: '2',
+                  title: 'Pick an artisan',
+                  subtitle: 'Compare ratings, distance, and profile.',
+                ),
+                _buildWalkthroughStep(
+                  step: '3',
+                  title: 'Book and track',
+                  subtitle: 'Send request and monitor progress in jobs.',
+                ),
+                _buildWalkthroughStep(
+                  step: '4',
+                  title: 'Pay and review',
+                  subtitle: 'Complete payment and leave a rating.',
+                ),
+                SizedBox(height: 8.h),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Got it'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWalkthroughStep({
+    required String step,
+    required String title,
+    required String subtitle,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26.w,
+            height: 26.h,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: BodyText(
+                step,
+                size: BodySize.small,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BodyText(
+                  title,
+                  size: BodySize.medium,
+                  fontWeight: FontWeight.w600,
+                ),
+                SizedBox(height: 2.h),
+                BodyText(
+                  subtitle,
+                  size: BodySize.small,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

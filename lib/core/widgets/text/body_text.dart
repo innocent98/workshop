@@ -47,6 +47,10 @@ class BodyText extends StatelessWidget {
         fontSize = AppSizes.caption;
         defaultColor = AppColors.textSecondary;
         break;
+      case BodySize.tiny:
+        fontSize = AppSizes.spacingSmall;
+        defaultColor = AppColors.textSecondary;
+        break;
     }
 
     return Text(
@@ -69,4 +73,5 @@ enum BodySize {
   large,
   medium,
   small,
+  tiny,
 }

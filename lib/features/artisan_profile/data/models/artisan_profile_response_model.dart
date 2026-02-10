@@ -11,6 +11,8 @@ class ArtisanProfileResponseModel {
   final String? hourlyRateMin;
   final String? hourlyRateMax;
   final int? yearsOfExperience;
+  final String? specialization;
+  final double? serviceRadiusKm;
   final List<String>? skills;
   final String? location;
 
@@ -25,6 +27,8 @@ class ArtisanProfileResponseModel {
     this.hourlyRateMin,
     this.hourlyRateMax,
     this.yearsOfExperience,
+    this.specialization,
+    this.serviceRadiusKm,
     this.skills,
     this.location,
   });
@@ -38,13 +42,15 @@ class ArtisanProfileResponseModel {
       totalJobsCompleted: (json['total_jobs_completed'] as num? ?? 0).toInt(),
       averageRating: (json['average_rating'] as num? ?? 0.0).toDouble(),
       bio: json['bio'] as String?,
-      hourlyRateMin: json['hourly_rate_min'] as String?,
-      hourlyRateMax: json['hourly_rate_max'] as String?,
+      hourlyRateMin: json['hourly_rate_min']?.toString(),
+      hourlyRateMax: json['hourly_rate_max']?.toString(),
       yearsOfExperience: json['years_of_experience'] as int?,
+      specialization: json['specialization'] as String?,
+      serviceRadiusKm: (json['service_radius_km'] as num?)?.toDouble(),
       skills: json['skills'] != null
           ? List<String>.from(json['skills'] as List)
           : null,
-      location: json['location'] as String?,
+      location: json['location_address'] as String?,
     );
   }
 
@@ -64,6 +70,8 @@ class ArtisanProfileResponseModel {
           ? double.tryParse(hourlyRateMax!)
           : null,
       yearsOfExperience: yearsOfExperience,
+      specialization: specialization,
+      serviceRadiusKm: serviceRadiusKm,
       skills: skills,
       location: location,
     );

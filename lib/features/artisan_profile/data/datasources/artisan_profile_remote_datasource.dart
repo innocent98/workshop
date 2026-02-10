@@ -32,4 +32,16 @@ class ArtisanProfileRemoteDataSource {
       response.data as Map<String, dynamic>,
     );
   }
+
+  Future<void> updateCurrentLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    await _dio.put(
+      '/profiles/artisans/me',
+      data: {
+        'location': {'latitude': latitude, 'longitude': longitude},
+      },
+    );
+  }
 }

@@ -27,24 +27,31 @@ class Artisan {
 
   /// Create Artisan from ArtisanSearchModel (API response)
   factory Artisan.fromSearchModel(ArtisanSearchModel model) {
-    final fullName = '${model.firstName ?? ''} ${model.lastName ?? ''}'.trim();
-    final serviceName = model.services?.isNotEmpty == true
-        ? model.services!.first.name
+    final fallbackName = '${model.firstName ?? ''} ${model.lastName ?? ''}'
+        .trim();
+    final displayName =
+        (model.fullName != null && model.fullName!.trim().isNotEmpty)
+        ? model.fullName!.trim()
+        : fallbackName;
+
+    final serviceName = model.services.isNotEmpty
+        ? model.services.first.name
         : 'Artisan';
 
     // Use profile picture or first service image as avatar
-    final avatar = model.profilePictureUrl ??
-                   (model.services?.isNotEmpty == true ? model.services!.first.imageUrl : null) ??
-                   'assets/images/regular.jpg';
+    final avatar =
+        model.profilePictureUrl ??
+        (model.services.isNotEmpty ? model.services.first.imageUrl : null) ??
+        'assets/images/regular.jpg';
 
     return Artisan(
       id: model.id,
-      name: fullName.isNotEmpty ? fullName : 'Unknown',
+      name: displayName.isNotEmpty ? displayName : 'Unknown',
       service: serviceName,
       imageUrl: model.portfolioUrl ?? avatar,
       avatarUrl: avatar,
       rating: model.averageRating ?? 0.0,
-      jobsCompleted: 0, // Not available in API
+      jobsCompleted: model.totalJobsCompleted ?? 0,
       isVerified: model.isVerified,
       distanceKm: model.distanceKm,
       ratingsCount: model.ratingsCount,

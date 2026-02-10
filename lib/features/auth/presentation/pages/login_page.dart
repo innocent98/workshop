@@ -8,7 +8,6 @@ import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/providers/auth_provider.dart';
-import '../../../../core/providers/location_provider.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/models/user.dart';
 
@@ -38,34 +37,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       setState(() => _isLoading = true);
 
       try {
-        await ref.read(authProvider.notifier).login(
-              _emailController.text.trim(),
-              _passwordController.text,
-            );
+        await ref
+            .read(authProvider.notifier)
+            .login(_emailController.text.trim(), _passwordController.text);
 
         final authAsync = ref.read(authProvider);
         final user = authAsync.value;
         if (mounted && user != null) {
-          // Request location permission for clients (non-blocking)
-          if (user.role == UserRole.client) {
-            try {
-              final hasRequested = await ref.read(locationProvider.notifier).hasRequestedPermissionBefore();
-              if (!hasRequested) {
-                await ref.read(locationProvider.notifier).requestPermission();
-              }
-            } catch (locationError) {
-              // Log but don't block login - location is optional
-              debugPrint('Location permission request failed: $locationError');
-            }
-          }
-
-          if (!mounted) return;
-
-          if (user.role == UserRole.artisan) {
-            context.go(AppRoutes.artisanHome);
-          } else {
-            context.go(AppRoutes.clientHome);
-          }
+          final isClient = user.role == UserRole.client;
+          final route = user.role == UserRole.artisan
+              ? AppRoutes.artisanHome
+              : AppRoutes.clientHome;
+          context.go(
+            AppRoutes.locationGate,
+            extra: {
+              'scope': isClient ? 'client' : 'artisan',
+              'nextRoute': route,
+            },
+          );
         }
       } catch (e) {
         if (mounted) {
@@ -81,10 +70,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           debugPrint('Login error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: AppColors.error,
-            ),
+            SnackBar(content: Text(message), backgroundColor: AppColors.error),
           );
         }
       } finally {
@@ -200,7 +186,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         obscureText: _obscurePassword,
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: AppColors.textSecondary,
                             size: 20.r,
                           ),

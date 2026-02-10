@@ -6,23 +6,23 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
-import '../../data/mock_data.dart';
+import '../../domain/models/service_category.dart';
 import '../widgets/service_category_list_item.dart';
+import '../../../services/presentation/providers/services_provider.dart';
 import '../../../search/presentation/providers/search_history_provider.dart';
-import '../../../search/data/search_suggestions.dart';
 import '../../../search/presentation/widgets/search_suggestion_item.dart';
 
 class ServiceCategoriesPage extends ConsumerStatefulWidget {
   const ServiceCategoriesPage({super.key});
 
   @override
-  ConsumerState<ServiceCategoriesPage> createState() => _ServiceCategoriesPageState();
+  ConsumerState<ServiceCategoriesPage> createState() =>
+      _ServiceCategoriesPageState();
 }
 
 class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  List<String> _suggestions = [];
   bool _showSuggestions = false;
 
   @override
@@ -42,7 +42,6 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
 
   void _onSearchChanged() {
     setState(() {
-      _suggestions = SearchSuggestions.getSuggestions(_searchController.text);
       _showSuggestions = true;
     });
   }
@@ -76,9 +75,43 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
     context.push('${AppRoutes.searchResult}?query=$categoryName');
   }
 
+  IconData _iconForServiceName(String name) {
+    final normalized = name.toLowerCase();
+    if (normalized.contains('plumb')) return Icons.plumbing_outlined;
+    if (normalized.contains('electric') || normalized.contains('rewire')) {
+      return Icons.electrical_services_outlined;
+    }
+    if (normalized.contains('ac') || normalized.contains('air')) {
+      return Icons.ac_unit_outlined;
+    }
+    if (normalized.contains('carpen')) return Icons.carpenter_outlined;
+    if (normalized.contains('paint')) return Icons.format_paint_outlined;
+    if (normalized.contains('clean')) return Icons.cleaning_services_outlined;
+    if (normalized.contains('hair')) return Icons.content_cut_outlined;
+    if (normalized.contains('beaut') || normalized.contains('makeup')) {
+      return Icons.face_outlined;
+    }
+    if (normalized.contains('photo')) return Icons.camera_alt_outlined;
+    if (normalized.contains('mechanic') || normalized.contains('auto')) {
+      return Icons.build_outlined;
+    }
+    return Icons.handyman_outlined;
+  }
+
   @override
   Widget build(BuildContext context) {
     final searchHistory = ref.watch(searchHistoryProvider);
+    final servicesAsync = ref.watch(servicesProvider);
+    final typed = _searchController.text.toLowerCase().trim();
+    final serviceSuggestions =
+        servicesAsync.value
+            ?.map((service) => service.name)
+            .where(
+              (name) => typed.isNotEmpty && name.toLowerCase().contains(typed),
+            )
+            .toSet()
+            .toList() ??
+        const <String>[];
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -94,10 +127,7 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
           onPressed: () => context.pop(),
         ),
         centerTitle: true,
-        title: HeaderText(
-          'Service Categories',
-          size: HeaderSize.h4,
-        ),
+        title: HeaderText('Service Categories', size: HeaderSize.h4),
       ),
       body: SafeArea(
         child: Column(
@@ -162,21 +192,35 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
                   children: [
                     // Matching history items first
                     ...searchHistory
-                        .where((item) => item
-                            .toLowerCase()
-                            .contains(_searchController.text.toLowerCase().trim()))
-                        .map((query) => SearchSuggestionItem(
-                              text: query,
-                              isHistory: true,
-                              onTap: () => _onSuggestionTap(query),
-                            )),
+                        .where(
+                          (item) => item.toLowerCase().contains(
+                            _searchController.text.toLowerCase().trim(),
+                          ),
+                        )
+                        .map(
+                          (query) => SearchSuggestionItem(
+                            text: query,
+                            isHistory: true,
+                            onTap: () => _onSuggestionTap(query),
+                          ),
+                        ),
 
-                    // Then other suggestions
-                    ..._suggestions.map((suggestion) => SearchSuggestionItem(
-                          text: suggestion,
-                          isHistory: false,
-                          onTap: () => _onSuggestionTap(suggestion),
-                        )),
+                    // Then service-name suggestions from API services list
+                    ...serviceSuggestions
+                        .where(
+                          (suggestion) => !searchHistory.any(
+                            (h) =>
+                                h.toLowerCase().trim() ==
+                                suggestion.toLowerCase().trim(),
+                          ),
+                        )
+                        .map(
+                          (suggestion) => SearchSuggestionItem(
+                            text: suggestion,
+                            isHistory: false,
+                            onTap: () => _onSuggestionTap(suggestion),
+                          ),
+                        ),
                   ],
                 ),
               )
@@ -186,27 +230,56 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
                 child: ListView(
                   padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
                   children: searchHistory
-                      .map((query) => SearchSuggestionItem(
-                            text: query,
-                            isHistory: true,
-                            onTap: () => _onSuggestionTap(query),
-                          ))
+                      .map(
+                        (query) => SearchSuggestionItem(
+                          text: query,
+                          isHistory: true,
+                          onTap: () => _onSuggestionTap(query),
+                        ),
+                      )
                       .toList(),
                 ),
               )
             else
-              // Service Categories List (when not focused on search)
+              // Service list from API (GET /services)
               Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                  itemCount: MockData.allServiceCategories.length,
-                  itemBuilder: (context, index) {
-                    final category = MockData.allServiceCategories[index];
-                    return ServiceCategoryListItem(
-                      category: category,
-                      onTap: () => _onCategoryTap(category.name),
-                    );
-                  },
+                child: servicesAsync.when(
+                  data: (services) => ListView.separated(
+                    padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
+                    itemCount: services.length,
+                    separatorBuilder: (context, index) => SizedBox(height: 0.h),
+                    itemBuilder: (context, index) {
+                      final service = services[index];
+                      final category = ServiceCategory(
+                        id: service.id.toString(),
+                        name: service.name,
+                        icon: _iconForServiceName(service.name),
+                      );
+                      return ServiceCategoryListItem(
+                        category: category,
+                        onTap: () => _onCategoryTap(service.name),
+                      );
+                    },
+                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        BodyText(
+                          'Failed to load services',
+                          size: BodySize.medium,
+                          color: AppColors.error,
+                        ),
+                        SizedBox(height: 8.h),
+                        TextButton(
+                          onPressed: () => ref.invalidate(servicesProvider),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
           ],
