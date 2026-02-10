@@ -129,4 +129,40 @@ class ArtisanBookingsRemoteDataSource {
       rethrow;
     }
   }
+
+  Future<ArtisanBookingResponseModel> cancelBooking({
+    required int bookingId,
+    required String cancellationReason,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/bookings/$bookingId/cancel',
+        data: {'cancellation_reason': cancellationReason},
+      );
+      return ArtisanBookingResponseModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      _logger.e('Failed to cancel booking $bookingId: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<ArtisanBookingResponseModel> confirmCompletion({
+    required int bookingId,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/bookings/$bookingId/confirm-completion',
+      );
+      return ArtisanBookingResponseModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      _logger.e(
+        'Failed to confirm completion for booking $bookingId: ${e.message}',
+      );
+      rethrow;
+    }
+  }
 }

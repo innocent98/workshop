@@ -85,7 +85,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
           GestureDetector(
             onTap: _onShare,
             child: Icon(
-              Icons.bookmark_border,
+              null,
               size: 24.r,
               color: AppColors.textPrimary,
             ),
@@ -364,6 +364,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
 
   Widget _buildAboutTab(ArtisanPublicProfile profile) {
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(AppSizes.spacing),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,

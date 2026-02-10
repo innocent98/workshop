@@ -8,10 +8,18 @@ import 'package:workchop/features/bookings/domain/models/booking.dart';
 
 class OngoingBookingCard extends StatelessWidget {
   final Booking booking;
+  final VoidCallback? onTap;
+  final VoidCallback? onRateTap;
+  final VoidCallback? onChatTap;
+  final VoidCallback? onCallTap;
 
   const OngoingBookingCard({
     super.key,
     required this.booking,
+    this.onTap,
+    this.onRateTap,
+    this.onChatTap,
+    this.onCallTap,
   });
 
   String _formatDateTime(DateTime dateTime) {
@@ -22,108 +30,101 @@ class OngoingBookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: AppSizes.spacing),
-      padding: EdgeInsets.all(AppSizes.spacingSmall),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header: Avatar, Name, Service Type, Menu
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 16.r,
-                backgroundImage: AssetImage(booking.artisanAvatar),
-              ),
-              SizedBox(width: AppSizes.spacingSmall),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Name with verified badge and service type
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 2.w,
-                      children: [
-                        BodyText(
-                          booking.artisanName,
-                          size: BodySize.small,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        if (booking.isVerified)
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.only(bottom: AppSizes.spacing),
+        padding: EdgeInsets.all(AppSizes.spacingSmall),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(AppSizes.radius),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: Avatar, Name, Service Type, Menu
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 16.r,
+                  backgroundImage: _resolveImageProvider(booking.artisanAvatar),
+                ),
+                SizedBox(width: AppSizes.spacingSmall),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Name with verified badge and service type
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 2.w,
+                        children: [
+                          BodyText(
+                            booking.artisanName,
+                            size: BodySize.small,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          if (booking.isVerified)
+                            Icon(Icons.verified, size: 14.r, color: Colors.red),
+                          BodyText(
+                            booking.serviceType,
+                            size: BodySize.small,
+                            color: AppColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 2.h),
+                      // Accepted date
+                      Row(
+                        children: [
                           Icon(
-                            Icons.verified,
-                            size: 14.r,
-                            color: Colors.red,
+                            Icons.check_circle_outline,
+                            size: 12.r,
+                            color: AppColors.textSecondary,
                           ),
-                        BodyText(
-                          booking.serviceType,
-                          size: BodySize.small,
-                          color: AppColors.textSecondary,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 2.h),
-                    // Accepted date
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 12.r,
-                          color: AppColors.textSecondary,
-                        ),
-                        SizedBox(width: 4.w),
-                        Expanded(
-                          child: Text(
-                            'Accepted: ${_formatDateTime(booking.dateTime)}',
-                            style: TextStyle(fontSize: 9.sp)
+                          SizedBox(width: 4.w),
+                          Expanded(
+                            child: Text(
+                              'Accepted: ${_formatDateTime(booking.dateTime)}',
+                              style: TextStyle(fontSize: 9.sp),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.more_vert,
-                  size: 18.r,
-                  color: AppColors.textPrimary,
+                IconButton(
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 18.r,
+                    color: AppColors.textPrimary,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: onTap,
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () {
-                  // TODO: Show menu
-                },
-              ),
-            ],
-          ),
-          SizedBox(height: AppSizes.spacingSmall),
+              ],
+            ),
+            SizedBox(height: AppSizes.spacingSmall),
 
-          // Needed Service
-          const BodyText(
-            'Needed Service',
-            size: BodySize.small,
-            fontWeight: FontWeight.w600,
-          ),
-          SizedBox(height: AppSizes.spacingSmall),
+            // Needed Service
+            const BodyText(
+              'Needed Service',
+              size: BodySize.small,
+              fontWeight: FontWeight.w600,
+            ),
+            SizedBox(height: AppSizes.spacingSmall),
 
-          // Services list
-          ...booking.services.map((service) => Padding(
+            // Services list
+            ...booking.services.map(
+              (service) => Padding(
                 padding: EdgeInsets.only(bottom: 4.h),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.check,
-                      size: 16.r,
-                      color: AppColors.primary,
-                    ),
+                    Icon(Icons.check, size: 16.r, color: AppColors.primary),
                     SizedBox(width: 4.w),
                     Expanded(
                       child: BodyText(
@@ -134,75 +135,88 @@ class OngoingBookingCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              )),
+              ),
+            ),
 
-          SizedBox(height: AppSizes.spacing),
+            SizedBox(height: AppSizes.spacing),
 
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    // TODO: Rate artisan
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                    ),
-                    child: const Center(
-                      child: BodyText(
-                        'Rate Artisan',
-                        size: BodySize.small,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onRateTap,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
+                      ),
+                      child: const Center(
+                        child: BodyText(
+                          'Rate Artisan',
+                          size: BodySize.small,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(width: AppSizes.spacingSmall),
-              GestureDetector(
-                onTap: () {
-                  // TODO: Open chat
-                },
-                child: Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                if (onChatTap != null) ...[
+                  SizedBox(width: AppSizes.spacingSmall),
+                  GestureDetector(
+                    onTap: onChatTap,
+                    child: Container(
+                      padding: EdgeInsets.all(12.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.chat_bubble_outline,
+                        size: 20.r,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.chat_bubble_outline,
-                    size: 20.r,
-                    color: Colors.white,
+                ],
+                if (onCallTap != null) ...[
+                  SizedBox(width: AppSizes.spacingSmall),
+                  GestureDetector(
+                    onTap: onCallTap,
+                    child: Container(
+                      padding: EdgeInsets.all(12.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.phone_outlined,
+                        size: 20.r,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              SizedBox(width: AppSizes.spacingSmall),
-              GestureDetector(
-                onTap: () {
-                  // TODO: Call artisan
-                },
-                child: Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                  ),
-                  child: Icon(
-                    Icons.phone_outlined,
-                    size: 20.r,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+                ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  ImageProvider _resolveImageProvider(String imageUrl) {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return NetworkImage(imageUrl);
+    }
+    return AssetImage(imageUrl);
   }
 }

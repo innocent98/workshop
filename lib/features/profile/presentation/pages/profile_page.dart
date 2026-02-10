@@ -372,17 +372,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           SizedBox(height: 4.h),
           BodyText(role, size: BodySize.medium, color: AppColors.textSecondary),
           SizedBox(height: 8.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.location_on, size: 16.r, color: AppColors.primary),
-              SizedBox(width: 4.w),
-              BodyText(
-                location,
-                size: BodySize.small,
-                color: AppColors.textSecondary,
-              ),
-            ],
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.location_on, size: 16.r, color: AppColors.primary),
+                SizedBox(width: 4.w),
+                Flexible(
+                  child: BodyText(
+                    location,
+                    size: BodySize.small,
+                    color: AppColors.textSecondary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -63,6 +63,11 @@ class ArtisanBooking {
   final DateTime? cancelledAt;
   final String? completionNotes;
   final List<String>? completionImages;
+  final DateTime? completionMarkedByArtisanAt;
+  final DateTime? completionConfirmedByClientAt;
+  final DateTime? completionConfirmationDeadlineAt;
+  final DateTime? completionDisputedAt;
+  final String? completionDisputeReason;
   final String? cancellationReason;
   final String? rejectionReason;
   final DateTime createdAt;
@@ -98,6 +103,11 @@ class ArtisanBooking {
     this.cancelledAt,
     this.completionNotes,
     this.completionImages,
+    this.completionMarkedByArtisanAt,
+    this.completionConfirmedByClientAt,
+    this.completionConfirmationDeadlineAt,
+    this.completionDisputedAt,
+    this.completionDisputeReason,
     this.cancellationReason,
     this.rejectionReason,
     required this.createdAt,
@@ -127,6 +137,11 @@ class ArtisanBooking {
     String? rejectionReason,
     String? completionNotes,
     List<String>? completionImages,
+    DateTime? completionMarkedByArtisanAt,
+    DateTime? completionConfirmedByClientAt,
+    DateTime? completionConfirmationDeadlineAt,
+    DateTime? completionDisputedAt,
+    String? completionDisputeReason,
   }) {
     return ArtisanBooking(
       id: id,
@@ -158,6 +173,16 @@ class ArtisanBooking {
       cancelledAt: cancelledAt ?? this.cancelledAt,
       completionNotes: completionNotes ?? this.completionNotes,
       completionImages: completionImages ?? this.completionImages,
+      completionMarkedByArtisanAt:
+          completionMarkedByArtisanAt ?? this.completionMarkedByArtisanAt,
+      completionConfirmedByClientAt:
+          completionConfirmedByClientAt ?? this.completionConfirmedByClientAt,
+      completionConfirmationDeadlineAt:
+          completionConfirmationDeadlineAt ??
+          this.completionConfirmationDeadlineAt,
+      completionDisputedAt: completionDisputedAt ?? this.completionDisputedAt,
+      completionDisputeReason:
+          completionDisputeReason ?? this.completionDisputeReason,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       createdAt: createdAt,

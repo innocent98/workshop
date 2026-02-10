@@ -97,6 +97,28 @@ class ArtisanBookingsNotifier extends AsyncNotifier<List<ArtisanBooking>> {
     return updatedBooking;
   }
 
+  Future<ArtisanBooking> cancelBooking({
+    required int bookingId,
+    required String cancellationReason,
+  }) async {
+    final repository = ref.read(artisanBookingsRepositoryProvider);
+    final updatedBooking = await repository.cancelBooking(
+      bookingId: bookingId,
+      cancellationReason: cancellationReason,
+    );
+    _upsertBooking(updatedBooking);
+    return updatedBooking;
+  }
+
+  Future<ArtisanBooking> confirmCompletion({required int bookingId}) async {
+    final repository = ref.read(artisanBookingsRepositoryProvider);
+    final updatedBooking = await repository.confirmCompletion(
+      bookingId: bookingId,
+    );
+    _upsertBooking(updatedBooking);
+    return updatedBooking;
+  }
+
   void _upsertBooking(ArtisanBooking booking) {
     final current = state.value;
     if (current == null) {

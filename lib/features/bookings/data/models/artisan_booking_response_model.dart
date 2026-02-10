@@ -30,6 +30,11 @@ class ArtisanBookingResponseModel {
   final DateTime? cancelledAt;
   final String? completionNotes;
   final List<String>? completionImages;
+  final DateTime? completionMarkedByArtisanAt;
+  final DateTime? completionConfirmedByClientAt;
+  final DateTime? completionConfirmationDeadlineAt;
+  final DateTime? completionDisputedAt;
+  final String? completionDisputeReason;
   final String? cancellationReason;
   final String? rejectionReason;
   final DateTime createdAt;
@@ -65,6 +70,11 @@ class ArtisanBookingResponseModel {
     this.cancelledAt,
     this.completionNotes,
     this.completionImages,
+    this.completionMarkedByArtisanAt,
+    this.completionConfirmedByClientAt,
+    this.completionConfirmationDeadlineAt,
+    this.completionDisputedAt,
+    this.completionDisputeReason,
     this.cancellationReason,
     this.rejectionReason,
     required this.createdAt,
@@ -125,6 +135,24 @@ class ArtisanBookingResponseModel {
       completionImages: (json['completion_images'] as List<dynamic>?)
           ?.map((item) => item.toString())
           .toList(),
+      completionMarkedByArtisanAt:
+          json['completion_marked_by_artisan_at'] != null
+          ? DateTime.parse(json['completion_marked_by_artisan_at'] as String)
+          : null,
+      completionConfirmedByClientAt:
+          json['completion_confirmed_by_client_at'] != null
+          ? DateTime.parse(json['completion_confirmed_by_client_at'] as String)
+          : null,
+      completionConfirmationDeadlineAt:
+          json['completion_confirmation_deadline_at'] != null
+          ? DateTime.parse(
+              json['completion_confirmation_deadline_at'] as String,
+            )
+          : null,
+      completionDisputedAt: json['completion_disputed_at'] != null
+          ? DateTime.parse(json['completion_disputed_at'] as String)
+          : null,
+      completionDisputeReason: json['completion_dispute_reason'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -163,6 +191,11 @@ class ArtisanBookingResponseModel {
       cancelledAt: cancelledAt,
       completionNotes: completionNotes,
       completionImages: completionImages,
+      completionMarkedByArtisanAt: completionMarkedByArtisanAt,
+      completionConfirmedByClientAt: completionConfirmedByClientAt,
+      completionConfirmationDeadlineAt: completionConfirmationDeadlineAt,
+      completionDisputedAt: completionDisputedAt,
+      completionDisputeReason: completionDisputeReason,
       cancellationReason: cancellationReason,
       rejectionReason: rejectionReason,
       createdAt: createdAt,

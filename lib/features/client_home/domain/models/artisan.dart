@@ -11,6 +11,7 @@ class Artisan {
   final bool isVerified;
   final double? distanceKm;
   final int? ratingsCount;
+  final int? serviceId;
 
   const Artisan({
     required this.id,
@@ -23,6 +24,7 @@ class Artisan {
     this.isVerified = false,
     this.distanceKm,
     this.ratingsCount,
+    this.serviceId,
   });
 
   /// Create Artisan from ArtisanSearchModel (API response)
@@ -55,6 +57,9 @@ class Artisan {
       isVerified: model.isVerified,
       distanceKm: model.distanceKm,
       ratingsCount: model.ratingsCount,
+      serviceId: model.services.isNotEmpty
+          ? int.tryParse(model.services.first.id)
+          : null,
     );
   }
 }

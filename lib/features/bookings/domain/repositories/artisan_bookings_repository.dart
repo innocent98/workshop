@@ -25,4 +25,11 @@ abstract class ArtisanBookingsRepository {
     String? completionNotes,
     List<String>? completionImages,
   });
+
+  Future<ArtisanBooking> cancelBooking({
+    required int bookingId,
+    required String cancellationReason,
+  });
+
+  Future<ArtisanBooking> confirmCompletion({required int bookingId});
 }

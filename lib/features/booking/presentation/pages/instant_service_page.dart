@@ -1,35 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/providers/location_provider.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
+import '../../../artisan_profile/presentation/providers/artisan_public_profile_providers.dart';
 import '../../../client_home/domain/models/artisan.dart';
+import '../../../client_profile/presentation/providers/client_profile_provider.dart';
+import '../../../services/presentation/providers/services_provider.dart';
+import '../../data/booking_remote_datasource.dart';
 
-class InstantServicePage extends StatefulWidget {
+class InstantServicePage extends ConsumerStatefulWidget {
   final Artisan artisan;
 
-  const InstantServicePage({
-    super.key,
-    required this.artisan,
-  });
+  const InstantServicePage({super.key, required this.artisan});
 
   @override
-  State<InstantServicePage> createState() => _InstantServicePageState();
+  ConsumerState<InstantServicePage> createState() => _InstantServicePageState();
 }
 
-class _InstantServicePageState extends State<InstantServicePage> {
+class _InstantServicePageState extends ConsumerState<InstantServicePage> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _minBudgetController = TextEditingController();
   final TextEditingController _maxBudgetController = TextEditingController();
-
-  // Service selection state
-  final Map<String, bool> _selectedServices = {
-    'Miter and Cope Joint Fabrication': false,
-    'Door and Window Casing Installation': true,
-    'Hardware Installation (Hinges, Drawer Slides, Locks)': true,
-    'Advanced Wood Joinery': true,
-  };
+  final BookingRemoteDataSource _bookingRemoteDataSource =
+      BookingRemoteDataSource();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -46,12 +44,107 @@ class _InstantServicePageState extends State<InstantServicePage> {
     super.dispose();
   }
 
-  void _onBookArtisan() {
-    // TODO: Implement booking functionality
+  double? _parseBudget(String value) {
+    final normalized = value.replaceAll(',', '').trim();
+    return double.tryParse(normalized);
+  }
+
+  Future<int?> _resolveServiceId() async {
+    if (widget.artisan.serviceId != null) {
+      return widget.artisan.serviceId;
+    }
+
+    final services = await ref.read(servicesProvider.future);
+    final serviceName = widget.artisan.service.trim().toLowerCase();
+    for (final service in services) {
+      if (service.name.trim().toLowerCase() == serviceName) {
+        return int.tryParse(service.id);
+      }
+    }
+    return null;
+  }
+
+  Future<void> _onBookArtisan() async {
+    final minBudget = _parseBudget(_minBudgetController.text);
+    final maxBudget = _parseBudget(_maxBudgetController.text);
+
+    if (minBudget == null || maxBudget == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid budget range')),
+      );
+      return;
+    }
+    if (maxBudget < minBudget) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum budget must be >= minimum budget'),
+        ),
+      );
+      return;
+    }
+
+    final serviceId = await _resolveServiceId();
+    if (serviceId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to resolve service. Please retry from search.'),
+        ),
+      );
+      return;
+    }
+
+    final locationData = ref.read(locationProvider).asData?.value;
+    final clientProfile = ref.read(clientProfileProvider).asData?.value;
+    final latitude =
+        clientProfile?.locationLatitude ?? locationData?.latitude ?? 6.5244;
+    final longitude =
+        clientProfile?.locationLongitude ?? locationData?.longitude ?? 3.3792;
+    final address = (clientProfile?.locationAddress?.trim().isNotEmpty ?? false)
+        ? clientProfile!.locationAddress!.trim()
+        : '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
+
+    final notes = _notesController.text.trim();
+    final description = notes.isNotEmpty ? notes : widget.artisan.service;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _bookingRemoteDataSource.createBooking(
+        artisanId: widget.artisan.id,
+        serviceId: serviceId,
+        jobDateUtc: DateTime.now().add(const Duration(minutes: 15)).toUtc(),
+        jobAddress: address,
+        jobLatitude: latitude,
+        jobLongitude: longitude,
+        budgetMin: minBudget,
+        budgetMax: maxBudget,
+        jobDescription: description,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking request sent successfully')),
+      );
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final artisanProfileAsync = ref.watch(
+      artisanPublicProfileProvider(widget.artisan.id),
+    );
+    final artisanLocation = artisanProfileAsync.asData?.value.locationAddress;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -66,10 +159,7 @@ class _InstantServicePageState extends State<InstantServicePage> {
           onPressed: () => context.pop(),
         ),
         centerTitle: true,
-        title: HeaderText(
-          'Instant Service',
-          size: HeaderSize.h4,
-        ),
+        title: HeaderText('Instant Service', size: HeaderSize.h4),
         actions: [
           IconButton(
             icon: Icon(
@@ -98,7 +188,9 @@ class _InstantServicePageState extends State<InstantServicePage> {
                       children: [
                         CircleAvatar(
                           radius: 20.r,
-                          backgroundImage: AssetImage(widget.artisan.avatarUrl),
+                          backgroundImage: _resolveImageProvider(
+                            widget.artisan.avatarUrl,
+                          ),
                         ),
                         SizedBox(width: AppSizes.spacingSmall),
                         Expanded(
@@ -140,9 +232,14 @@ class _InstantServicePageState extends State<InstantServicePage> {
                                   SizedBox(width: 4.w),
                                   Expanded(
                                     child: BodyText(
-                                      '20, Cresent Ekeng Street, Uyo',
+                                      (artisanLocation != null &&
+                                              artisanLocation.trim().isNotEmpty)
+                                          ? artisanLocation.trim()
+                                          : 'Location not specified',
                                       size: BodySize.small,
                                       color: AppColors.textSecondary,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -154,26 +251,31 @@ class _InstantServicePageState extends State<InstantServicePage> {
                     ),
                     SizedBox(height: AppSizes.spacing),
 
-                    // What service do you need?
+                    // Service selected
                     const BodyText(
-                      'What service do you need?',
+                      'Service selected',
                       size: BodySize.medium,
                       fontWeight: FontWeight.w600,
                     ),
                     SizedBox(height: AppSizes.spacing),
-
-                    // Service Checkboxes
-                    ..._selectedServices.keys.map((service) {
-                      return _ServiceCheckbox(
-                        label: service,
-                        value: _selectedServices[service]!,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedServices[service] = value!;
-                          });
-                        },
-                      );
-                    }),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSizes.spacing,
+                        vertical: AppSizes.spacing,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
+                      ),
+                      child: BodyText(
+                        widget.artisan.service,
+                        size: BodySize.small,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
 
                     SizedBox(height: AppSizes.spacing),
 
@@ -208,7 +310,9 @@ class _InstantServicePageState extends State<InstantServicePage> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
                       ),
                       child: TextField(
                         controller: _notesController,
@@ -287,58 +391,6 @@ class _InstantServicePageState extends State<InstantServicePage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: AppSizes.spacing),
-
-                    // Rate Info Box
-                    Container(
-                      padding: EdgeInsets.all(AppSizes.spacing),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE5E5),
-                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                      ),
-                      child: RichText(
-                        text: TextSpan(
-                          text: 'The standard rate for a basic carpentry service is generally between ',
-                          style: TextStyle(
-                            fontSize: AppSizes.caption,
-                            color: AppColors.textPrimary,
-                            height: 1.4,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'NGN 20,000',
-                              style: TextStyle(
-                                fontSize: AppSizes.caption,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            TextSpan(
-                              text: ' and ',
-                              style: TextStyle(
-                                fontSize: AppSizes.caption,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'NGN 200,000',
-                              style: TextStyle(
-                                fontSize: AppSizes.caption,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '. This range is considered fair and acceptable by most artisans.',
-                              style: TextStyle(
-                                fontSize: AppSizes.caption,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                     SizedBox(height: AppSizes.spacingLarge),
                   ],
                 ),
@@ -349,7 +401,7 @@ class _InstantServicePageState extends State<InstantServicePage> {
             Padding(
               padding: EdgeInsets.all(AppSizes.spacing),
               child: GestureDetector(
-                onTap: _onBookArtisan,
+                onTap: _isSubmitting ? null : _onBookArtisan,
                 child: Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -357,13 +409,22 @@ class _InstantServicePageState extends State<InstantServicePage> {
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
                   ),
-                  child: const Center(
-                    child: BodyText(
-                      'Book Artisan',
-                      size: BodySize.medium,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                  child: Center(
+                    child: _isSubmitting
+                        ? SizedBox(
+                            width: 18.r,
+                            height: 18.r,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const BodyText(
+                            'Book Artisan',
+                            size: BodySize.medium,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                   ),
                 ),
               ),
@@ -373,55 +434,12 @@ class _InstantServicePageState extends State<InstantServicePage> {
       ),
     );
   }
-}
 
-// Custom Checkbox Widget
-class _ServiceCheckbox extends StatelessWidget {
-  final String label;
-  final bool value;
-  final ValueChanged<bool?> onChanged;
-
-  const _ServiceCheckbox({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: AppSizes.spacing),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => onChanged(!value),
-            child: Container(
-              width: 20.r,
-              height: 20.r,
-              decoration: BoxDecoration(
-                color: value ? AppColors.primary : AppColors.cardBackground,
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: value
-                  ? Icon(
-                      Icons.check,
-                      size: 16.r,
-                      color: Colors.white,
-                    )
-                  : null,
-            ),
-          ),
-          SizedBox(width: AppSizes.spacingSmall),
-          Expanded(
-            child: BodyText(
-              label,
-              size: BodySize.small,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
+  ImageProvider _resolveImageProvider(String imageUrl) {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return NetworkImage(imageUrl);
+    }
+    return AssetImage(imageUrl);
   }
 }
 
@@ -429,9 +447,7 @@ class _ServiceCheckbox extends StatelessWidget {
 class _BudgetTextField extends StatelessWidget {
   final TextEditingController controller;
 
-  const _BudgetTextField({
-    required this.controller,
-  });
+  const _BudgetTextField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -446,11 +462,7 @@ class _BudgetTextField extends StatelessWidget {
       ),
       child: Row(
         children: [
-          BodyText(
-            'NGN',
-            size: BodySize.small,
-            color: AppColors.textPrimary,
-          ),
+          BodyText('NGN', size: BodySize.small, color: AppColors.textPrimary),
           SizedBox(width: 4.w),
           Expanded(
             child: TextField(

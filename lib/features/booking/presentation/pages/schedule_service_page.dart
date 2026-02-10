@@ -1,27 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/providers/location_provider.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
+import '../../../artisan_profile/presentation/providers/artisan_public_profile_providers.dart';
 import '../../../client_home/domain/models/artisan.dart';
+import '../../../client_profile/presentation/providers/client_profile_provider.dart';
+import '../../../services/presentation/providers/services_provider.dart';
+import '../../data/booking_remote_datasource.dart';
 
-class ScheduleServicePage extends StatefulWidget {
+class ScheduleServicePage extends ConsumerStatefulWidget {
   final Artisan artisan;
 
-  const ScheduleServicePage({
-    super.key,
-    required this.artisan,
-  });
+  const ScheduleServicePage({super.key, required this.artisan});
 
   @override
-  State<ScheduleServicePage> createState() => _ScheduleServicePageState();
+  ConsumerState<ScheduleServicePage> createState() =>
+      _ScheduleServicePageState();
 }
 
-class _ScheduleServicePageState extends State<ScheduleServicePage> {
+class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _minBudgetController = TextEditingController();
   final TextEditingController _maxBudgetController = TextEditingController();
+  final BookingRemoteDataSource _bookingRemoteDataSource =
+      BookingRemoteDataSource();
+  bool _isSubmitting = false;
 
   late DateTime _currentMonth;
   late int _selectedDay;
@@ -37,14 +44,6 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
     _maxBudgetController.text = '35,000';
   }
 
-  // Service selection state
-  final Map<String, bool> _selectedServices = {
-    'Miter and Cope Joint Fabrication': false,
-    'Door and Window Casing Installation': true,
-    'Hardware Installation (Hinges, Drawer Slides, Locks)': true,
-    'Advanced Wood Joinery': true,
-  };
-
   @override
   void dispose() {
     _notesController.dispose();
@@ -53,12 +52,14 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
     super.dispose();
   }
 
-  void _onScheduleAppointment() {
-    showModalBottomSheet(
+  Future<void> _onScheduleAppointment() async {
+    final includeBudget = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radius)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.radius),
+        ),
       ),
       isScrollControlled: true,
       builder: (context) => Padding(
@@ -68,17 +69,159 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
         child: _BudgetModal(
           minController: _minBudgetController,
           maxController: _maxBudgetController,
+          onIncludeBudget: () => Navigator.pop(context, true),
+          onIgnoreBudget: () => Navigator.pop(context, false),
         ),
       ),
     );
+
+    if (includeBudget == null) return;
+    await _submitBooking(ignoreBudget: !includeBudget);
+  }
+
+  double? _parseBudget(String value) {
+    final normalized = value.replaceAll(',', '').trim();
+    return double.tryParse(normalized);
+  }
+
+  Future<int?> _resolveServiceId() async {
+    if (widget.artisan.serviceId != null) {
+      return widget.artisan.serviceId;
+    }
+
+    final services = await ref.read(servicesProvider.future);
+    final serviceName = widget.artisan.service.trim().toLowerCase();
+    for (final service in services) {
+      if (service.name.trim().toLowerCase() == serviceName) {
+        return int.tryParse(service.id);
+      }
+    }
+    return null;
+  }
+
+  DateTime _selectedDateTime() {
+    final parts = _selectedTimeSlot.split(' ');
+    final hm = parts.first.split(':');
+    var hour = int.parse(hm[0]);
+    final minute = int.parse(hm[1]);
+    final period = parts.last.toUpperCase();
+
+    if (period == 'PM' && hour != 12) {
+      hour += 12;
+    } else if (period == 'AM' && hour == 12) {
+      hour = 0;
+    }
+
+    return DateTime(
+      _currentMonth.year,
+      _currentMonth.month,
+      _selectedDay,
+      hour,
+      minute,
+    );
+  }
+
+  Future<void> _submitBooking({required bool ignoreBudget}) async {
+    final serviceId = await _resolveServiceId();
+    if (serviceId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to resolve service. Please retry from search.'),
+        ),
+      );
+      return;
+    }
+
+    var minBudget = _parseBudget(_minBudgetController.text);
+    var maxBudget = _parseBudget(_maxBudgetController.text);
+    if (ignoreBudget) {
+      minBudget = 0;
+      maxBudget = 0;
+    }
+
+    if (minBudget == null || maxBudget == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid budget range')),
+      );
+      return;
+    }
+    if (maxBudget < minBudget) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum budget must be >= minimum budget'),
+        ),
+      );
+      return;
+    }
+
+    final scheduled = _selectedDateTime();
+    if (!scheduled.isAfter(DateTime.now())) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please choose a future date and time')),
+      );
+      return;
+    }
+
+    final locationData = ref.read(locationProvider).asData?.value;
+    final clientProfile = ref.read(clientProfileProvider).asData?.value;
+    final latitude =
+        clientProfile?.locationLatitude ?? locationData?.latitude ?? 6.5244;
+    final longitude =
+        clientProfile?.locationLongitude ?? locationData?.longitude ?? 3.3792;
+    final address = (clientProfile?.locationAddress?.trim().isNotEmpty ?? false)
+        ? clientProfile!.locationAddress!.trim()
+        : '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
+
+    final notes = _notesController.text.trim();
+    final description = notes.isNotEmpty ? notes : widget.artisan.service;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _bookingRemoteDataSource.createBooking(
+        artisanId: widget.artisan.id,
+        serviceId: serviceId,
+        jobDateUtc: scheduled.toUtc(),
+        jobAddress: address,
+        jobLatitude: latitude,
+        jobLongitude: longitude,
+        budgetMin: minBudget,
+        budgetMax: maxBudget,
+        jobDescription: description,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking request sent successfully')),
+      );
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   void _previousMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
       // Select first available day of the new month
-      final lastDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
-      _selectedDay = _selectedDay <= lastDayOfMonth ? _selectedDay : lastDayOfMonth;
+      final lastDayOfMonth = DateTime(
+        _currentMonth.year,
+        _currentMonth.month + 1,
+        0,
+      ).day;
+      _selectedDay = _selectedDay <= lastDayOfMonth
+          ? _selectedDay
+          : lastDayOfMonth;
     });
   }
 
@@ -87,13 +230,19 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
       // Select first available day of the new month
       final now = DateTime.now();
-      final isCurrentMonth = _currentMonth.year == now.year && _currentMonth.month == now.month;
+      final isCurrentMonth =
+          _currentMonth.year == now.year && _currentMonth.month == now.month;
       _selectedDay = isCurrentMonth ? now.day : 1;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final artisanProfileAsync = ref.watch(
+      artisanPublicProfileProvider(widget.artisan.id),
+    );
+    final artisanLocation = artisanProfileAsync.asData?.value.locationAddress;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -108,10 +257,7 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
           onPressed: () => context.pop(),
         ),
         centerTitle: true,
-        title: HeaderText(
-          'Schedule Service',
-          size: HeaderSize.h4,
-        ),
+        title: HeaderText('Schedule Service', size: HeaderSize.h4),
         actions: [
           IconButton(
             icon: Icon(
@@ -140,7 +286,9 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
                       children: [
                         CircleAvatar(
                           radius: 20.r,
-                          backgroundImage: AssetImage(widget.artisan.avatarUrl),
+                          backgroundImage: _resolveImageProvider(
+                            widget.artisan.avatarUrl,
+                          ),
                         ),
                         SizedBox(width: AppSizes.spacingSmall),
                         Expanded(
@@ -182,9 +330,14 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
                                   SizedBox(width: 4.w),
                                   Expanded(
                                     child: BodyText(
-                                      '20, Cresent Ekeng Street, Uyo',
+                                      (artisanLocation != null &&
+                                              artisanLocation.trim().isNotEmpty)
+                                          ? artisanLocation.trim()
+                                          : 'Location not specified',
                                       size: BodySize.small,
                                       color: AppColors.textSecondary,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -246,26 +399,31 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
                     ),
                     SizedBox(height: AppSizes.spacing),
 
-                    // What service do you need?
+                    // Service selected
                     const BodyText(
-                      'What service do you need?',
+                      'Service selected',
                       size: BodySize.medium,
                       fontWeight: FontWeight.w600,
                     ),
                     SizedBox(height: AppSizes.spacing),
-
-                    // Service Checkboxes
-                    ..._selectedServices.keys.map((service) {
-                      return _ServiceCheckbox(
-                        label: service,
-                        value: _selectedServices[service]!,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedServices[service] = value!;
-                          });
-                        },
-                      );
-                    }),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSizes.spacing,
+                        vertical: AppSizes.spacing,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
+                      ),
+                      child: BodyText(
+                        widget.artisan.service,
+                        size: BodySize.small,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
 
                     SizedBox(height: AppSizes.spacing),
 
@@ -300,7 +458,9 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
                       ),
                       child: TextField(
                         controller: _notesController,
@@ -336,7 +496,7 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
             Padding(
               padding: EdgeInsets.all(AppSizes.spacing),
               child: GestureDetector(
-                onTap: _onScheduleAppointment,
+                onTap: _isSubmitting ? null : _onScheduleAppointment,
                 child: Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -344,13 +504,22 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
                   ),
-                  child: const Center(
-                    child: BodyText(
-                      'Schedule Appointment',
-                      size: BodySize.medium,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                  child: Center(
+                    child: _isSubmitting
+                        ? SizedBox(
+                            width: 18.r,
+                            height: 18.r,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const BodyText(
+                            'Schedule Appointment',
+                            size: BodySize.medium,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                   ),
                 ),
               ),
@@ -359,6 +528,13 @@ class _ScheduleServicePageState extends State<ScheduleServicePage> {
         ),
       ),
     );
+  }
+
+  ImageProvider _resolveImageProvider(String imageUrl) {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return NetworkImage(imageUrl);
+    }
+    return AssetImage(imageUrl);
   }
 }
 
@@ -391,14 +567,18 @@ class _CalendarWidget extends StatelessWidget {
       'September',
       'October',
       'November',
-      'December'
+      'December',
     ];
     return '${months[currentMonth.month - 1]} ${currentMonth.year}';
   }
 
   List<int?> _getDaysInMonth() {
     final firstDayOfMonth = DateTime(currentMonth.year, currentMonth.month, 1);
-    final lastDayOfMonth = DateTime(currentMonth.year, currentMonth.month + 1, 0);
+    final lastDayOfMonth = DateTime(
+      currentMonth.year,
+      currentMonth.month + 1,
+      0,
+    );
     final daysInMonth = lastDayOfMonth.day;
     final firstWeekday = firstDayOfMonth.weekday % 7; // Sunday = 0
 
@@ -498,8 +678,8 @@ class _CalendarWidget extends StatelessWidget {
                     color: isSelected
                         ? Colors.white
                         : isPast
-                            ? AppColors.textSecondary.withValues(alpha: 0.3)
-                            : AppColors.textPrimary,
+                        ? AppColors.textSecondary.withValues(alpha: 0.3)
+                        : AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -516,10 +696,7 @@ class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
 
-  const _LegendItem({
-    required this.color,
-    required this.label,
-  });
+  const _LegendItem({required this.color, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -528,17 +705,10 @@ class _LegendItem extends StatelessWidget {
         Container(
           width: 8.r,
           height: 8.r,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         SizedBox(width: 4.w),
-        BodyText(
-          label,
-          size: BodySize.small,
-          color: AppColors.textSecondary,
-        ),
+        BodyText(label, size: BodySize.small, color: AppColors.textSecondary),
       ],
     );
   }
@@ -588,7 +758,10 @@ class _TimeSlotSelectorState extends State<_TimeSlotSelector> {
       final centerOffset = 75.h; // Half of container height to center the item
 
       _scrollController.animateTo(
-        (targetPosition - centerOffset).clamp(0.0, _scrollController.position.maxScrollExtent),
+        (targetPosition - centerOffset).clamp(
+          0.0,
+          _scrollController.position.maxScrollExtent,
+        ),
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -600,8 +773,14 @@ class _TimeSlotSelectorState extends State<_TimeSlotSelector> {
 
     // Generate AM times
     for (int hour = 8; hour <= 11; hour++) {
-      slots.add({'time': '${hour.toString().padLeft(2, '0')}:00', 'period': 'AM'});
-      slots.add({'time': '${hour.toString().padLeft(2, '0')}:30', 'period': 'AM'});
+      slots.add({
+        'time': '${hour.toString().padLeft(2, '0')}:00',
+        'period': 'AM',
+      });
+      slots.add({
+        'time': '${hour.toString().padLeft(2, '0')}:30',
+        'period': 'AM',
+      });
     }
 
     // Add 12:00 PM and 12:30 PM
@@ -610,8 +789,14 @@ class _TimeSlotSelectorState extends State<_TimeSlotSelector> {
 
     // Generate PM times
     for (int hour = 1; hour <= 8; hour++) {
-      slots.add({'time': '${hour.toString().padLeft(2, '0')}:00', 'period': 'PM'});
-      slots.add({'time': '${hour.toString().padLeft(2, '0')}:30', 'period': 'PM'});
+      slots.add({
+        'time': '${hour.toString().padLeft(2, '0')}:00',
+        'period': 'PM',
+      });
+      slots.add({
+        'time': '${hour.toString().padLeft(2, '0')}:30',
+        'period': 'PM',
+      });
     }
 
     return slots;
@@ -643,7 +828,9 @@ class _TimeSlotSelectorState extends State<_TimeSlotSelector> {
                 vertical: 12.h,
               ),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.cardBackground : Colors.transparent,
+                color: isSelected
+                    ? AppColors.cardBackground
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
               ),
               child: Row(
@@ -669,64 +856,18 @@ class _TimeSlotSelectorState extends State<_TimeSlotSelector> {
   }
 }
 
-// Service Checkbox Widget
-class _ServiceCheckbox extends StatelessWidget {
-  final String label;
-  final bool value;
-  final ValueChanged<bool?> onChanged;
-
-  const _ServiceCheckbox({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: AppSizes.spacing),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => onChanged(!value),
-            child: Container(
-              width: 20.r,
-              height: 20.r,
-              decoration: BoxDecoration(
-                color: value ? AppColors.primary : AppColors.cardBackground,
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: value
-                  ? Icon(
-                      Icons.check,
-                      size: 16.r,
-                      color: Colors.white,
-                    )
-                  : null,
-            ),
-          ),
-          SizedBox(width: AppSizes.spacingSmall),
-          Expanded(
-            child: BodyText(
-              label,
-              size: BodySize.small,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // Budget Modal
 class _BudgetModal extends StatelessWidget {
   final TextEditingController minController;
   final TextEditingController maxController;
+  final VoidCallback onIncludeBudget;
+  final VoidCallback onIgnoreBudget;
 
   const _BudgetModal({
     required this.minController,
     required this.maxController,
+    required this.onIncludeBudget,
+    required this.onIgnoreBudget,
   });
 
   @override
@@ -777,11 +918,7 @@ class _BudgetModal extends StatelessWidget {
           // Budget Range Inputs
           Row(
             children: [
-              Expanded(
-                child: _BudgetTextField(
-                  controller: minController,
-                ),
-              ),
+              Expanded(child: _BudgetTextField(controller: minController)),
               SizedBox(width: AppSizes.spacing),
               BodyText(
                 'TO',
@@ -789,64 +926,8 @@ class _BudgetModal extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
               SizedBox(width: AppSizes.spacing),
-              Expanded(
-                child: _BudgetTextField(
-                  controller: maxController,
-                ),
-              ),
+              Expanded(child: _BudgetTextField(controller: maxController)),
             ],
-          ),
-          SizedBox(height: AppSizes.spacing),
-
-          // Rate Info Box
-          Container(
-            padding: EdgeInsets.all(AppSizes.spacing),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFE5E5),
-              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            ),
-            child: RichText(
-              text: TextSpan(
-                text: 'The standard rate for a basic carpentry service is generally between ',
-                style: TextStyle(
-                  fontSize: AppSizes.caption,
-                  color: AppColors.textPrimary,
-                  height: 1.4,
-                ),
-                children: [
-                  TextSpan(
-                    text: 'NGN 20,000',
-                    style: TextStyle(
-                      fontSize: AppSizes.caption,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  TextSpan(
-                    text: ' and ',
-                    style: TextStyle(
-                      fontSize: AppSizes.caption,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  TextSpan(
-                    text: 'NGN 200,000',
-                    style: TextStyle(
-                      fontSize: AppSizes.caption,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  TextSpan(
-                    text: '. This range is considered fair and acceptable by most artisans.',
-                    style: TextStyle(
-                      fontSize: AppSizes.caption,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
           SizedBox(height: AppSizes.spacing),
 
@@ -855,7 +936,7 @@ class _BudgetModal extends StatelessWidget {
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: onIncludeBudget,
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     decoration: BoxDecoration(
@@ -876,7 +957,7 @@ class _BudgetModal extends StatelessWidget {
               SizedBox(width: AppSizes.spacing),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: onIgnoreBudget,
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     decoration: BoxDecoration(
@@ -906,9 +987,7 @@ class _BudgetModal extends StatelessWidget {
 class _BudgetTextField extends StatelessWidget {
   final TextEditingController controller;
 
-  const _BudgetTextField({
-    required this.controller,
-  });
+  const _BudgetTextField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -923,11 +1002,7 @@ class _BudgetTextField extends StatelessWidget {
       ),
       child: Row(
         children: [
-          BodyText(
-            'NGN',
-            size: BodySize.small,
-            color: AppColors.textPrimary,
-          ),
+          BodyText('NGN', size: BodySize.small, color: AppColors.textPrimary),
           SizedBox(width: 4.w),
           Expanded(
             child: TextField(
@@ -954,4 +1029,3 @@ class _BudgetTextField extends StatelessWidget {
     );
   }
 }
-

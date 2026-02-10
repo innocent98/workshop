@@ -40,7 +40,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
   }
 
   void _onBookServiceTap() {
-    // TODO: Navigate to book service page
+    _onSearchTap();
   }
 
   @override

@@ -74,4 +74,24 @@ class ArtisanBookingsRepositoryImpl implements ArtisanBookingsRepository {
     );
     return response.toDomain();
   }
+
+  @override
+  Future<ArtisanBooking> cancelBooking({
+    required int bookingId,
+    required String cancellationReason,
+  }) async {
+    final response = await _remoteDataSource.cancelBooking(
+      bookingId: bookingId,
+      cancellationReason: cancellationReason,
+    );
+    return response.toDomain();
+  }
+
+  @override
+  Future<ArtisanBooking> confirmCompletion({required int bookingId}) async {
+    final response = await _remoteDataSource.confirmCompletion(
+      bookingId: bookingId,
+    );
+    return response.toDomain();
+  }
 }
