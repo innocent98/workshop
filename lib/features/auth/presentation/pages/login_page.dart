@@ -144,7 +144,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                       // Title - Personalized greeting
                       HeaderText(
-                        'Welcome back Jeremiah',
+                        'Welcome back',
                         size: HeaderSize.h3,
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,

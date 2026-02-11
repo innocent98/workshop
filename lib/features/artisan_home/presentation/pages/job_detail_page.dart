@@ -24,6 +24,12 @@ class JobDetailPage extends ConsumerStatefulWidget {
 class _JobDetailPageState extends ConsumerState<JobDetailPage> {
   bool _isSubmitting = false;
 
+  Future<void> _refreshBooking(int bookingId) async {
+    await ref.read(artisanBookingsProvider.notifier).refresh();
+    ref.invalidate(artisanBookingDetailsProvider(bookingId));
+    await ref.read(artisanBookingDetailsProvider(bookingId).future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final booking = widget.job is ArtisanBooking
@@ -68,216 +74,222 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(context),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: () => _refreshBooking(booking.id),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.all(16.r),
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      BodyText(
-                        booking.serviceName ?? 'Service Request',
-                        size: BodySize.large,
-                        fontWeight: FontWeight.w500,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          BodyText(
+                            booking.serviceName ?? 'Service Request',
+                            size: BodySize.large,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          SizedBox(height: 4.h),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 4.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFBCCBCB),
+                              borderRadius: BorderRadius.circular(16.r),
+                            ),
+                            child: BodyText(
+                              _statusLabel(booking.status),
+                              size: BodySize.small,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFBCCBCB),
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        child: BodyText(
-                          _statusLabel(booking.status),
-                          size: BodySize.small,
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        BodyText(
+                          _priceLabel(booking),
+                          size: BodySize.large,
                           color: AppColors.primary,
                           fontWeight: FontWeight.w500,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    BodyText(
-                      _priceLabel(booking),
-                      size: BodySize.large,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    SizedBox(height: 4.h),
-                    BodyText(
-                      _timeOnly(booking.jobDate),
-                      size: BodySize.small,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            BodyText(
-              _dateOnly(booking.jobDate),
-              size: BodySize.small,
-              color: AppColors.textSecondary,
-            ),
-            SizedBox(height: 24.h),
-            Container(
-              padding: EdgeInsets.all(8.r),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F5),
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24.r,
-                    backgroundImage: _getAvatarImage(
-                      booking.customerProfilePictureUrl ??
-                          'assets/images/regular.jpg',
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                        SizedBox(height: 4.h),
                         BodyText(
-                          booking.customerName ?? 'Client',
-                          size: BodySize.medium,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        BodyText(
-                          'Booking Ref: ${booking.bookingReference}',
+                          _timeOnly(booking.jobDate),
                           size: BodySize.small,
                           color: AppColors.textSecondary,
                         ),
                       ],
                     ),
+                  ],
+                ),
+                SizedBox(height: 8.h),
+                BodyText(
+                  _dateOnly(booking.jobDate),
+                  size: BodySize.small,
+                  color: AppColors.textSecondary,
+                ),
+                SizedBox(height: 24.h),
+                Container(
+                  padding: EdgeInsets.all(8.r),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F5),
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: 28.h),
-            BodyText(
-              'Location',
-              size: BodySize.medium,
-              fontWeight: FontWeight.w500,
-            ),
-            SizedBox(height: 12.h),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16.r),
-              child: SizedBox(
-                height: 200.h,
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: LatLng(lat, lng),
-                    initialZoom: 13.0,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24.r,
+                        backgroundImage: _getAvatarImage(
+                          booking.customerProfilePictureUrl ??
+                              'assets/images/regular.jpg',
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            BodyText(
+                              booking.customerName ?? 'Client',
+                              size: BodySize.medium,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            BodyText(
+                              'Booking Ref: ${booking.bookingReference}',
+                              size: BodySize.small,
+                              color: AppColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.workchop.app',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: LatLng(lat, lng),
-                          width: 40.r,
-                          height: 40.r,
-                          child: Icon(
-                            Icons.location_pin,
-                            color: AppColors.primary,
-                            size: 32.r,
-                          ),
+                ),
+                SizedBox(height: 28.h),
+                BodyText(
+                  'Location',
+                  size: BodySize.medium,
+                  fontWeight: FontWeight.w500,
+                ),
+                SizedBox(height: 12.h),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: SizedBox(
+                    height: 200.h,
+                    child: FlutterMap(
+                      options: MapOptions(
+                        initialCenter: LatLng(lat, lng),
+                        initialZoom: 13.0,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.workchop.app',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: LatLng(lat, lng),
+                              width: 40.r,
+                              height: 40.r,
+                              child: Icon(
+                                Icons.location_pin,
+                                color: AppColors.primary,
+                                size: 32.r,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(height: 12.h),
-            BodyText(
-              booking.jobAddress,
-              size: BodySize.small,
-              color: AppColors.textSecondary,
-            ),
-            SizedBox(height: 24.h),
-            BodyText(
-              'Details',
-              size: BodySize.medium,
-              fontWeight: FontWeight.w500,
-            ),
-            SizedBox(height: 12.h),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16.r),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F5),
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  BodyText(
-                    'Description',
-                    size: BodySize.small,
-                    fontWeight: FontWeight.w500,
+                SizedBox(height: 12.h),
+                BodyText(
+                  booking.jobAddress,
+                  size: BodySize.small,
+                  color: AppColors.textSecondary,
+                ),
+                SizedBox(height: 24.h),
+                BodyText(
+                  'Details',
+                  size: BodySize.medium,
+                  fontWeight: FontWeight.w500,
+                ),
+                SizedBox(height: 12.h),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16.r),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F5),
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
-                  SizedBox(height: 4.h),
-                  BodyText(
-                    booking.jobDescription?.trim().isNotEmpty == true
-                        ? booking.jobDescription!
-                        : 'No additional description provided.',
-                    size: BodySize.small,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      BodyText(
+                        'Description',
+                        size: BodySize.small,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      SizedBox(height: 4.h),
+                      BodyText(
+                        booking.jobDescription?.trim().isNotEmpty == true
+                            ? booking.jobDescription!
+                            : 'No additional description provided.',
+                        size: BodySize.small,
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                      if (booking.rejectionReason != null) ...[
+                        SizedBox(height: 12.h),
+                        BodyText(
+                          'Rejection Reason',
+                          size: BodySize.small,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        SizedBox(height: 4.h),
+                        BodyText(
+                          booking.rejectionReason!,
+                          size: BodySize.small,
+                          color: Colors.red,
+                        ),
+                      ],
+                      if (booking.completionNotes != null) ...[
+                        SizedBox(height: 12.h),
+                        BodyText(
+                          'Completion Notes',
+                          size: BodySize.small,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        SizedBox(height: 4.h),
+                        BodyText(
+                          booking.completionNotes!,
+                          size: BodySize.small,
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    ],
                   ),
-                  if (booking.rejectionReason != null) ...[
-                    SizedBox(height: 12.h),
-                    BodyText(
-                      'Rejection Reason',
-                      size: BodySize.small,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    SizedBox(height: 4.h),
-                    BodyText(
-                      booking.rejectionReason!,
-                      size: BodySize.small,
-                      color: Colors.red,
-                    ),
-                  ],
-                  if (booking.completionNotes != null) ...[
-                    SizedBox(height: 12.h),
-                    BodyText(
-                      'Completion Notes',
-                      size: BodySize.small,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    SizedBox(height: 4.h),
-                    BodyText(
-                      booking.completionNotes!,
-                      size: BodySize.small,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
-                ],
-              ),
+                ),
+                SizedBox(height: 36.h),
+                _buildActionSection(booking),
+                SizedBox(height: 20.h),
+              ],
             ),
-            SizedBox(height: 36.h),
-            _buildActionSection(booking),
-            SizedBox(height: 20.h),
           ],
         ),
       ),
@@ -348,11 +360,34 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
       );
     }
 
+    if (booking.status == ArtisanBookingStatus.accepted) {
+      return _primaryButton(
+        text: 'Awaiting Client Payment',
+        onPressed: null,
+        icon: Icons.hourglass_bottom,
+      );
+    }
+
     if (booking.status == ArtisanBookingStatus.inProgress) {
       return _primaryButton(
         text: 'Complete Job',
         onPressed: () => _completeBooking(booking),
         icon: Icons.check_circle_outline,
+      );
+    }
+
+    if (booking.status == ArtisanBookingStatus.completed) {
+      if (booking.completionConfirmedByClientAt != null) {
+        return _primaryButton(
+          text: 'Completed',
+          onPressed: null,
+          icon: Icons.check_circle,
+        );
+      }
+      return _primaryButton(
+        text: 'Awaiting Client Confirmation',
+        onPressed: null,
+        icon: Icons.verified_outlined,
       );
     }
 
@@ -519,44 +554,10 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
   }
 
   Future<double?> _showAmountDialog(ArtisanBooking booking) async {
-    final controller = TextEditingController(
-      text: (((booking.budgetMin + booking.budgetMax) / 2)).toStringAsFixed(0),
-    );
-
-    final result = await showDialog<double>(
+    return showDialog<double>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Accept Booking'),
-        content: TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: 'Agreed amount',
-            helperText:
-                'Between ₦${booking.budgetMin.toStringAsFixed(0)} and ₦${booking.budgetMax.toStringAsFixed(0)}',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final value = double.tryParse(controller.text.trim());
-              if (value == null) {
-                return;
-              }
-              Navigator.pop(context, value);
-            },
-            child: const Text('Accept'),
-          ),
-        ],
-      ),
+      builder: (context) => _AcceptBookingDialog(booking: booking),
     );
-
-    controller.dispose();
-    return result;
   }
 
   Future<String?> _showTextDialog({
@@ -564,39 +565,11 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     required String hint,
     int minLength = 1,
   }) async {
-    final controller = TextEditingController();
-
-    final result = await showDialog<String>(
+    return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          minLines: 3,
-          maxLines: 5,
-          decoration: InputDecoration(hintText: hint),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.length < minLength) {
-                return;
-              }
-              Navigator.pop(context, value.isEmpty ? null : value);
-            },
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
+      builder: (context) =>
+          _TextInputDialog(title: title, hint: hint, minLength: minLength),
     );
-
-    controller.dispose();
-    return result;
   }
 
   ImageProvider _getAvatarImage(String avatar) {
@@ -665,5 +638,134 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     final minute = local.minute.toString().padLeft(2, '0');
     final period = local.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
+  }
+}
+
+class _AcceptBookingDialog extends StatefulWidget {
+  const _AcceptBookingDialog({required this.booking});
+
+  final ArtisanBooking booking;
+
+  @override
+  State<_AcceptBookingDialog> createState() => _AcceptBookingDialogState();
+}
+
+class _AcceptBookingDialogState extends State<_AcceptBookingDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: (((widget.booking.budgetMin + widget.booking.budgetMax) / 2))
+          .toStringAsFixed(0),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width * 0.92;
+    return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      title: const Text(
+        'Accept Booking',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+      content: SizedBox(
+        width: width,
+        child: TextField(
+          controller: _controller,
+          style: const TextStyle(fontSize: 13),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: 'Agreed amount',
+            labelStyle: const TextStyle(fontSize: 13),
+            helperStyle: const TextStyle(fontSize: 11),
+            helperText:
+                'Between ₦${widget.booking.budgetMin.toStringAsFixed(0)} and ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final value = double.tryParse(_controller.text.trim());
+            if (value == null) return;
+            Navigator.pop(context, value);
+          },
+          child: const Text('Accept', style: TextStyle(fontSize: 12)),
+        ),
+      ],
+    );
+  }
+}
+
+class _TextInputDialog extends StatefulWidget {
+  const _TextInputDialog({
+    required this.title,
+    required this.hint,
+    required this.minLength,
+  });
+
+  final String title;
+  final String hint;
+  final int minLength;
+
+  @override
+  State<_TextInputDialog> createState() => _TextInputDialogState();
+}
+
+class _TextInputDialogState extends State<_TextInputDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        minLines: 3,
+        maxLines: 5,
+        decoration: InputDecoration(hintText: widget.hint),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final value = _controller.text.trim();
+            if (value.length < widget.minLength) return;
+            Navigator.pop(context, value.isEmpty ? null : value);
+          },
+          child: const Text('Submit'),
+        ),
+      ],
+    );
   }
 }

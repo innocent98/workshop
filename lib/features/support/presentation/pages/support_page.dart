@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/phone_launcher.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../data/mock_support_data.dart';
 import '../../domain/models/faq.dart';
 import '../widgets/support_category_card.dart';
-import '../widgets/quick_help_card.dart';
 import '../widgets/faq_item.dart';
 
 class SupportPage extends StatefulWidget {
@@ -17,6 +18,8 @@ class SupportPage extends StatefulWidget {
 
 class _SupportPageState extends State<SupportPage> {
   FAQCategory _selectedFAQCategory = FAQCategory.bookings;
+  static const String _supportPhone = '+2347042685209';
+  static const String _supportWhatsappPath = '2347042685209';
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +44,8 @@ class _SupportPageState extends State<SupportPage> {
 
                 SizedBox(height: 24.h),
 
-                // Quick Help Cards
-                _buildQuickHelpSection(),
-
+                // Quick Help Cards (temporarily hidden)
+                // _buildQuickHelpSection(),
                 SizedBox(height: 28.h),
 
                 // My Support Requests
@@ -67,10 +69,7 @@ class _SupportPageState extends State<SupportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        HeaderText(
-          'Workchop Support',
-          size: HeaderSize.h4,
-        ),
+        HeaderText('Workchop Support', size: HeaderSize.h4),
         SizedBox(height: 1.h),
         BodyText(
           'Get help with bookings, artisans, or payments',
@@ -103,27 +102,10 @@ class _SupportPageState extends State<SupportPage> {
           return SupportCategoryCard(
             category: category,
             onTap: () {
-              // Handle category tap
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildQuickHelpSection() {
-    return SizedBox(
-      height: 110.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: MockSupportData.quickHelpCards.length,
-        separatorBuilder: (context, index) => SizedBox(width: 12.w),
-        itemBuilder: (context, index) {
-          final quickHelp = MockSupportData.quickHelpCards[index];
-          return QuickHelpCard(
-            quickHelp: quickHelp,
-            onTap: () {
-              // Handle quick help tap
+              _openWhatsAppSupport(
+                message:
+                    'Hi Workchop Support, I need help with ${category.title.replaceAll('\n', ' ')}.',
+              );
             },
           );
         },
@@ -141,13 +123,13 @@ class _SupportPageState extends State<SupportPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            HeaderText(
-              'FAQs',
-              size: HeaderSize.h4,
-            ),
+            HeaderText('FAQs', size: HeaderSize.h4),
             GestureDetector(
               onTap: () {
-                // Handle see all tap
+                _openWhatsAppSupport(
+                  message:
+                      'Hi Workchop Support, I need help with ${_selectedFAQCategory.name} questions.',
+                );
               },
               child: BodyText(
                 'See all',
@@ -210,15 +192,22 @@ class _SupportPageState extends State<SupportPage> {
                   ),
                 )
               else
-                ...faqs.take(3).map((faq) => Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      child: FAQItem(
-                        faq: faq,
-                        onTap: () {
-                          // Handle FAQ tap - could show answer in bottom sheet
-                        },
+                ...faqs
+                    .take(3)
+                    .map(
+                      (faq) => Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: FAQItem(
+                          faq: faq,
+                          onTap: () {
+                            _openWhatsAppSupport(
+                              message:
+                                  'Hi Workchop Support, I need help with this FAQ: ${faq.question}',
+                            );
+                          },
+                        ),
                       ),
-                    )),
+                    ),
             ],
           ),
         ),
@@ -251,5 +240,22 @@ class _SupportPageState extends State<SupportPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openWhatsAppSupport({required String message}) async {
+    final encoded = Uri.encodeComponent(message);
+    final whatsappUri = Uri.parse(
+      'https://wa.me/$_supportWhatsappPath?text=$encoded',
+    );
+
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    final openedDialer = await launchPhoneDialer(_supportPhone);
+    if (!openedDialer || !mounted) return;
   }
 }

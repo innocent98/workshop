@@ -47,13 +47,13 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                 data: (balance) => Row(
                   children: [
                     _buildSmallStatCard(
-                      'Lifetime Earnings',
-                      _money(balance.lifetimeEarnings),
+                      'Total Earnings (All)',
+                      _money(balance.totalEarned + balance.pendingRelease),
                     ),
                     SizedBox(width: 16.w),
                     _buildSmallStatCard(
-                      'Pending Release',
-                      _money(balance.pendingRelease),
+                      'Withdrawn',
+                      _money(balance.totalEarned),
                     ),
                   ],
                 ),
@@ -66,9 +66,9 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                 ),
                 error: (error, _) => Row(
                   children: [
-                    _buildSmallStatCard('Lifetime Earnings', '--'),
+                    _buildSmallStatCard('Total Earnings (All)', '--'),
                     SizedBox(width: 16.w),
-                    _buildSmallStatCard('Pending Release', '--'),
+                    _buildSmallStatCard('Withdrawn', '--'),
                   ],
                 ),
               ),
@@ -154,7 +154,7 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
           ),
           SizedBox(height: 6.h),
           BodyText(
-            'Released earnings: ${_money(balance.totalEarned)}',
+            'Total Earnings (All): ${_money(balance.totalEarned + balance.pendingRelease)}',
             size: BodySize.small,
             color: AppColors.textSecondary,
           ),

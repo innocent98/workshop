@@ -92,56 +92,72 @@ class MockSupportData {
   static const List<FAQ> faqs = [
     FAQ(
       id: '1',
-      question: 'Artisan accepted but is not responding',
-      answer: 'If an artisan accepts your booking but doesn\'t respond, please wait 24 hours before contacting support.',
+      question: 'Why is my booking still pending?',
+      answer:
+          'Pending means the artisan has not accepted or rejected yet. Once accepted, the next step is payment from the client.',
       category: FAQCategory.bookings,
     ),
     FAQ(
       id: '2',
-      question: 'Why can\'t I chat yet?',
-      answer: 'Chat becomes available once an artisan accepts your booking request.',
+      question: 'Can I cancel a booking?',
+      answer:
+          'Yes. Cancellation requires a reason. Paid or progressed bookings may be restricted and should be handled through support.',
       category: FAQCategory.bookings,
     ),
     FAQ(
       id: '3',
-      question: 'How long before I can cancel?',
-      answer: 'You can cancel a booking up to 2 hours before the scheduled time without penalty.',
+      question: 'Can I update a booking request?',
+      answer:
+          'Only pending booking requests can be updated. Accepted requests should be cancelled and rebooked.',
       category: FAQCategory.bookings,
     ),
     FAQ(
       id: '4',
-      question: 'When will I be charged?',
-      answer: 'Payment is processed after the service is completed and confirmed.',
+      question: 'When does the client pay?',
+      answer:
+          'Client payment is made after the artisan accepts the booking. The booking then moves to Paid and the artisan can start work.',
       category: FAQCategory.payments,
     ),
     FAQ(
       id: '5',
-      question: 'What payment methods are accepted?',
-      answer: 'We accept credit cards, debit cards, and mobile money transfers.',
+      question: 'When can an artisan request payout?',
+      answer:
+          'Payout is allowed for successful payments tied to completed bookings that are client-confirmed or past the dispute window.',
+      category: FAQCategory.payments,
+    ),
+    FAQ(
+      id: '10',
+      question: 'Why is Available for Payout lower than total earnings?',
+      answer:
+          'Total Earnings includes both withdrawn and pending amounts. Available for Payout only includes eligible funds that can be withdrawn now.',
       category: FAQCategory.payments,
     ),
     FAQ(
       id: '6',
-      question: 'How do I update my profile?',
-      answer: 'Go to Profile tab and tap the Edit button to update your information.',
+      question: 'How do I complete a booking flow correctly?',
+      answer:
+          'Flow is: client books, artisan accepts, client pays, artisan starts, artisan completes, client confirms completion.',
       category: FAQCategory.appGuide,
     ),
     FAQ(
       id: '7',
-      question: 'How do I enable notifications?',
-      answer: 'Go to your phone Settings > Workchop > Notifications and enable them.',
+      question: 'Why am I not getting notifications?',
+      answer:
+          'Enable system notifications for Workchop on your device and make sure app permissions are granted.',
       category: FAQCategory.appGuide,
     ),
     FAQ(
       id: '8',
-      question: 'Is my payment information secure?',
-      answer: 'Yes, all payment information is encrypted and securely stored.',
+      question: 'What if a job is completed but disputed?',
+      answer:
+          'Disputed completions are blocked from payout release until the dispute is resolved.',
       category: FAQCategory.safety,
     ),
     FAQ(
       id: '9',
-      question: 'How are artisans verified?',
-      answer: 'All artisans go through a verification process including ID check and skills assessment.',
+      question: 'How is artisan verification handled currently?',
+      answer:
+          'At present, artisan verification is tied to current backend rules and may evolve as advanced verification is introduced.',
       category: FAQCategory.safety,
     ),
   ];

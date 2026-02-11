@@ -13,8 +13,8 @@ class WalletBalanceResponseModel {
 
   factory WalletBalanceResponseModel.fromJson(Map<String, dynamic> json) {
     return WalletBalanceResponseModel(
-      totalEarned: json['total_earned'] as String? ?? '0.00',
-      pendingRelease: json['pending_release'] as String? ?? '0.00',
+      totalEarned: _decimalToString(json['total_earned']),
+      pendingRelease: _decimalToString(json['pending_release']),
       totalJobsCompleted: (json['total_jobs_completed'] as num? ?? 0).toInt(),
     );
   }
@@ -25,5 +25,12 @@ class WalletBalanceResponseModel {
       pendingRelease: double.tryParse(pendingRelease) ?? 0.0,
       totalJobsCompleted: totalJobsCompleted,
     );
+  }
+
+  static String _decimalToString(dynamic value) {
+    if (value == null) return '0.00';
+    if (value is num) return value.toString();
+    if (value is String) return value;
+    return '0.00';
   }
 }

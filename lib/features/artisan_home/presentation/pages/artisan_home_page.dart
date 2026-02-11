@@ -30,6 +30,13 @@ class ArtisanHomePage extends ConsumerStatefulWidget {
 class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
   bool _isUpdatingAvailability = false;
 
+  Future<void> _refreshHome() async {
+    await ref.read(artisanBookingsProvider.notifier).refresh();
+    await ref.read(artisanProfileProvider.notifier).refresh();
+    ref.invalidate(artisanWalletProvider);
+    await ref.read(artisanWalletProvider.future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final authAsync = ref.watch(authProvider);
@@ -47,306 +54,315 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header & Toggle Section
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                child: Column(
-                  children: [
-                    _buildHeader(
-                      user?.fullName ?? 'Guest',
-                      user?.profilePictureUrl,
-                    ),
-                    SizedBox(height: 12.h),
-                    _buildAvailabilityToggle(),
-                  ],
-                ),
-              ),
-
-              // Stats Cards Section
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: _buildStatsCardsSection(),
-              ),
-
-              SizedBox(height: 16.h),
-
-              // Ongoing Job Section
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: bookingsAsync.when(
-                  data: (bookings) {
-                    ArtisanBooking? ongoing;
-                    for (final booking in bookings) {
-                      if (booking.status == ArtisanBookingStatus.inProgress) {
-                        ongoing = booking;
-                        break;
-                      }
-                    }
-                    if (ongoing == null) {
-                      for (final booking in bookings) {
-                        if (booking.status == ArtisanBookingStatus.paid) {
-                          ongoing = booking;
-                          break;
-                        }
-                      }
-                    }
-                    if (ongoing == null) {
-                      for (final booking in bookings) {
-                        if (booking.status == ArtisanBookingStatus.accepted) {
-                          ongoing = booking;
-                          break;
-                        }
-                      }
-                    }
-
-                    if (ongoing == null) {
-                      return Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(
-                          vertical: 20.h,
-                          horizontal: 12.w,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: const Color(0xFFE5ECEC)),
-                        ),
-                        child: BodyText(
-                          'No ongoing jobs right now',
-                          size: BodySize.small,
-                          color: AppColors.textSecondary,
-                        ),
-                      );
-                    }
-
-                    final activeBooking = ongoing;
-                    return OngoingJobCard(
-                      booking: activeBooking,
-                      onCall: () =>
-                          _callPhone(activeBooking.customerPhoneNumber),
-                    );
-                  },
-                  loading: () => Container(
-                    height: 220.h,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
+        child: RefreshIndicator(
+          onRefresh: _refreshHome,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header & Toggle Section
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
                   ),
-                  error: (error, stackTrace) => Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(
-                      vertical: 20.h,
-                      horizontal: 12.w,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: const Color(0xFFE5ECEC)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: BodyText(
-                            'Failed to load active job',
-                            size: BodySize.small,
-                            color: AppColors.error,
+                  child: Column(
+                    children: [
+                      _buildHeader(
+                        user?.fullName ?? 'Guest',
+                        user?.profilePictureUrl,
+                      ),
+                      SizedBox(height: 12.h),
+                      _buildAvailabilityToggle(),
+                    ],
+                  ),
+                ),
+
+                // Stats Cards Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: _buildStatsCardsSection(),
+                ),
+
+                SizedBox(height: 16.h),
+
+                // Ongoing Job Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: bookingsAsync.when(
+                    data: (bookings) {
+                      ArtisanBooking? ongoing;
+                      for (final booking in bookings) {
+                        if (booking.status == ArtisanBookingStatus.inProgress) {
+                          ongoing = booking;
+                          break;
+                        }
+                      }
+                      if (ongoing == null) {
+                        for (final booking in bookings) {
+                          if (booking.status == ArtisanBookingStatus.paid) {
+                            ongoing = booking;
+                            break;
+                          }
+                        }
+                      }
+                      if (ongoing == null) {
+                        for (final booking in bookings) {
+                          if (booking.status == ArtisanBookingStatus.accepted) {
+                            ongoing = booking;
+                            break;
+                          }
+                        }
+                      }
+
+                      if (ongoing == null) {
+                        return Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 20.h,
+                            horizontal: 12.w,
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () => ref
-                              .read(artisanBookingsProvider.notifier)
-                              .refresh(),
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: const Color(0xFFE5ECEC)),
+                          ),
+                          child: BodyText(
+                            'No ongoing jobs right now',
+                            size: BodySize.small,
+                            color: AppColors.textSecondary,
+                          ),
+                        );
+                      }
+
+                      final activeBooking = ongoing;
+                      return OngoingJobCard(
+                        booking: activeBooking,
+                        onCall: () =>
+                            _callPhone(activeBooking.customerPhoneNumber),
+                      );
+                    },
+                    loading: () => Container(
+                      height: 220.h,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    error: (error, stackTrace) => Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 20.h,
+                        horizontal: 12.w,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: const Color(0xFFE5ECEC)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: BodyText(
+                              'Failed to load active job',
+                              size: BodySize.small,
+                              color: AppColors.error,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => ref
+                                .read(artisanBookingsProvider.notifier)
+                                .refresh(),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              SizedBox(height: 24.h),
+                SizedBox(height: 24.h),
 
-              // Requests Section
-              _buildSectionTitle(
-                'Requests',
-                newCount: bookingsAsync.maybeWhen(
-                  data: (bookings) => bookings
-                      .where(
-                        (booking) =>
-                            booking.status == ArtisanBookingStatus.pending,
-                      )
-                      .length,
-                  orElse: () => 0,
-                ),
-                onSeeAll: () => context.go('${AppRoutes.artisanHome}?tab=jobs'),
-              ),
-              SizedBox(height: 10.h),
-              SizedBox(
-                height: 320.h,
-                child: bookingsAsync.when(
-                  data: (bookings) {
-                    final pending = bookings
+                // Requests Section
+                _buildSectionTitle(
+                  'Requests',
+                  newCount: bookingsAsync.maybeWhen(
+                    data: (bookings) => bookings
                         .where(
                           (booking) =>
                               booking.status == ArtisanBookingStatus.pending,
                         )
-                        .toList();
-
-                    if (pending.isEmpty) {
-                      return ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        children: [
-                          Container(
-                            width: 0.85.sw,
-                            padding: EdgeInsets.all(16.r),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F5),
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: BodyText(
-                              'No pending job requests',
-                              size: BodySize.small,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-
-                    return ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      itemCount: pending.length,
-                      itemBuilder: (context, index) {
-                        final booking = pending[index];
-                        return JobRequestCard(
-                          booking: booking,
-                          onAccept: () => _acceptBooking(booking),
-                          onDecline: () => _rejectBooking(booking),
-                          onCall: () => _callPhone(booking.customerPhoneNumber),
-                        );
-                      },
-                    );
-                  },
-                  loading: () => ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    children: [
-                      Container(
-                        width: 0.85.sw,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                    ],
+                        .length,
+                    orElse: () => 0,
                   ),
-                  error: (error, stackTrace) => ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    children: [
-                      Container(
-                        width: 0.85.sw,
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F5),
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  onSeeAll: () =>
+                      context.go('${AppRoutes.artisanHome}?tab=jobs'),
+                ),
+                SizedBox(height: 10.h),
+                SizedBox(
+                  height: 320.h,
+                  child: bookingsAsync.when(
+                    data: (bookings) {
+                      final pending = bookings
+                          .where(
+                            (booking) =>
+                                booking.status == ArtisanBookingStatus.pending,
+                          )
+                          .toList();
+
+                      if (pending.isEmpty) {
+                        return ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
                           children: [
-                            BodyText(
-                              'Failed to load requests',
-                              size: BodySize.small,
-                              color: AppColors.error,
-                            ),
-                            SizedBox(height: 8.h),
-                            TextButton(
-                              onPressed: () => ref
-                                  .read(artisanBookingsProvider.notifier)
-                                  .refresh(),
-                              child: const Text('Retry'),
+                            Container(
+                              width: 0.85.sw,
+                              padding: EdgeInsets.all(16.r),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F5),
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: BodyText(
+                                'No pending job requests',
+                                size: BodySize.small,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                        );
+                      }
 
-              SizedBox(height: 24.h),
-
-              // How It Works Walkthrough
-              _buildSectionTitle(
-                'How it works',
-                onSeeAll: () => _showHowItWorksModal(),
-              ),
-              SizedBox(height: 12.h),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: GestureDetector(
-                  onTap: _showHowItWorksModal,
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(14.r),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F5),
-                      borderRadius: BorderRadius.circular(14.r),
-                    ),
-                    child: Row(
+                      return ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        itemCount: pending.length,
+                        itemBuilder: (context, index) {
+                          final booking = pending[index];
+                          return JobRequestCard(
+                            booking: booking,
+                            onAccept: () => _acceptBooking(booking),
+                            onDecline: () => _rejectBooking(booking),
+                            onCall: () =>
+                                _callPhone(booking.customerPhoneNumber),
+                          );
+                        },
+                      );
+                    },
+                    loading: () => ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
                       children: [
                         Container(
-                          width: 38.w,
-                          height: 38.h,
+                          width: 0.85.sw,
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Icon(
-                            Icons.play_lesson_outlined,
-                            color: AppColors.primary,
-                            size: 20.r,
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(12.r),
                           ),
                         ),
-                        SizedBox(width: 12.w),
-                        Expanded(
+                      ],
+                    ),
+                    error: (error, stackTrace) => ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      children: [
+                        Container(
+                          width: 0.85.sw,
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F5),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               BodyText(
-                                'Booking flow walkthrough',
-                                size: BodySize.medium,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              SizedBox(height: 2.h),
-                              BodyText(
-                                'See the exact steps from request to completion.',
+                                'Failed to load requests',
                                 size: BodySize.small,
-                                color: AppColors.textSecondary,
+                                color: AppColors.error,
+                              ),
+                              SizedBox(height: 8.h),
+                              TextButton(
+                                onPressed: () => ref
+                                    .read(artisanBookingsProvider.notifier)
+                                    .refresh(),
+                                child: const Text('Retry'),
                               ),
                             ],
                           ),
-                        ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: AppColors.textSecondary,
-                          size: 24.r,
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
 
-              SizedBox(height: 16.h),
-            ],
+                SizedBox(height: 24.h),
+
+                // How It Works Walkthrough
+                _buildSectionTitle(
+                  'How it works',
+                  onSeeAll: () => _showHowItWorksModal(),
+                ),
+                SizedBox(height: 12.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: GestureDetector(
+                    onTap: _showHowItWorksModal,
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(14.r),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F5),
+                        borderRadius: BorderRadius.circular(14.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38.w,
+                            height: 38.h,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            child: Icon(
+                              Icons.play_lesson_outlined,
+                              color: AppColors.primary,
+                              size: 20.r,
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                BodyText(
+                                  'Booking flow walkthrough',
+                                  size: BodySize.medium,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                SizedBox(height: 2.h),
+                                BodyText(
+                                  'See the exact steps from request to completion.',
+                                  size: BodySize.small,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.textSecondary,
+                            size: 24.r,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16.h),
+              ],
+            ),
           ),
         ),
       ),
@@ -967,57 +983,10 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
   }
 
   Future<double?> _showAmountInputDialog(ArtisanBooking booking) async {
-    final controller = TextEditingController(
-      text: (((booking.budgetMin + booking.budgetMax) / 2)).toStringAsFixed(0),
-    );
-
-    final result = await showDialog<double>(
+    return showDialog<double>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Accept Booking'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Set amount between ₦${booking.budgetMin.toStringAsFixed(0)} and ₦${booking.budgetMax.toStringAsFixed(0)}',
-              ),
-              SizedBox(height: 10.h),
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Agreed amount',
-                  prefixText: '₦ ',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final amount = double.tryParse(controller.text.trim());
-                if (amount == null) {
-                  return;
-                }
-                Navigator.pop(context, amount);
-              },
-              child: const Text('Accept'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _HomeAcceptBookingDialog(booking: booking),
     );
-
-    controller.dispose();
-    return result;
   }
 
   Future<String?> _showTextInputDialog({
@@ -1025,40 +994,136 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
     required String hint,
     int minLength = 1,
   }) async {
-    final controller = TextEditingController();
-
-    final result = await showDialog<String>(
+    return showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: controller,
-            minLines: 3,
-            maxLines: 5,
-            decoration: InputDecoration(hintText: hint),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final value = controller.text.trim();
-                if (value.length < minLength) {
-                  return;
-                }
-                Navigator.pop(context, value);
-              },
-              child: const Text('Submit'),
-            ),
-          ],
-        );
-      },
+      builder: (context) =>
+          _HomeTextInputDialog(title: title, hint: hint, minLength: minLength),
     );
+  }
+}
 
-    controller.dispose();
-    return result;
+class _HomeAcceptBookingDialog extends StatefulWidget {
+  const _HomeAcceptBookingDialog({required this.booking});
+
+  final ArtisanBooking booking;
+
+  @override
+  State<_HomeAcceptBookingDialog> createState() =>
+      _HomeAcceptBookingDialogState();
+}
+
+class _HomeAcceptBookingDialogState extends State<_HomeAcceptBookingDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: (((widget.booking.budgetMin + widget.booking.budgetMax) / 2))
+          .toStringAsFixed(0),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Accept Booking'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Set amount between ₦${widget.booking.budgetMin.toStringAsFixed(0)} and ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+          ),
+          SizedBox(height: 10.h),
+          TextField(
+            controller: _controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Agreed amount',
+              prefixText: '₦ ',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final amount = double.tryParse(_controller.text.trim());
+            if (amount == null) return;
+            Navigator.pop(context, amount);
+          },
+          child: const Text('Accept'),
+        ),
+      ],
+    );
+  }
+}
+
+class _HomeTextInputDialog extends StatefulWidget {
+  const _HomeTextInputDialog({
+    required this.title,
+    required this.hint,
+    required this.minLength,
+  });
+
+  final String title;
+  final String hint;
+  final int minLength;
+
+  @override
+  State<_HomeTextInputDialog> createState() => _HomeTextInputDialogState();
+}
+
+class _HomeTextInputDialogState extends State<_HomeTextInputDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        minLines: 3,
+        maxLines: 5,
+        decoration: InputDecoration(hintText: widget.hint),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final value = _controller.text.trim();
+            if (value.length < widget.minLength) return;
+            Navigator.pop(context, value);
+          },
+          child: const Text('Submit'),
+        ),
+      ],
+    );
   }
 }

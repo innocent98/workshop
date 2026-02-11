@@ -1,4 +1,6 @@
 class WalletBalance {
+  static const String naira = '\u20A6';
+
   final double totalEarned;
   final double pendingRelease;
   final int totalJobsCompleted;
@@ -9,10 +11,14 @@ class WalletBalance {
     required this.totalJobsCompleted,
   });
 
-  String get formattedEarnings => '₦ ${totalEarned.toStringAsFixed(0)}';
+  // Show practical earnings on home card: released + pending-release.
+  double get totalVisibleEarnings => totalEarned + pendingRelease;
+
+  String get formattedEarnings =>
+      '$naira ${totalVisibleEarnings.toStringAsFixed(0)}';
 
   String get formattedPendingRelease =>
-      '₦ ${pendingRelease.toStringAsFixed(0)}';
+      '$naira ${pendingRelease.toStringAsFixed(0)}';
 
   WalletBalance copyWith({
     double? totalEarned,

@@ -1,4 +1,4 @@
-package com.example.workchop
+package com.workchop.workchop
 
 import io.flutter.embedding.android.FlutterActivity
 

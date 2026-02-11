@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1245303414",
+    "project_id": "workchop-b3069",
+    "storage_bucket": "workchop-b3069.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1245303414:android:200faf2e55bf7baf6f8557",
+        "android_client_info": {
+          "package_name": "com.workchop.workchop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4iYFjhiVf5exjkn7_UUFhW1agrI9wsQw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

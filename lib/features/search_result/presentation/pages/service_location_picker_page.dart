@@ -236,7 +236,7 @@ class _ServiceLocationPickerPageState extends State<ServiceLocationPickerPage> {
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.workchop',
+                  userAgentPackageName: 'com.workchop.workchop',
                 ),
                 MarkerLayer(
                   markers: [

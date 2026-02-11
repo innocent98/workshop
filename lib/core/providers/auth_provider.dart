@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
+import '../services/push_notification_service.dart';
 import '../services/token_storage_service.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import 'registration_provider.dart';
@@ -32,6 +33,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
       if (userData != null) {
         final userJson = jsonDecode(userData) as Map<String, dynamic>;
+        await _syncPushTokenBestEffort();
         return User.fromJson(userJson);
       } else {
         await logout();
@@ -58,6 +60,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
       final user = response.user.toUser();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(user.toJson()));
+      await _syncPushTokenBestEffort();
       return user;
     });
 
@@ -90,6 +93,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
         await _repository.logout();
       } catch (_) {}
 
+      await PushNotificationService.instance.unregisterCurrentToken();
       await _tokenStorage.deleteToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
@@ -120,6 +124,14 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
   /// Check if user is a client
   bool get isClient => state.value?.role == UserRole.client;
+
+  Future<void> _syncPushTokenBestEffort() async {
+    try {
+      await PushNotificationService.instance.syncTokenToBackend();
+    } catch (_) {
+      // Keep auth persistence independent from push registration/network state.
+    }
+  }
 }
 
 /// Provider instance
