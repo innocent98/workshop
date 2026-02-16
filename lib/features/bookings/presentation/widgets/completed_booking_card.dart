@@ -161,7 +161,7 @@ class CompletedBookingCard extends StatelessWidget {
                       child: Center(
                         child: BodyText(
                           secondaryActionLabel,
-                          size: BodySize.tiny,
+                          size: BodySize.small,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -193,7 +193,7 @@ class CompletedBookingCard extends StatelessWidget {
                                 : (isReviewSubmitted
                                       ? 'Reviewed'
                                       : 'Rate Artisan'),
-                            size: BodySize.tiny,
+                            size: BodySize.small,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),

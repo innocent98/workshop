@@ -44,4 +44,34 @@ class RegistrationData {
       isOtpVerified: isOtpVerified ?? this.isOtpVerified,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'userType': userType,
+      'fullName': fullName,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'password': password,
+      'selectedServices': selectedServices,
+      'profilePictureUrl': profilePictureUrl,
+      'isOtpVerified': isOtpVerified,
+    };
+  }
+
+  factory RegistrationData.fromJson(Map<String, dynamic> json) {
+    return RegistrationData(
+      userId: json['userId'] as String?,
+      userType: json['userType'] as String?,
+      fullName: json['fullName'] as String?,
+      email: json['email'] as String?,
+      phoneNumber: json['phoneNumber'] as String?,
+      password: json['password'] as String?,
+      selectedServices: json['selectedServices'] != null
+          ? List<String>.from(json['selectedServices'] as List)
+          : null,
+      profilePictureUrl: json['profilePictureUrl'] as String?,
+      isOtpVerified: json['isOtpVerified'] as bool? ?? false,
+    );
+  }
 }

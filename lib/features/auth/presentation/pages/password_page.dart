@@ -14,10 +14,7 @@ import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 class PasswordPage extends ConsumerStatefulWidget {
   final UserType userType;
 
-  const PasswordPage({
-    super.key,
-    required this.userType,
-  });
+  const PasswordPage({super.key, required this.userType});
 
   @override
   ConsumerState<PasswordPage> createState() => _PasswordPageState();
@@ -43,8 +40,11 @@ class _PasswordPageState extends ConsumerState<PasswordPage> {
       setState(() => _isLoading = true);
 
       try {
-        await ref.read(registrationProvider.notifier).registerPassword(
-              _passwordController.text,
+        await ref
+            .read(registrationProvider.notifier)
+            .registerPassword(
+              password: _passwordController.text,
+              confirmPassword: _confirmPasswordController.text,
             );
 
         if (mounted) {
@@ -64,10 +64,7 @@ class _PasswordPageState extends ConsumerState<PasswordPage> {
           debugPrint('Save password error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: AppColors.error,
-            ),
+            SnackBar(content: Text(message), backgroundColor: AppColors.error),
           );
         }
       } finally {
@@ -150,7 +147,9 @@ class _PasswordPageState extends ConsumerState<PasswordPage> {
                         obscureText: _obscurePassword,
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: AppColors.textSecondary,
                             size: 20.r,
                           ),
@@ -180,13 +179,16 @@ class _PasswordPageState extends ConsumerState<PasswordPage> {
                         obscureText: _obscureConfirmPassword,
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: AppColors.textSecondary,
                             size: 20.r,
                           ),
                           onPressed: () {
                             setState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
                             });
                           },
                         ),

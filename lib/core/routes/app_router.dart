@@ -67,6 +67,7 @@ class AppRoutes {
 /// This provides the GoRouter instance that will be used throughout the app
 final routerProvider = Provider<GoRouter>((ref) {
   final tokenStorage = TokenStorageService();
+  final authAsync = ref.watch(authProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -515,7 +516,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               currentPath == AppRoutes.phoneVerification ||
               currentPath == AppRoutes.serviceSelection ||
               currentPath == AppRoutes.profilePicture)) {
-        final authAsync = ref.read(authProvider);
+        if (authAsync.isLoading) {
+          return AppRoutes.splash;
+        }
+
         final user = authAsync.value;
         if (user != null) {
           return user.role == UserRole.artisan

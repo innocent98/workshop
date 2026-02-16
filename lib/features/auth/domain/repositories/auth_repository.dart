@@ -19,9 +19,13 @@ abstract class AuthRepository {
   Future<RegisterPasswordResponse> registerPassword({
     required String userId,
     required String password,
+    required String confirmPassword,
   });
 
-  Future<SendOtpResponse> sendOtp({required String userId});
+  Future<SendOtpResponse> sendOtp({
+    required String userId,
+    required String email,
+  });
 
   Future<VerifyOtpResponse> verifyOtp({
     required String userId,
@@ -30,6 +34,7 @@ abstract class AuthRepository {
 
   Future<RegisterServicesResponse> registerServices({
     required String userId,
+    required String userType,
     required List<String> services,
   });
 

@@ -55,7 +55,7 @@ class AuthRemoteDataSource {
   Future<SendOtpResponse> sendOtp(SendOtpRequest request) async {
     try {
       final response = await _dio.post(
-        '/auth/send-otp',
+        '/auth/register/send-otp',
         data: request.toJson(),
       );
       return SendOtpResponse.fromJson(response.data);
@@ -67,7 +67,7 @@ class AuthRemoteDataSource {
   Future<VerifyOtpResponse> verifyOtp(VerifyOtpRequest request) async {
     try {
       final response = await _dio.post(
-        '/auth/verify-otp',
+        '/auth/register/verify-otp',
         data: request.toJson(),
       );
       return VerifyOtpResponse.fromJson(response.data);
@@ -106,10 +106,13 @@ class AuthRemoteDataSource {
       });
 
       final response = await _dio.post(
-        '/auth/register/profile-picture',
+        '/auth/register/profile',
         data: formData,
       );
-      return response.data['profile_picture_url'] as String;
+      final data = response.data as Map<String, dynamic>;
+      final user = data['user'] as Map<String, dynamic>?;
+      final profilePictureUrl = user?['profile_picture_url'] as String?;
+      return profilePictureUrl ?? '';
     } on DioException catch (e) {
       throw _handleError(e);
     }

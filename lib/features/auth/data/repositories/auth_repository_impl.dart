@@ -44,14 +44,22 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<RegisterPasswordResponse> registerPassword({
     required String userId,
     required String password,
+    required String confirmPassword,
   }) async {
-    final request = RegisterPasswordRequest(userId: userId, password: password);
+    final request = RegisterPasswordRequest(
+      userId: userId,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
     return await _remoteDataSource.registerPassword(request);
   }
 
   @override
-  Future<SendOtpResponse> sendOtp({required String userId}) async {
-    final request = SendOtpRequest(userId: userId);
+  Future<SendOtpResponse> sendOtp({
+    required String userId,
+    required String email,
+  }) async {
+    final request = SendOtpRequest(userId: userId, email: email);
     return await _remoteDataSource.sendOtp(request);
   }
 
@@ -60,16 +68,21 @@ class AuthRepositoryImpl implements AuthRepository {
     required String userId,
     required String otp,
   }) async {
-    final request = VerifyOtpRequest(userId: userId, otp: otp);
+    final request = VerifyOtpRequest(userId: userId, otpCode: otp);
     return await _remoteDataSource.verifyOtp(request);
   }
 
   @override
   Future<RegisterServicesResponse> registerServices({
     required String userId,
+    required String userType,
     required List<String> services,
   }) async {
-    final request = RegisterServicesRequest(userId: userId, services: services);
+    final request = RegisterServicesRequest(
+      userId: userId,
+      userType: userType,
+      services: services,
+    );
     return await _remoteDataSource.registerServices(request);
   }
 

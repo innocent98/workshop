@@ -143,30 +143,31 @@ class OngoingBookingCard extends StatelessWidget {
             // Action buttons
             Row(
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: onRateTap,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.radiusSmall,
+                if (onRateTap != null)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onRateTap,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusSmall,
+                          ),
                         ),
-                      ),
-                      child: const Center(
-                        child: BodyText(
-                          'Rate Artisan',
-                          size: BodySize.small,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                        child: const Center(
+                          child: BodyText(
+                            'Rate Artisan',
+                            size: BodySize.small,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
                 if (onChatTap != null) ...[
-                  SizedBox(width: AppSizes.spacingSmall),
+                  if (onRateTap != null) SizedBox(width: AppSizes.spacingSmall),
                   GestureDetector(
                     onTap: onChatTap,
                     child: Container(

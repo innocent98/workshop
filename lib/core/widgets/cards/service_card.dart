@@ -16,6 +16,65 @@ class ServiceCard extends StatelessWidget {
     required this.onTap,
   });
 
+  bool get _isNetworkImage {
+    final uri = Uri.tryParse(imagePath);
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  Widget _buildServiceImage() {
+    if (imagePath.isEmpty) {
+      return Container(
+        color: Colors.white,
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.handyman_outlined,
+          color: AppColors.textSecondary,
+          size: 30.r,
+        ),
+      );
+    }
+
+    if (_isNetworkImage) {
+      return Image.network(
+        imagePath,
+        height: 100.h,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.white,
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.broken_image_outlined,
+              color: AppColors.textSecondary,
+              size: 30.r,
+            ),
+          );
+        },
+      );
+    }
+
+    return Image.asset(
+      imagePath,
+      height: 100.h,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Colors.white,
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.broken_image_outlined,
+            color: AppColors.textSecondary,
+            size: 30.r,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -36,12 +95,7 @@ class ServiceCard extends StatelessWidget {
                   // Service Image
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12.r),
-                    child: Image.asset(
-                      imagePath,
-                      height: 100.h,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
+                    child: _buildServiceImage(),
                   ),
                   SizedBox(height: 8.h),
 
@@ -70,16 +124,14 @@ class ServiceCard extends StatelessWidget {
                   color: isSelected ? const Color(0xFFE2725B) : Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected ? const Color(0xFFE2725B) : const Color(0xFFD0D0D0),
+                    color: isSelected
+                        ? const Color(0xFFE2725B)
+                        : const Color(0xFFD0D0D0),
                     width: 2,
                   ),
                 ),
                 child: isSelected
-                    ? Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 18.r,
-                      )
+                    ? Icon(Icons.check, color: Colors.white, size: 18.r)
                     : null,
               ),
             ),

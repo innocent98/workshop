@@ -4,6 +4,10 @@ import 'api_exception.dart';
 
 class AuthInterceptor extends Interceptor {
   final TokenStorageService _tokenStorage = TokenStorageService();
+  static const _nonCritical401Paths = <String>[
+    '/notifications/devices/register',
+    '/notifications/devices/unregister',
+  ];
 
   @override
   Future<void> onRequest(
@@ -20,13 +24,21 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      _tokenStorage.deleteToken();
+      final requestPath = err.requestOptions.path;
+      final shouldPreserveToken = _nonCritical401Paths.any(
+        requestPath.contains,
+      );
+
+      if (!shouldPreserveToken) {
+        _tokenStorage.deleteToken();
+      }
 
       // Extract error message from response
       String errorMessage = 'Unauthorized. Please login again.';
       if (err.response?.data is Map<String, dynamic>) {
         final data = err.response!.data as Map<String, dynamic>;
-        errorMessage = data['detail'] as String? ??
+        errorMessage =
+            data['detail'] as String? ??
             data['message'] as String? ??
             errorMessage;
       }

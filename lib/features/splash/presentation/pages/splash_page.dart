@@ -10,7 +10,9 @@ import '../../../../core/services/onboarding_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/providers/location_provider.dart';
+import '../../../../core/providers/registration_provider.dart';
 import '../../../../core/models/user.dart';
+import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -71,40 +73,69 @@ class _SplashPageState extends ConsumerState<SplashPage>
     if (!mounted) return;
 
     if (hasToken) {
-      // Wait for auth provider to load user data
-      final authAsync = ref.read(authProvider);
+      try {
+        // Wait for persisted auth state to fully hydrate before routing.
+        final user = await ref.read(authProvider.future);
+        if (!mounted) return;
 
-      await authAsync.when(
-        data: (user) async {
-          if (user != null) {
-            await _goToRoleHomeWithLocationGate(user);
-          } else {
-            if (mounted) context.go(AppRoutes.login);
-          }
-        },
-        loading: () async {
-          // Wait a bit for loading to complete
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (mounted) {
-            final authState = ref.read(authProvider);
-            final user = authState.value;
-            if (user != null) {
-              await _goToRoleHomeWithLocationGate(user);
-            } else {
-              if (mounted) context.go(AppRoutes.login);
-            }
-          }
-        },
-        error: (error, stack) async {
-          // On error, go to login
-          if (mounted) context.go(AppRoutes.login);
-        },
-      );
+        if (user != null) {
+          await _goToRoleHomeWithLocationGate(user);
+        } else {
+          context.go(AppRoutes.login);
+        }
+      } catch (_) {
+        if (mounted) {
+          context.go(AppRoutes.login);
+        }
+      }
+    } else if (await _tryResumeRegistrationDraft()) {
+      return;
     } else if (hasCompletedOnboarding) {
       if (mounted) context.go(AppRoutes.login);
     } else {
       if (mounted) context.go(AppRoutes.userTypeSelection);
     }
+  }
+
+  Future<bool> _tryResumeRegistrationDraft() async {
+    final draft = await ref
+        .read(registrationProvider.notifier)
+        .loadPersistedDraft();
+    if (!mounted) return true;
+    if (draft.userId == null) {
+      return false;
+    }
+
+    final userType = _mapUserType(draft.userType);
+    if (userType == null) {
+      return false;
+    }
+
+    if (draft.password == null || draft.password!.isEmpty) {
+      context.go(AppRoutes.password, extra: userType);
+      return true;
+    }
+
+    if (!draft.isOtpVerified) {
+      context.go(AppRoutes.phoneVerification, extra: userType);
+      return true;
+    }
+
+    final hasSelectedServices =
+        draft.selectedServices != null && draft.selectedServices!.isNotEmpty;
+    if (!hasSelectedServices) {
+      context.go(AppRoutes.serviceSelection, extra: userType);
+      return true;
+    }
+
+    context.go(AppRoutes.profilePicture, extra: userType);
+    return true;
+  }
+
+  UserType? _mapUserType(String? value) {
+    if (value == 'artisan') return UserType.artisan;
+    if (value == 'client') return UserType.client;
+    return null;
   }
 
   Future<void> _goToRoleHomeWithLocationGate(User user) async {

@@ -82,6 +82,12 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
     }
   }
 
+  bool _canRateBooking(ArtisanBooking booking) {
+    return booking.status == ArtisanBookingStatus.completed &&
+        booking.completionConfirmedByClientAt != null &&
+        booking.completionDisputedAt == null;
+  }
+
   Booking _toUiBooking(ArtisanBooking booking) {
     final serviceLine = (booking.jobDescription ?? '').trim().isNotEmpty
         ? booking.jobDescription!.trim()
@@ -219,6 +225,18 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
   }
 
   Future<void> _rateBooking(ArtisanBooking booking) async {
+    if (!_canRateBooking(booking)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'You can rate only after completion has been confirmed.',
+          ),
+        ),
+      );
+      return;
+    }
+
     if (_reviewedBookingIds.contains(booking.id)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -488,6 +506,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
     return filtered.map((item) {
       final booking = _toUiBooking(item);
       final isCompleted = _statusForUi(item.status) == 'completed';
+      final canRate = _canRateBooking(item);
       final needsClientConfirmation =
           isCompleted &&
           item.completionConfirmedByClientAt == null &&
@@ -502,10 +521,10 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
         secondaryActionLabel: needsClientConfirmation
             ? (confirming ? 'Confirming...' : 'Confirm Job Completion')
             : 'View Details',
-        onRateTap: isCompleted ? () => _rateBooking(item) : null,
-        isReviewSubmitted: isCompleted && _reviewedBookingIds.contains(item.id),
+        onRateTap: canRate ? () => _rateBooking(item) : null,
+        isReviewSubmitted: canRate && _reviewedBookingIds.contains(item.id),
         isSubmittingReview:
-            isCompleted && _reviewSubmittingBookingIds.contains(item.id),
+            canRate && _reviewSubmittingBookingIds.contains(item.id),
       );
     }).toList();
   }
@@ -1359,14 +1378,20 @@ class _ReviewDialogState extends State<_ReviewDialog> {
                     Expanded(
                       child: TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Not now'),
+                        child: const Text(
+                          'Not now',
+                          style: TextStyle(fontSize: 13),
+                        ),
                       ),
                     ),
                     SizedBox(width: 10.w),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _submit,
-                        child: const Text('Submit Review'),
+                        child: const Text(
+                          'Submit Review',
+                          style: TextStyle(fontSize: 13),
+                        ),
                       ),
                     ),
                   ],
