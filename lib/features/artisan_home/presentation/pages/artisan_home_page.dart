@@ -201,7 +201,7 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
                 ),
                 SizedBox(height: 10.h),
                 SizedBox(
-                  height: 320.h,
+                  height: 250.h,
                   child: bookingsAsync.when(
                     data: (bookings) {
                       final pending = bookings
@@ -241,10 +241,14 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
                           final booking = pending[index];
                           return JobRequestCard(
                             booking: booking,
+                            onTap: () => context.push(
+                              AppRoutes.jobDetail,
+                              extra: booking,
+                            ),
                             onAccept: () => _acceptBooking(booking),
+                            onNegotiate: () => _negotiateBooking(booking),
                             onDecline: () => _rejectBooking(booking),
-                            onCall: () =>
-                                _callPhone(booking.customerPhoneNumber),
+                            onCall: null,
                           );
                         },
                       );
@@ -912,18 +916,56 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
   }
 
   Future<void> _acceptBooking(ArtisanBooking booking) async {
-    final amount = await _showAmountInputDialog(booking);
-    if (amount == null) {
-      return;
+    double? amount;
+    final negotiationDriven =
+        booking.negotiatedAmount != null &&
+        (booking.negotiationStatus == 'pending_artisan' ||
+            booking.negotiationStatus == 'agreed');
+    if (negotiationDriven) {
+      amount = booking.negotiatedAmount;
+    } else {
+      amount = await _showAmountInputDialog(booking);
+      if (amount == null) {
+        return;
+      }
     }
 
     try {
       await ref
           .read(artisanBookingsProvider.notifier)
-          .acceptBooking(bookingId: booking.id, agreedAmount: amount);
+          .acceptBooking(bookingId: booking.id, agreedAmount: amount!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Booking accepted successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  Future<void> _negotiateBooking(ArtisanBooking booking) async {
+    final input = await showDialog<_NegotiationInput>(
+      context: context,
+      builder: (_) => _HomeNegotiationDialog(booking: booking),
+    );
+    if (input == null) return;
+
+    try {
+      await ref
+          .read(artisanBookingsProvider.notifier)
+          .negotiateBooking(
+            bookingId: booking.id,
+            negotiatedAmount: input.amount,
+            negotiationCondition: input.condition,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Negotiation sent to client')),
         );
       }
     } catch (e) {
@@ -1064,6 +1106,122 @@ class _HomeAcceptBookingDialogState extends State<_HomeAcceptBookingDialog> {
             Navigator.pop(context, amount);
           },
           child: const Text('Accept'),
+        ),
+      ],
+    );
+  }
+}
+
+class _NegotiationInput {
+  final double amount;
+  final String condition;
+
+  const _NegotiationInput({required this.amount, required this.condition});
+}
+
+class _HomeNegotiationDialog extends StatefulWidget {
+  const _HomeNegotiationDialog({required this.booking});
+
+  final ArtisanBooking booking;
+
+  @override
+  State<_HomeNegotiationDialog> createState() => _HomeNegotiationDialogState();
+}
+
+class _HomeNegotiationDialogState extends State<_HomeNegotiationDialog> {
+  late final TextEditingController _amountController;
+  late final TextEditingController _conditionController;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text:
+          (widget.booking.negotiatedAmount ??
+                  ((widget.booking.budgetMin + widget.booking.budgetMax) / 2))
+              .toStringAsFixed(0),
+    );
+    _conditionController = TextEditingController(
+      text: widget.booking.negotiationCondition ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _conditionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rounds =
+        'Rounds: Artisan ${widget.booking.artisanNegotiationRoundsUsed}/2 • Client ${widget.booking.clientNegotiationRoundsUsed}/2';
+    return AlertDialog(
+      title: const Text('Negotiate Price'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Client range: ₦${widget.booking.budgetMin.toStringAsFixed(0)} - ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+          ),
+          SizedBox(height: 6.h),
+          Text(rounds, style: TextStyle(fontSize: 11.sp)),
+          SizedBox(height: 10.h),
+          TextField(
+            controller: _amountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Negotiated amount',
+              prefixText: '₦ ',
+            ),
+          ),
+          SizedBox(height: 8.h),
+          TextField(
+            controller: _conditionController,
+            minLines: 3,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              labelText: 'Condition for bargaining',
+              hintText: 'Why this amount is required',
+            ),
+          ),
+          if (_error != null) ...[
+            SizedBox(height: 8.h),
+            Text(
+              _error!,
+              style: TextStyle(fontSize: 11.sp, color: AppColors.error),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final amount = double.tryParse(_amountController.text.trim());
+            final condition = _conditionController.text.trim();
+            if (amount == null || amount <= 0) {
+              setState(() => _error = 'Enter a valid negotiated amount.');
+              return;
+            }
+            if (condition.length < 5) {
+              setState(
+                () => _error = 'Condition should be at least 5 characters.',
+              );
+              return;
+            }
+            Navigator.pop(
+              context,
+              _NegotiationInput(amount: amount, condition: condition),
+            );
+          },
+          child: const Text('Send'),
         ),
       ],
     );

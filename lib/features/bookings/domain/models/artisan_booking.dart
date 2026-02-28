@@ -55,6 +55,17 @@ class ArtisanBooking {
   final double budgetMin;
   final double budgetMax;
   final double? agreedAmount;
+  final double? negotiatedAmount;
+  final String? negotiationCondition;
+  final String negotiationStatus;
+  final String? negotiationLastOfferBy;
+  final int artisanNegotiationRoundsUsed;
+  final int clientNegotiationRoundsUsed;
+  final DateTime? negotiationStartedAt;
+  final DateTime? negotiationUpdatedAt;
+  final DateTime? negotiationAgreedAt;
+  final DateTime? negotiationDeclinedAt;
+  final bool negotiatedOverride;
   final ArtisanBookingStatus status;
   final DateTime? acceptedAt;
   final DateTime? paidAt;
@@ -95,6 +106,17 @@ class ArtisanBooking {
     required this.budgetMin,
     required this.budgetMax,
     this.agreedAmount,
+    this.negotiatedAmount,
+    this.negotiationCondition,
+    this.negotiationStatus = 'none',
+    this.negotiationLastOfferBy,
+    this.artisanNegotiationRoundsUsed = 0,
+    this.clientNegotiationRoundsUsed = 0,
+    this.negotiationStartedAt,
+    this.negotiationUpdatedAt,
+    this.negotiationAgreedAt,
+    this.negotiationDeclinedAt,
+    this.negotiatedOverride = false,
     required this.status,
     this.acceptedAt,
     this.paidAt,
@@ -128,6 +150,17 @@ class ArtisanBooking {
   ArtisanBooking copyWith({
     ArtisanBookingStatus? status,
     double? agreedAmount,
+    double? negotiatedAmount,
+    String? negotiationCondition,
+    String? negotiationStatus,
+    String? negotiationLastOfferBy,
+    int? artisanNegotiationRoundsUsed,
+    int? clientNegotiationRoundsUsed,
+    DateTime? negotiationStartedAt,
+    DateTime? negotiationUpdatedAt,
+    DateTime? negotiationAgreedAt,
+    DateTime? negotiationDeclinedAt,
+    bool? negotiatedOverride,
     DateTime? acceptedAt,
     DateTime? paidAt,
     DateTime? startedAt,
@@ -165,6 +198,21 @@ class ArtisanBooking {
       budgetMin: budgetMin,
       budgetMax: budgetMax,
       agreedAmount: agreedAmount ?? this.agreedAmount,
+      negotiatedAmount: negotiatedAmount ?? this.negotiatedAmount,
+      negotiationCondition: negotiationCondition ?? this.negotiationCondition,
+      negotiationStatus: negotiationStatus ?? this.negotiationStatus,
+      negotiationLastOfferBy:
+          negotiationLastOfferBy ?? this.negotiationLastOfferBy,
+      artisanNegotiationRoundsUsed:
+          artisanNegotiationRoundsUsed ?? this.artisanNegotiationRoundsUsed,
+      clientNegotiationRoundsUsed:
+          clientNegotiationRoundsUsed ?? this.clientNegotiationRoundsUsed,
+      negotiationStartedAt: negotiationStartedAt ?? this.negotiationStartedAt,
+      negotiationUpdatedAt: negotiationUpdatedAt ?? this.negotiationUpdatedAt,
+      negotiationAgreedAt: negotiationAgreedAt ?? this.negotiationAgreedAt,
+      negotiationDeclinedAt:
+          negotiationDeclinedAt ?? this.negotiationDeclinedAt,
+      negotiatedOverride: negotiatedOverride ?? this.negotiatedOverride,
       status: status ?? this.status,
       acceptedAt: acceptedAt ?? this.acceptedAt,
       paidAt: paidAt ?? this.paidAt,

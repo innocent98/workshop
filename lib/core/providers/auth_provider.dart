@@ -60,6 +60,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
       final user = response.user.toUser();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(user.toJson()));
+      await ref.read(registrationProvider.notifier).clearRegistration();
       await _syncPushTokenBestEffort();
       return user;
     });
@@ -97,6 +98,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
       await _tokenStorage.deleteToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
+      await ref.read(registrationProvider.notifier).clearRegistration();
       return null;
     });
   }

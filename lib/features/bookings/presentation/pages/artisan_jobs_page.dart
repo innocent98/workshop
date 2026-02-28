@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/app_router.dart';
@@ -323,7 +324,8 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
           secondaryActionLabel: 'Reject',
           onActionPressed: () => _onAcceptPressed(booking),
           onSecondaryActionPressed: () => _onRejectPressed(booking),
-          onPhonePressed: () => _callClient(booking),
+          onPhonePressed: null,
+          onDirectionsPressed: () => _openDirections(booking),
           onCardTap: () => _openBookingDetail(booking),
         );
 
@@ -341,6 +343,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
           neededServices: neededServices,
           onActionPressed: () => _openBookingDetail(booking),
           onPhonePressed: () => _callClient(booking),
+          onDirectionsPressed: () => _openDirections(booking),
           onCardTap: () => _openBookingDetail(booking),
         );
 
@@ -358,6 +361,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
           neededServices: neededServices,
           onActionPressed: () => _onStartPressed(booking),
           onPhonePressed: () => _callClient(booking),
+          onDirectionsPressed: () => _openDirections(booking),
           onCardTap: () => _openBookingDetail(booking),
         );
 
@@ -373,6 +377,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
           neededServices: neededServices,
           onActionPressed: () => _openBookingDetail(booking),
           onPhonePressed: () => _callClient(booking),
+          onDirectionsPressed: () => _openDirections(booking),
           onCardTap: () => _openBookingDetail(booking),
         );
 
@@ -430,15 +435,24 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
   }
 
   Future<void> _onAcceptPressed(ArtisanBooking booking) async {
-    final agreedAmount = await _showAmountInputDialog(booking);
-    if (agreedAmount == null) {
-      return;
+    double? agreedAmount;
+    final negotiationDriven =
+        booking.negotiatedAmount != null &&
+        (booking.negotiationStatus == 'pending_artisan' ||
+            booking.negotiationStatus == 'agreed');
+    if (negotiationDriven) {
+      agreedAmount = booking.negotiatedAmount;
+    } else {
+      agreedAmount = await _showAmountInputDialog(booking);
+      if (agreedAmount == null) {
+        return;
+      }
     }
 
     try {
       await ref
           .read(artisanBookingsProvider.notifier)
-          .acceptBooking(bookingId: booking.id, agreedAmount: agreedAmount);
+          .acceptBooking(bookingId: booking.id, agreedAmount: agreedAmount!);
 
       if (!mounted) {
         return;
@@ -531,6 +545,45 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Unable to open dialer')));
+    }
+  }
+
+  Future<void> _openDirections(ArtisanBooking booking) async {
+    Uri mapUri;
+
+    if (booking.jobLatitude != null && booking.jobLongitude != null) {
+      mapUri = Uri.https('www.google.com', '/maps/dir/', {
+        'api': '1',
+        'destination': '${booking.jobLatitude},${booking.jobLongitude}',
+        'travelmode': 'driving',
+      });
+    } else {
+      final address = booking.jobAddress.trim();
+      if (address.isEmpty) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Job location is not available')),
+        );
+        return;
+      }
+
+      mapUri = Uri.https('www.google.com', '/maps/dir/', {
+        'api': '1',
+        'destination': address,
+        'travelmode': 'driving',
+      });
+    }
+
+    final launched = await launchUrl(
+      mapUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open Google Maps')),
+      );
     }
   }
 

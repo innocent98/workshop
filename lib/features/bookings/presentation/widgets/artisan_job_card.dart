@@ -16,6 +16,7 @@ class ArtisanJobCard extends StatelessWidget {
   final VoidCallback? onActionPressed;
   final VoidCallback? onSecondaryActionPressed;
   final VoidCallback? onPhonePressed;
+  final VoidCallback? onDirectionsPressed;
   final VoidCallback? onCardTap;
   final String? primaryActionLabel;
   final String? secondaryActionLabel;
@@ -35,6 +36,7 @@ class ArtisanJobCard extends StatelessWidget {
     this.onActionPressed,
     this.onSecondaryActionPressed,
     this.onPhonePressed,
+    this.onDirectionsPressed,
     this.onCardTap,
     this.primaryActionLabel,
     this.secondaryActionLabel,
@@ -199,22 +201,28 @@ class ArtisanJobCard extends StatelessWidget {
   }
 
   Widget _buildDirectionsButton() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE0E0E0),
-        borderRadius: BorderRadius.circular(6.r),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.near_me, size: 12.r, color: AppColors.textPrimary),
-          SizedBox(width: 4.w),
-          BodyText(
-            'Directions',
-            size: BodySize.small,
-            fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: onDirectionsPressed,
+      child: Opacity(
+        opacity: onDirectionsPressed == null ? 0.55 : 1,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0E0E0),
+            borderRadius: BorderRadius.circular(6.r),
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(Icons.near_me, size: 12.r, color: AppColors.textPrimary),
+              SizedBox(width: 4.w),
+              BodyText(
+                'Directions',
+                size: BodySize.small,
+                fontWeight: FontWeight.w500,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

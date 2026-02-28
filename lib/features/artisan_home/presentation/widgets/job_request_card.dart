@@ -9,14 +9,18 @@ import '../../../bookings/domain/models/artisan_booking.dart';
 
 class JobRequestCard extends StatelessWidget {
   final ArtisanBooking booking;
+  final VoidCallback? onTap;
   final VoidCallback? onAccept;
+  final VoidCallback? onNegotiate;
   final VoidCallback? onDecline;
   final VoidCallback? onCall;
 
   const JobRequestCard({
     super.key,
     required this.booking,
+    this.onTap,
     this.onAccept,
+    this.onNegotiate,
     this.onDecline,
     this.onCall,
   });
@@ -31,163 +35,191 @@ class JobRequestCard extends StatelessWidget {
       neededServices.add(booking.jobDescription!.trim());
     }
 
-    return Container(
-      width: 0.85.sw,
-      margin: EdgeInsets.only(right: 12.w),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F5),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return GestureDetector(
+      onTap: onTap ?? () => context.push(AppRoutes.jobDetail, extra: booking),
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Container(
+          width: 0.85.sw,
+          margin: EdgeInsets.only(right: 12.w),
+          padding: EdgeInsets.all(12.r),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F5),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 16.r,
-                backgroundImage: _getAvatarImage(
-                  booking.customerProfilePictureUrl ??
-                      'assets/images/regular.jpg',
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BodyText(
-                      service,
-                      size: BodySize.medium,
-                      fontWeight: FontWeight.w500,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 16.r,
+                    backgroundImage: _getAvatarImage(
+                      booking.customerProfilePictureUrl ??
+                          'assets/images/regular.jpg',
                     ),
-                    Row(
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         BodyText(
-                          'Client: ',
-                          size: BodySize.small,
-                          color: AppColors.textSecondary,
+                          service,
+                          size: BodySize.medium,
+                          fontWeight: FontWeight.w500,
                         ),
-                        Expanded(
-                          child: BodyText(
-                            clientName,
-                            size: BodySize.small,
-                            fontWeight: FontWeight.w500,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        Row(
+                          children: [
+                            BodyText(
+                              'Client: ',
+                              size: BodySize.small,
+                              color: AppColors.textSecondary,
+                            ),
+                            Expanded(
+                              child: BodyText(
+                                clientName,
+                                size: BodySize.small,
+                                fontWeight: FontWeight.w500,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  BodyText(
+                    _formatBudget(booking),
+                    size: BodySize.small,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ],
               ),
+              SizedBox(height: 8.h),
               BodyText(
-                _formatBudget(booking),
+                'Needed Service',
                 size: BodySize.small,
                 fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          BodyText(
-            'Needed Service',
-            size: BodySize.small,
-            fontWeight: FontWeight.w500,
-          ),
-          SizedBox(height: 4.h),
-          if (neededServices.isEmpty)
-            _buildListItem('No extra details provided')
-          else
-            ...neededServices.map(_buildListItem),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFBCCBCB),
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-                child: BodyText(
-                  'Scheduled',
-                  size: BodySize.small,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              if (onCall != null)
-                GestureDetector(
-                  onTap: onCall,
-                  child: Icon(
-                    Icons.phone_outlined,
-                    size: 18.r,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(height: 4.h),
-          BodyText(
-            _formatDateTime(booking.jobDate),
-            size: BodySize.small,
-            color: AppColors.textSecondary,
-          ),
-          SizedBox(height: 12.h),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () =>
-                      context.push(AppRoutes.jobDetail, extra: booking),
-                  child: Container(
-                    height: 40.h,
+              SizedBox(height: 4.h),
+              if (neededServices.isEmpty)
+                _buildListItem('No extra details provided')
+              else
+                ...neededServices.map(_buildListItem),
+              SizedBox(height: 10.h),
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 3.h,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFBCCBCB),
-                      borderRadius: BorderRadius.circular(8.r),
+                      borderRadius: BorderRadius.circular(16.r),
                     ),
-                    alignment: Alignment.center,
                     child: BodyText(
-                      'View Details',
-                      size: BodySize.medium,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onAccept,
-                  child: Container(
-                    height: 40.h,
-                    decoration: BoxDecoration(
+                      'Scheduled',
+                      size: BodySize.small,
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    alignment: Alignment.center,
-                    child: BodyText(
-                      'Accept',
-                      size: BodySize.medium,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
+                  const Spacer(),
+                  if (onCall != null &&
+                      booking.status != ArtisanBookingStatus.pending)
+                    GestureDetector(
+                      onTap: onCall,
+                      child: Icon(
+                        Icons.phone_outlined,
+                        size: 18.r,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 4.h),
+              BodyText(
+                _formatDateTime(booking.jobDate),
+                size: BodySize.small,
+                color: AppColors.textSecondary,
+              ),
+              SizedBox(height: 12.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 38.h,
+                      child: OutlinedButton(
+                        onPressed: onDecline,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFCFD8D8)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Decline',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: SizedBox(
+                      height: 38.h,
+                      child: OutlinedButton(
+                        onPressed: onNegotiate,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFBCCBCB)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Negotiate',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onAccept,
+                      child: Container(
+                        height: 38.h,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        alignment: Alignment.center,
+                        child: BodyText(
+                          'Accept',
+                          size: BodySize.small,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          SizedBox(height: 8.h),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: onDecline,
-              child: const Text('Decline'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

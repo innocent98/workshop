@@ -165,4 +165,54 @@ class ArtisanBookingsRemoteDataSource {
       rethrow;
     }
   }
+
+  Future<ArtisanBookingResponseModel> negotiateBooking({
+    required int bookingId,
+    required double negotiatedAmount,
+    required String negotiationCondition,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/bookings/$bookingId/negotiate',
+        data: {
+          'negotiated_amount': negotiatedAmount,
+          'negotiation_condition': negotiationCondition,
+        },
+      );
+      return ArtisanBookingResponseModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      _logger.e('Failed to negotiate booking $bookingId: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<ArtisanBookingResponseModel> respondToNegotiation({
+    required int bookingId,
+    required String action,
+    double? negotiatedAmount,
+    String? negotiationCondition,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/bookings/$bookingId/negotiate/respond',
+        data: {
+          'action': action,
+          if (negotiatedAmount != null) 'negotiated_amount': negotiatedAmount,
+          if (negotiationCondition != null &&
+              negotiationCondition.trim().isNotEmpty)
+            'negotiation_condition': negotiationCondition.trim(),
+        },
+      );
+      return ArtisanBookingResponseModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      _logger.e(
+        'Failed to respond to negotiation for booking $bookingId: ${e.message}',
+      );
+      rethrow;
+    }
+  }
 }

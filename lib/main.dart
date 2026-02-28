@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,6 +9,8 @@ import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/push_notification_service.dart';
+import 'core/services/auth_session_service.dart';
+import 'core/providers/auth_provider.dart';
 import 'firebase_options.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -22,11 +26,36 @@ Future<void> main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  StreamSubscription<String>? _forcedLogoutSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _forcedLogoutSub = AuthSessionService.instance.forcedLogoutStream.listen((
+      _,
+    ) {
+      ref.invalidate(authProvider);
+      final router = ref.read(routerProvider);
+      router.go(AppRoutes.login);
+    });
+  }
+
+  @override
+  void dispose() {
+    _forcedLogoutSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     PushNotificationService.instance.attachRouter(router);
 

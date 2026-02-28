@@ -32,4 +32,17 @@ abstract class ArtisanBookingsRepository {
   });
 
   Future<ArtisanBooking> confirmCompletion({required int bookingId});
+
+  Future<ArtisanBooking> negotiateBooking({
+    required int bookingId,
+    required double negotiatedAmount,
+    required String negotiationCondition,
+  });
+
+  Future<ArtisanBooking> respondToNegotiation({
+    required int bookingId,
+    required String action,
+    double? negotiatedAmount,
+    String? negotiationCondition,
+  });
 }

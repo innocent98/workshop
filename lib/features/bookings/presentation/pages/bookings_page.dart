@@ -419,6 +419,38 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
     );
   }
 
+  Future<void> _respondToNegotiation(ArtisanBooking booking) async {
+    final decision = await showDialog<_NegotiationDecision>(
+      context: context,
+      builder: (_) => _NegotiationDecisionDialog(booking: booking),
+    );
+    if (decision == null) return;
+
+    try {
+      await ref
+          .read(artisanBookingsProvider.notifier)
+          .respondToNegotiation(
+            bookingId: booking.id,
+            action: decision.action,
+            negotiatedAmount: decision.amount,
+            negotiationCondition: decision.condition,
+          );
+
+      if (!mounted) return;
+      final msg = switch (decision.action) {
+        'agree' => 'Negotiation accepted. Waiting for artisan acceptance.',
+        'counter' => 'Counter-offer sent to artisan.',
+        _ => 'Negotiation declined. Booking cancelled.',
+      };
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
   List<Widget> _buildActiveList(List<ArtisanBooking> bookings) {
     final active = bookings
         .where(
@@ -470,7 +502,16 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
         booking: booking,
         onTap: () => _openDetails(item),
         onCancelTap: () => _cancelRequestedBooking(item.id.toString()),
-        onUpdateTap: () => _updateRequestedBooking(item),
+        onUpdateTap: item.negotiationStatus == 'pending_client'
+            ? () => _respondToNegotiation(item)
+            : (item.negotiationStatus == 'pending_artisan'
+                  ? null
+                  : () => _updateRequestedBooking(item)),
+        primaryActionLabel: item.negotiationStatus == 'pending_client'
+            ? 'Respond Offer'
+            : (item.negotiationStatus == 'pending_artisan'
+                  ? 'Awaiting Artisan'
+                  : null),
       );
     }).toList();
   }
@@ -815,6 +856,24 @@ class _BookingDetailSheet extends StatelessWidget {
                 'Budget: ${_money(booking.budgetMin)} - ${_money(booking.budgetMax)}',
                 size: BodySize.small,
               ),
+              if (booking.negotiatedAmount != null) ...[
+                SizedBox(height: 4.h),
+                BodyText(
+                  'Negotiated: ${_money(booking.negotiatedAmount!)}',
+                  size: BodySize.small,
+                ),
+                if ((booking.negotiationCondition ?? '').trim().isNotEmpty)
+                  BodyText(
+                    'Condition: ${booking.negotiationCondition}',
+                    size: BodySize.small,
+                    color: AppColors.textSecondary,
+                  ),
+                BodyText(
+                  'Rounds — Artisan ${booking.artisanNegotiationRoundsUsed}/2 • Client ${booking.clientNegotiationRoundsUsed}/2',
+                  size: BodySize.small,
+                  color: AppColors.textSecondary,
+                ),
+              ],
               if (booking.agreedAmount != null) ...[
                 SizedBox(height: 4.h),
                 BodyText(
@@ -826,6 +885,179 @@ class _BookingDetailSheet extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NegotiationDecision {
+  final String action;
+  final double? amount;
+  final String? condition;
+
+  const _NegotiationDecision({
+    required this.action,
+    this.amount,
+    this.condition,
+  });
+}
+
+class _NegotiationDecisionDialog extends StatefulWidget {
+  final ArtisanBooking booking;
+
+  const _NegotiationDecisionDialog({required this.booking});
+
+  @override
+  State<_NegotiationDecisionDialog> createState() =>
+      _NegotiationDecisionDialogState();
+}
+
+class _NegotiationDecisionDialogState
+    extends State<_NegotiationDecisionDialog> {
+  late final TextEditingController _amountController;
+  late final TextEditingController _conditionController;
+  bool _counterMode = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text:
+          (widget.booking.negotiatedAmount ??
+                  ((widget.booking.budgetMin + widget.booking.budgetMax) / 2))
+              .toStringAsFixed(0),
+    );
+    _conditionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _conditionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final offered = widget.booking.negotiatedAmount;
+    final rounds =
+        'Rounds: Artisan ${widget.booking.artisanNegotiationRoundsUsed}/2 • Client ${widget.booking.clientNegotiationRoundsUsed}/2';
+    return AlertDialog(
+      title: const Text('Price Negotiation'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            offered == null
+                ? 'Artisan sent a new offer.'
+                : 'Artisan offered ₦${offered.toStringAsFixed(0)}',
+          ),
+          SizedBox(height: 6.h),
+          Text(rounds, style: TextStyle(fontSize: 11.sp)),
+          if ((widget.booking.negotiationCondition ?? '')
+              .trim()
+              .isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            Text(
+              'Reason: ${widget.booking.negotiationCondition}',
+              style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+            ),
+          ],
+          if (_counterMode) ...[
+            SizedBox(height: 10.h),
+            TextField(
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Your counter amount',
+                prefixText: '₦ ',
+              ),
+            ),
+            SizedBox(height: 8.h),
+            TextField(
+              controller: _conditionController,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Your condition',
+                hintText: 'Explain your counter offer',
+              ),
+            ),
+          ],
+          if (_error != null) ...[
+            SizedBox(height: 8.h),
+            Text(
+              _error!,
+              style: TextStyle(fontSize: 11.sp, color: AppColors.error),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        if (!_counterMode)
+          TextButton(
+            onPressed: () => Navigator.pop(
+              context,
+              const _NegotiationDecision(action: 'decline'),
+            ),
+            child: const Text('Decline'),
+          ),
+        if (!_counterMode)
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _counterMode = true;
+                _error = null;
+              });
+            },
+            child: const Text('Counter'),
+          ),
+        if (_counterMode)
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _counterMode = false;
+                _error = null;
+              });
+            },
+            child: const Text('Back'),
+          ),
+        ElevatedButton(
+          onPressed: () {
+            if (!_counterMode) {
+              Navigator.pop(
+                context,
+                const _NegotiationDecision(action: 'agree'),
+              );
+              return;
+            }
+            final amount = double.tryParse(_amountController.text.trim());
+            final condition = _conditionController.text.trim();
+            if (amount == null || amount <= 0) {
+              setState(() => _error = 'Enter a valid counter amount');
+              return;
+            }
+            if (condition.length < 5) {
+              setState(
+                () => _error = 'Condition should be at least 5 characters',
+              );
+              return;
+            }
+            Navigator.pop(
+              context,
+              _NegotiationDecision(
+                action: 'counter',
+                amount: amount,
+                condition: condition,
+              ),
+            );
+          },
+          child: Text(_counterMode ? 'Send Counter' : 'Agree'),
+        ),
+      ],
     );
   }
 }

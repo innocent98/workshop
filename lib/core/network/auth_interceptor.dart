@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import '../services/token_storage_service.dart';
+import '../services/auth_session_service.dart';
 import 'api_exception.dart';
 
 class AuthInterceptor extends Interceptor {
@@ -7,6 +10,12 @@ class AuthInterceptor extends Interceptor {
   static const _nonCritical401Paths = <String>[
     '/notifications/devices/register',
     '/notifications/devices/unregister',
+  ];
+  static const _authFailureHints = <String>[
+    'not authenticated',
+    'not authorized',
+    'invalid token',
+    'credentials',
   ];
 
   @override
@@ -23,34 +32,46 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    if (err.response?.statusCode == 401) {
-      final requestPath = err.requestOptions.path;
-      final shouldPreserveToken = _nonCritical401Paths.any(
-        requestPath.contains,
-      );
+    final statusCode = err.response?.statusCode;
+    final requestPath = err.requestOptions.path;
 
-      if (!shouldPreserveToken) {
-        _tokenStorage.deleteToken();
-      }
+    String errorMessage = 'Unauthorized. Please login again.';
+    final data = err.response?.data;
+    if (data is Map<String, dynamic>) {
+      errorMessage =
+          data['detail'] as String? ??
+          data['message'] as String? ??
+          errorMessage;
+    }
 
-      // Extract error message from response
-      String errorMessage = 'Unauthorized. Please login again.';
-      if (err.response?.data is Map<String, dynamic>) {
-        final data = err.response!.data as Map<String, dynamic>;
-        errorMessage =
-            data['detail'] as String? ??
-            data['message'] as String? ??
-            errorMessage;
-      }
+    final shouldPreserveToken = _nonCritical401Paths.any(requestPath.contains);
+    final lowerMessage = errorMessage.toLowerCase();
+    final looksLikeAuthFailure = _authFailureHints.any(lowerMessage.contains);
+    final shouldForceLogout =
+        !shouldPreserveToken &&
+        (statusCode == 401 || (statusCode == 403 && looksLikeAuthFailure));
 
+    if (shouldForceLogout) {
+      unawaited(AuthSessionService.instance.forceLogout(errorMessage));
       handler.reject(
         DioException(
           requestOptions: err.requestOptions,
           error: UnauthorizedException(errorMessage),
         ),
       );
-    } else {
-      handler.next(err);
+      return;
     }
+
+    if (statusCode == 401) {
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          error: UnauthorizedException(errorMessage),
+        ),
+      );
+      return;
+    }
+
+    handler.next(err);
   }
 }

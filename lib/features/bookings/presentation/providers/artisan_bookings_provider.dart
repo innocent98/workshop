@@ -119,6 +119,38 @@ class ArtisanBookingsNotifier extends AsyncNotifier<List<ArtisanBooking>> {
     return updatedBooking;
   }
 
+  Future<ArtisanBooking> negotiateBooking({
+    required int bookingId,
+    required double negotiatedAmount,
+    required String negotiationCondition,
+  }) async {
+    final repository = ref.read(artisanBookingsRepositoryProvider);
+    final updatedBooking = await repository.negotiateBooking(
+      bookingId: bookingId,
+      negotiatedAmount: negotiatedAmount,
+      negotiationCondition: negotiationCondition,
+    );
+    _upsertBooking(updatedBooking);
+    return updatedBooking;
+  }
+
+  Future<ArtisanBooking> respondToNegotiation({
+    required int bookingId,
+    required String action,
+    double? negotiatedAmount,
+    String? negotiationCondition,
+  }) async {
+    final repository = ref.read(artisanBookingsRepositoryProvider);
+    final updatedBooking = await repository.respondToNegotiation(
+      bookingId: bookingId,
+      action: action,
+      negotiatedAmount: negotiatedAmount,
+      negotiationCondition: negotiationCondition,
+    );
+    _upsertBooking(updatedBooking);
+    return updatedBooking;
+  }
+
   void _upsertBooking(ArtisanBooking booking) {
     final current = state.value;
     if (current == null) {

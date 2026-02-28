@@ -67,7 +67,6 @@ class AppRoutes {
 /// This provides the GoRouter instance that will be used throughout the app
 final routerProvider = Provider<GoRouter>((ref) {
   final tokenStorage = TokenStorageService();
-  final authAsync = ref.watch(authProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -486,6 +485,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     // Redirect logic - authentication guards
     redirect: (context, state) async {
       final hasToken = await tokenStorage.hasToken();
+      final authAsync = ref.read(authProvider);
       final currentPath = state.matchedLocation;
 
       final publicPaths = [
@@ -517,7 +517,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               currentPath == AppRoutes.serviceSelection ||
               currentPath == AppRoutes.profilePicture)) {
         if (authAsync.isLoading) {
-          return AppRoutes.splash;
+          // Avoid login -> splash bounce during post-login auth hydration.
+          return null;
         }
 
         final user = authAsync.value;

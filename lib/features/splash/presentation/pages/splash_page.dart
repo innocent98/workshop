@@ -10,9 +10,7 @@ import '../../../../core/services/onboarding_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/providers/location_provider.dart';
-import '../../../../core/providers/registration_provider.dart';
 import '../../../../core/models/user.dart';
-import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -28,6 +26,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   late Animation<double> _scaleAnimation;
   final OnboardingService _onboardingService = OnboardingService();
   final TokenStorageService _tokenStorage = TokenStorageService();
+  bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -65,6 +64,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
     await Future.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
+    if (_hasNavigated) return;
 
     final hasToken = await _tokenStorage.hasToken();
     final hasCompletedOnboarding = await _onboardingService
@@ -77,65 +77,31 @@ class _SplashPageState extends ConsumerState<SplashPage>
         // Wait for persisted auth state to fully hydrate before routing.
         final user = await ref.read(authProvider.future);
         if (!mounted) return;
+        if (_hasNavigated) return;
 
         if (user != null) {
           await _goToRoleHomeWithLocationGate(user);
         } else {
+          _hasNavigated = true;
           context.go(AppRoutes.login);
         }
       } catch (_) {
         if (mounted) {
+          _hasNavigated = true;
           context.go(AppRoutes.login);
         }
       }
-    } else if (await _tryResumeRegistrationDraft()) {
-      return;
     } else if (hasCompletedOnboarding) {
-      if (mounted) context.go(AppRoutes.login);
+      if (mounted) {
+        _hasNavigated = true;
+        context.go(AppRoutes.login);
+      }
     } else {
-      if (mounted) context.go(AppRoutes.userTypeSelection);
+      if (mounted) {
+        _hasNavigated = true;
+        context.go(AppRoutes.userTypeSelection);
+      }
     }
-  }
-
-  Future<bool> _tryResumeRegistrationDraft() async {
-    final draft = await ref
-        .read(registrationProvider.notifier)
-        .loadPersistedDraft();
-    if (!mounted) return true;
-    if (draft.userId == null) {
-      return false;
-    }
-
-    final userType = _mapUserType(draft.userType);
-    if (userType == null) {
-      return false;
-    }
-
-    if (draft.password == null || draft.password!.isEmpty) {
-      context.go(AppRoutes.password, extra: userType);
-      return true;
-    }
-
-    if (!draft.isOtpVerified) {
-      context.go(AppRoutes.phoneVerification, extra: userType);
-      return true;
-    }
-
-    final hasSelectedServices =
-        draft.selectedServices != null && draft.selectedServices!.isNotEmpty;
-    if (!hasSelectedServices) {
-      context.go(AppRoutes.serviceSelection, extra: userType);
-      return true;
-    }
-
-    context.go(AppRoutes.profilePicture, extra: userType);
-    return true;
-  }
-
-  UserType? _mapUserType(String? value) {
-    if (value == 'artisan') return UserType.artisan;
-    if (value == 'client') return UserType.client;
-    return null;
   }
 
   Future<void> _goToRoleHomeWithLocationGate(User user) async {
@@ -155,10 +121,12 @@ class _SplashPageState extends ConsumerState<SplashPage>
     if (!mounted) return;
 
     if (hasRealLocation) {
+      _hasNavigated = true;
       context.go(route);
       return;
     }
 
+    _hasNavigated = true;
     context.go(
       AppRoutes.locationGate,
       extra: {'scope': scope, 'nextRoute': route},

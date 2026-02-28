@@ -94,4 +94,34 @@ class ArtisanBookingsRepositoryImpl implements ArtisanBookingsRepository {
     );
     return response.toDomain();
   }
+
+  @override
+  Future<ArtisanBooking> negotiateBooking({
+    required int bookingId,
+    required double negotiatedAmount,
+    required String negotiationCondition,
+  }) async {
+    final response = await _remoteDataSource.negotiateBooking(
+      bookingId: bookingId,
+      negotiatedAmount: negotiatedAmount,
+      negotiationCondition: negotiationCondition,
+    );
+    return response.toDomain();
+  }
+
+  @override
+  Future<ArtisanBooking> respondToNegotiation({
+    required int bookingId,
+    required String action,
+    double? negotiatedAmount,
+    String? negotiationCondition,
+  }) async {
+    final response = await _remoteDataSource.respondToNegotiation(
+      bookingId: bookingId,
+      action: action,
+      negotiatedAmount: negotiatedAmount,
+      negotiationCondition: negotiationCondition,
+    );
+    return response.toDomain();
+  }
 }

@@ -22,6 +22,17 @@ class ArtisanBookingResponseModel {
   final double budgetMin;
   final double budgetMax;
   final double? agreedAmount;
+  final double? negotiatedAmount;
+  final String? negotiationCondition;
+  final String negotiationStatus;
+  final String? negotiationLastOfferBy;
+  final int artisanNegotiationRoundsUsed;
+  final int clientNegotiationRoundsUsed;
+  final DateTime? negotiationStartedAt;
+  final DateTime? negotiationUpdatedAt;
+  final DateTime? negotiationAgreedAt;
+  final DateTime? negotiationDeclinedAt;
+  final bool negotiatedOverride;
   final ArtisanBookingStatus status;
   final DateTime? acceptedAt;
   final DateTime? paidAt;
@@ -62,6 +73,17 @@ class ArtisanBookingResponseModel {
     required this.budgetMin,
     required this.budgetMax,
     this.agreedAmount,
+    this.negotiatedAmount,
+    this.negotiationCondition,
+    this.negotiationStatus = 'none',
+    this.negotiationLastOfferBy,
+    this.artisanNegotiationRoundsUsed = 0,
+    this.clientNegotiationRoundsUsed = 0,
+    this.negotiationStartedAt,
+    this.negotiationUpdatedAt,
+    this.negotiationAgreedAt,
+    this.negotiationDeclinedAt,
+    this.negotiatedOverride = false,
     required this.status,
     this.acceptedAt,
     this.paidAt,
@@ -115,6 +137,27 @@ class ArtisanBookingResponseModel {
       budgetMin: parseDouble(json['budget_min']) ?? 0,
       budgetMax: parseDouble(json['budget_max']) ?? 0,
       agreedAmount: parseDouble(json['agreed_amount']),
+      negotiatedAmount: parseDouble(json['negotiated_amount']),
+      negotiationCondition: json['negotiation_condition'] as String?,
+      negotiationStatus: (json['negotiation_status'] as String?) ?? 'none',
+      negotiationLastOfferBy: json['negotiation_last_offer_by'] as String?,
+      artisanNegotiationRoundsUsed:
+          (json['artisan_negotiation_rounds_used'] as num?)?.toInt() ?? 0,
+      clientNegotiationRoundsUsed:
+          (json['client_negotiation_rounds_used'] as num?)?.toInt() ?? 0,
+      negotiationStartedAt: json['negotiation_started_at'] != null
+          ? DateTime.parse(json['negotiation_started_at'] as String)
+          : null,
+      negotiationUpdatedAt: json['negotiation_updated_at'] != null
+          ? DateTime.parse(json['negotiation_updated_at'] as String)
+          : null,
+      negotiationAgreedAt: json['negotiation_agreed_at'] != null
+          ? DateTime.parse(json['negotiation_agreed_at'] as String)
+          : null,
+      negotiationDeclinedAt: json['negotiation_declined_at'] != null
+          ? DateTime.parse(json['negotiation_declined_at'] as String)
+          : null,
+      negotiatedOverride: json['negotiated_override'] == true,
       status: artisanBookingStatusFromApi((json['status'] as String?) ?? ''),
       acceptedAt: json['accepted_at'] != null
           ? DateTime.parse(json['accepted_at'] as String)
@@ -183,6 +226,17 @@ class ArtisanBookingResponseModel {
       budgetMin: budgetMin,
       budgetMax: budgetMax,
       agreedAmount: agreedAmount,
+      negotiatedAmount: negotiatedAmount,
+      negotiationCondition: negotiationCondition,
+      negotiationStatus: negotiationStatus,
+      negotiationLastOfferBy: negotiationLastOfferBy,
+      artisanNegotiationRoundsUsed: artisanNegotiationRoundsUsed,
+      clientNegotiationRoundsUsed: clientNegotiationRoundsUsed,
+      negotiationStartedAt: negotiationStartedAt,
+      negotiationUpdatedAt: negotiationUpdatedAt,
+      negotiationAgreedAt: negotiationAgreedAt,
+      negotiationDeclinedAt: negotiationDeclinedAt,
+      negotiatedOverride: negotiatedOverride,
       status: status,
       acceptedAt: acceptedAt,
       paidAt: paidAt,
