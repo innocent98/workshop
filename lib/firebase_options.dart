@@ -70,6 +70,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1245303414',
     projectId: 'workchop-b3069',
     storageBucket: 'workchop-b3069.firebasestorage.app',
+    androidClientId: '1245303414-hrti9ekiqsk3hkj7cslfrpus31tnsgsu.apps.googleusercontent.com',
+    iosClientId: '1245303414-o0kqjk7p67f7ajpmsf61ekavg0rnn5lc.apps.googleusercontent.com',
     iosBundleId: 'com.workchop.workchop',
   );
+
 }

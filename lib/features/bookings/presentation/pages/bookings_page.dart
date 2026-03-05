@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/phone_launcher.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../booking/data/booking_remote_datasource.dart';
 import '../../data/datasources/payment_remote_datasource.dart';
@@ -38,6 +39,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
   final Set<int> _reviewSubmittingBookingIds = <int>{};
   final Set<int> _paymentSubmittingBookingIds = <int>{};
   final Set<int> _confirmingCompletionBookingIds = <int>{};
+  final Set<int> _negotiationSubmittingBookingIds = <int>{};
   final Map<int, String> _pendingPaymentReferences = <int, String>{};
 
   @override
@@ -340,6 +342,24 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
     }
   }
 
+  Future<void> _callArtisan(ArtisanBooking booking) async {
+    final phone = booking.artisanPhoneNumber?.trim() ?? '';
+    if (phone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Artisan phone number is not available')),
+      );
+      return;
+    }
+
+    final launched = await launchPhoneDialer(phone);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unable to open dialer')));
+    }
+  }
+
   Future<void> _verifyPendingPayments({required bool autoTriggered}) async {
     if (_pendingPaymentReferences.isEmpty) return;
 
@@ -420,11 +440,26 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
   }
 
   Future<void> _respondToNegotiation(ArtisanBooking booking) async {
+    if (_negotiationSubmittingBookingIds.contains(booking.id)) return;
+
     final decision = await showDialog<_NegotiationDecision>(
       context: context,
       builder: (_) => _NegotiationDecisionDialog(booking: booking),
     );
     if (decision == null) return;
+
+    setState(() => _negotiationSubmittingBookingIds.add(booking.id));
+    BuildContext? progressDialogContext;
+    if (mounted) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          progressDialogContext = ctx;
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    }
 
     try {
       await ref
@@ -448,6 +483,13 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) {
+        if (progressDialogContext != null && progressDialogContext!.mounted) {
+          Navigator.of(progressDialogContext!).pop();
+        }
+        setState(() => _negotiationSubmittingBookingIds.remove(booking.id));
+      }
     }
   }
 
@@ -485,6 +527,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
         return OngoingBookingCard(
           booking: booking,
           onTap: () => _openDetails(item),
+          onCallTap: () => _callArtisan(item),
         );
       }
       if (item.status == ArtisanBookingStatus.accepted) {
@@ -496,6 +539,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
           primaryActionLabel: processing ? 'Processing...' : 'Pay now',
           onSecondaryTap: () => _cancelRequestedBooking(item.id.toString()),
           onPrimaryTap: processing ? null : () => _payForAcceptedBooking(item),
+          onCallTap: () => _callArtisan(item),
         );
       }
       return RequestBookingCard(
@@ -503,12 +547,16 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
         onTap: () => _openDetails(item),
         onCancelTap: () => _cancelRequestedBooking(item.id.toString()),
         onUpdateTap: item.negotiationStatus == 'pending_client'
-            ? () => _respondToNegotiation(item)
+            ? (_negotiationSubmittingBookingIds.contains(item.id)
+                  ? null
+                  : () => _respondToNegotiation(item))
             : (item.negotiationStatus == 'pending_artisan'
                   ? null
                   : () => _updateRequestedBooking(item)),
         primaryActionLabel: item.negotiationStatus == 'pending_client'
-            ? 'Respond Offer'
+            ? (_negotiationSubmittingBookingIds.contains(item.id)
+                  ? 'Submitting...'
+                  : 'Respond Offer')
             : (item.negotiationStatus == 'pending_artisan'
                   ? 'Awaiting Artisan'
                   : null),
@@ -748,6 +796,13 @@ class _BookingDetailSheet extends StatelessWidget {
 
   String _money(double value) => '₦${value.toStringAsFixed(0)}';
 
+  bool _shouldShowProgressLogs(ArtisanBooking booking) {
+    if (booking.startedAt != null) return true;
+    return booking.status == ArtisanBookingStatus.inProgress ||
+        booking.status == ArtisanBookingStatus.completed ||
+        booking.status == ArtisanBookingStatus.disputed;
+  }
+
   _PaymentBadge _paymentBadgeForStatus(ArtisanBookingStatus status) {
     switch (status) {
       case ArtisanBookingStatus.accepted:
@@ -774,6 +829,48 @@ class _BookingDetailSheet extends StatelessWidget {
           icon: Icons.info_outline,
         );
     }
+  }
+
+  void _openProgressImage(BuildContext context, String imageUrl) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        insetPadding: EdgeInsets.zero,
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Center(
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: BodyText(
+                        'Unable to load image',
+                        size: BodySize.small,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 16.h,
+              right: 16.w,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: Icon(Icons.close, color: Colors.white, size: 22.r),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -881,6 +978,63 @@ class _BookingDetailSheet extends StatelessWidget {
                   size: BodySize.small,
                 ),
               ],
+              if (_shouldShowProgressLogs(booking)) ...[
+                SizedBox(height: 12.h),
+                BodyText(
+                  'Progress Log',
+                  size: BodySize.small,
+                  fontWeight: FontWeight.w600,
+                ),
+                SizedBox(height: 6.h),
+                if (booking.progressLogs.isEmpty)
+                  BodyText(
+                    'No progress updates yet.',
+                    size: BodySize.small,
+                    color: AppColors.textSecondary,
+                  )
+                else
+                  ...booking.progressLogs.map(
+                    (log) => Container(
+                      width: double.infinity,
+                      margin: EdgeInsets.only(bottom: 8.h),
+                      padding: EdgeInsets.all(10.r),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F5),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          BodyText(
+                            DateFormat(
+                              'EEE, d MMM yyyy • hh:mm a',
+                            ).format(log.createdAt.toLocal()),
+                            size: BodySize.small,
+                            color: AppColors.textSecondary,
+                          ),
+                          SizedBox(height: 4.h),
+                          BodyText(log.description, size: BodySize.small),
+                          if ((log.imageUrl ?? '').trim().isNotEmpty) ...[
+                            SizedBox(height: 8.h),
+                            GestureDetector(
+                              onTap: () =>
+                                  _openProgressImage(context, log.imageUrl!),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8.r),
+                                child: Image.network(
+                                  log.imageUrl!,
+                                  height: 120.h,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
@@ -944,57 +1098,66 @@ class _NegotiationDecisionDialogState
         'Rounds: Artisan ${widget.booking.artisanNegotiationRoundsUsed}/2 • Client ${widget.booking.clientNegotiationRoundsUsed}/2';
     return AlertDialog(
       title: const Text('Price Negotiation'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            offered == null
-                ? 'Artisan sent a new offer.'
-                : 'Artisan offered ₦${offered.toStringAsFixed(0)}',
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.86,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                offered == null
+                    ? 'Artisan sent a new offer.'
+                    : 'Artisan offered ₦${offered.toStringAsFixed(0)}',
+              ),
+              SizedBox(height: 6.h),
+              Text(rounds, style: TextStyle(fontSize: 11.sp)),
+              if ((widget.booking.negotiationCondition ?? '')
+                  .trim()
+                  .isNotEmpty) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  'Reason: ${widget.booking.negotiationCondition}',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              if (_counterMode) ...[
+                SizedBox(height: 8.h),
+                TextField(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Your counter amount',
+                    prefixText: '₦ ',
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                TextField(
+                  controller: _conditionController,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Your condition',
+                    hintText: 'Explain your counter offer',
+                  ),
+                ),
+              ],
+              if (_error != null) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  _error!,
+                  style: TextStyle(fontSize: 11.sp, color: AppColors.error),
+                ),
+              ],
+            ],
           ),
-          SizedBox(height: 6.h),
-          Text(rounds, style: TextStyle(fontSize: 11.sp)),
-          if ((widget.booking.negotiationCondition ?? '')
-              .trim()
-              .isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Text(
-              'Reason: ${widget.booking.negotiationCondition}',
-              style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
-            ),
-          ],
-          if (_counterMode) ...[
-            SizedBox(height: 10.h),
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Your counter amount',
-                prefixText: '₦ ',
-              ),
-            ),
-            SizedBox(height: 8.h),
-            TextField(
-              controller: _conditionController,
-              minLines: 2,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Your condition',
-                hintText: 'Explain your counter offer',
-              ),
-            ),
-          ],
-          if (_error != null) ...[
-            SizedBox(height: 8.h),
-            Text(
-              _error!,
-              style: TextStyle(fontSize: 11.sp, color: AppColors.error),
-            ),
-          ],
-        ],
+        ),
       ),
       actions: [
         if (!_counterMode)

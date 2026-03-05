@@ -71,6 +71,35 @@ class AuthNotifier extends AsyncNotifier<User?> {
     }
   }
 
+  Future<bool> loginWithGoogleToken(
+    String googleToken, {
+    String? userType,
+  }) async {
+    var isNewUser = false;
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final response = await _repository.googleSignIn(
+        googleToken: googleToken,
+        userType: userType,
+      );
+      isNewUser = response.isNewUser;
+
+      await _tokenStorage.saveToken(response.token);
+
+      final user = response.user.toUser();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userKey, jsonEncode(user.toJson()));
+      await ref.read(registrationProvider.notifier).clearRegistration();
+      await _syncPushTokenBestEffort();
+      return user;
+    });
+
+    if (state.hasError) {
+      throw state.error!;
+    }
+    return isNewUser;
+  }
+
   /// Login with existing user data (for auto-login after registration)
   Future<void> loginWithUser(User user) async {
     state = const AsyncValue.loading();

@@ -48,6 +48,11 @@ abstract class AuthRepository {
     required String password,
   });
 
+  Future<LoginResponse> googleSignIn({
+    required String googleToken,
+    String? userType,
+  });
+
   Future<ForgotPasswordResponse> sendPasswordResetCode({required String email});
 
   Future<VerifyCodeResponse> verifyPasswordResetCode({

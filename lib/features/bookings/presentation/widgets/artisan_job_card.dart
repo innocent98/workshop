@@ -23,6 +23,7 @@ class ArtisanJobCard extends StatelessWidget {
   final String? statusTagLabel;
   final String? headerLabel;
   final String? headerTimeInfo;
+  final String? negotiationSummary;
 
   const ArtisanJobCard({
     super.key,
@@ -43,6 +44,7 @@ class ArtisanJobCard extends StatelessWidget {
     this.statusTagLabel,
     this.headerLabel,
     this.headerTimeInfo,
+    this.negotiationSummary,
   });
 
   @override
@@ -294,6 +296,41 @@ class ArtisanJobCard extends StatelessWidget {
             label: 'Scheduled',
             color: const Color(0xFFBCCBCB),
             textColor: AppColors.primary,
+          ),
+          SizedBox(height: 8.h),
+          GestureDetector(
+            onTap: onCardTap,
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF6E8),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: const Color(0xFFE9D7B6)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.handshake_outlined,
+                    size: 13.r,
+                    color: const Color(0xFF8A5A00),
+                  ),
+                  SizedBox(width: 5.w),
+                  Expanded(
+                    child: Text(
+                      negotiationSummary ?? 'Tap to open and negotiate price.',
+                      style: TextStyle(
+                        fontSize: 10.5.sp,
+                        color: const Color(0xFF8A5A00),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           SizedBox(height: 12.h),
           Row(

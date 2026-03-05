@@ -20,6 +20,12 @@ abstract class ArtisanBookingsRepository {
 
   Future<ArtisanBooking> startBooking({required int bookingId});
 
+  Future<ArtisanBooking> logProgress({
+    required int bookingId,
+    required String description,
+    String? imagePath,
+  });
+
   Future<ArtisanBooking> completeBooking({
     required int bookingId,
     String? completionNotes,

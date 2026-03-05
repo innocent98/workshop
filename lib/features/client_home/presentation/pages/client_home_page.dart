@@ -11,6 +11,7 @@ import '../widgets/service_category_chip.dart';
 import '../widgets/artisan_card.dart';
 import '../../../services/presentation/providers/services_provider.dart';
 import '../../../search/presentation/providers/nearby_artisans_provider.dart';
+import '../../../notifications/presentation/providers/notifications_provider.dart';
 
 class ClientHomePage extends ConsumerStatefulWidget {
   const ClientHomePage({super.key});
@@ -24,6 +25,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
     await Future.wait([
       ref.refresh(servicesProvider.future),
       ref.refresh(nearbyArtisansProvider.future),
+      ref.refresh(notificationsProvider.future),
     ]);
   }
 
@@ -32,7 +34,8 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
   }
 
   void _onNotificationTap() {
-    // TODO: Navigate to notifications
+    ref.invalidate(notificationsProvider);
+    context.push(AppRoutes.notifications);
   }
 
   void _onCallNowTap() {
@@ -45,6 +48,15 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadCount = ref.watch(
+      notificationsProvider.select((state) {
+        return state.maybeWhen(
+          data: (value) => value.unreadCount,
+          orElse: () => 0,
+        );
+      }),
+    );
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -106,25 +118,46 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                             GestureDetector(
                               onTap: _onNotificationTap,
                               child: Stack(
+                                clipBehavior: Clip.none,
                                 children: [
                                   Icon(
                                     Icons.notifications_outlined,
                                     size: 28.r,
                                     color: AppColors.textPrimary,
                                   ),
-                                  // Red dot indicator
-                                  Positioned(
-                                    right: 4,
-                                    top: 4,
-                                    child: Container(
-                                      width: 8.r,
-                                      height: 8.r,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFFF0000),
-                                        shape: BoxShape.circle,
+                                  if (unreadCount > 0)
+                                    Positioned(
+                                      right: -2,
+                                      top: -2,
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 4.w,
+                                          vertical: 1.h,
+                                        ),
+                                        constraints: BoxConstraints(
+                                          minWidth: 16.w,
+                                          minHeight: 14.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFFFF0000),
+                                          borderRadius: BorderRadius.circular(
+                                            999.r,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          unreadCount > 99
+                                              ? '99+'
+                                              : unreadCount.toString(),
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 8.sp,
+                                            fontWeight: FontWeight.w700,
+                                            height: 1.0,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),

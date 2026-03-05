@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
@@ -8,8 +10,10 @@ import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/registration_provider.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/models/user.dart';
+import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -86,9 +90,155 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     context.push(AppRoutes.forgotPasswordEmail);
   }
 
-  void _handleGoogleSignIn() {
-    // TODO: Implement Google Sign-In
-    print('Google Sign-In clicked');
+  Future<String?> _selectGoogleUserType() async {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const BodyText(
+                'Choose account type',
+                size: BodySize.medium,
+                fontWeight: FontWeight.w600,
+              ),
+              SizedBox(height: 10.h),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const BodyText('Client', size: BodySize.small),
+                onTap: () => Navigator.of(ctx).pop('client'),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const BodyText('Artisan', size: BodySize.small),
+                onTap: () => Navigator.of(ctx).pop('artisan'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final googleSignIn = GoogleSignIn(scopes: ['email']);
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = fb_auth.GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+      final firebaseCredential = await fb_auth.FirebaseAuth.instance
+          .signInWithCredential(credential);
+      final firebaseIdToken = await firebaseCredential.user?.getIdToken();
+      if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
+        throw ApiException('Unable to get Google token. Please try again.');
+      }
+
+      try {
+        final isNewUser = await ref
+            .read(authProvider.notifier)
+            .loginWithGoogleToken(firebaseIdToken);
+        if (isNewUser) {
+          final authAsync = ref.read(authProvider);
+          final user = authAsync.value;
+          if (user == null) {
+            throw ApiException('Unable to load account after Google sign-in');
+          }
+          await ref
+              .read(registrationProvider.notifier)
+              .seedFromGoogleUser(user);
+          if (!mounted) return;
+          context.push(
+            AppRoutes.serviceSelection,
+            extra: user.role == UserRole.artisan
+                ? UserType.artisan
+                : UserType.client,
+          );
+          return;
+        }
+      } catch (e) {
+        final needsType =
+            e is ApiException &&
+            (e.message.toLowerCase().contains('user_type') ||
+                e.message.toLowerCase().contains('first-time google'));
+        if (!needsType) rethrow;
+
+        final pickedType = await _selectGoogleUserType();
+        if (pickedType == null) {
+          if (mounted) setState(() => _isLoading = false);
+          return;
+        }
+        final isNewUser = await ref
+            .read(authProvider.notifier)
+            .loginWithGoogleToken(firebaseIdToken, userType: pickedType);
+        if (isNewUser) {
+          final authAsync = ref.read(authProvider);
+          final user = authAsync.value;
+          if (user == null) {
+            throw ApiException('Unable to load account after Google sign-in');
+          }
+          await ref
+              .read(registrationProvider.notifier)
+              .seedFromGoogleUser(user);
+          if (!mounted) return;
+          context.push(
+            AppRoutes.serviceSelection,
+            extra: user.role == UserRole.artisan
+                ? UserType.artisan
+                : UserType.client,
+          );
+          return;
+        }
+      }
+
+      final authAsync = ref.read(authProvider);
+      final user = authAsync.value;
+      if (mounted && user != null) {
+        final isClient = user.role == UserRole.client;
+        final route = user.role == UserRole.artisan
+            ? AppRoutes.artisanHome
+            : AppRoutes.clientHome;
+        context.go(
+          AppRoutes.locationGate,
+          extra: {'scope': isClient ? 'client' : 'artisan', 'nextRoute': route},
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        String message = 'Google sign-in failed. Please try again.';
+        if (e is ApiException) {
+          message = e.message;
+        } else if (e is NetworkException) {
+          message = e.message;
+        } else if (e is UnauthorizedException) {
+          message = e.message;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override

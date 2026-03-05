@@ -82,6 +82,21 @@ class ArtisanBookingsNotifier extends AsyncNotifier<List<ArtisanBooking>> {
     return updatedBooking;
   }
 
+  Future<ArtisanBooking> logProgress({
+    required int bookingId,
+    required String description,
+    String? imagePath,
+  }) async {
+    final repository = ref.read(artisanBookingsRepositoryProvider);
+    final updatedBooking = await repository.logProgress(
+      bookingId: bookingId,
+      description: description,
+      imagePath: imagePath,
+    );
+    _upsertBooking(updatedBooking);
+    return updatedBooking;
+  }
+
   Future<ArtisanBooking> completeBooking({
     required int bookingId,
     String? completionNotes,

@@ -1,5 +1,12 @@
 import '../../../search/data/models/artisan_search_model.dart';
 
+class ArtisanServiceOption {
+  final int? id;
+  final String name;
+
+  const ArtisanServiceOption({this.id, required this.name});
+}
+
 class Artisan {
   final String id;
   final String name;
@@ -12,6 +19,7 @@ class Artisan {
   final double? distanceKm;
   final int? ratingsCount;
   final int? serviceId;
+  final List<ArtisanServiceOption> offeredServices;
 
   const Artisan({
     required this.id,
@@ -25,6 +33,7 @@ class Artisan {
     this.distanceKm,
     this.ratingsCount,
     this.serviceId,
+    this.offeredServices = const [],
   });
 
   /// Create Artisan from ArtisanSearchModel (API response)
@@ -60,6 +69,14 @@ class Artisan {
       serviceId: model.services.isNotEmpty
           ? int.tryParse(model.services.first.id)
           : null,
+      offeredServices: model.services
+          .map(
+            (service) => ArtisanServiceOption(
+              id: int.tryParse(service.id),
+              name: service.name,
+            ),
+          )
+          .toList(),
     );
   }
 }

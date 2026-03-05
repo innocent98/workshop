@@ -1,3 +1,5 @@
+import 'booking_progress_log.dart';
+
 enum ArtisanBookingStatus {
   pending,
   accepted,
@@ -79,6 +81,7 @@ class ArtisanBooking {
   final DateTime? completionConfirmationDeadlineAt;
   final DateTime? completionDisputedAt;
   final String? completionDisputeReason;
+  final List<BookingProgressLog> progressLogs;
   final String? cancellationReason;
   final String? rejectionReason;
   final DateTime createdAt;
@@ -130,6 +133,7 @@ class ArtisanBooking {
     this.completionConfirmationDeadlineAt,
     this.completionDisputedAt,
     this.completionDisputeReason,
+    this.progressLogs = const [],
     this.cancellationReason,
     this.rejectionReason,
     required this.createdAt,
@@ -175,6 +179,7 @@ class ArtisanBooking {
     DateTime? completionConfirmationDeadlineAt,
     DateTime? completionDisputedAt,
     String? completionDisputeReason,
+    List<BookingProgressLog>? progressLogs,
   }) {
     return ArtisanBooking(
       id: id,
@@ -231,6 +236,7 @@ class ArtisanBooking {
       completionDisputedAt: completionDisputedAt ?? this.completionDisputedAt,
       completionDisputeReason:
           completionDisputeReason ?? this.completionDisputeReason,
+      progressLogs: progressLogs ?? this.progressLogs,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       createdAt: createdAt,

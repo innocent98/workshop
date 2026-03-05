@@ -6,6 +6,7 @@ import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/models/registration_data.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../models/user.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final remoteDataSource = AuthRemoteDataSource();
@@ -181,6 +182,18 @@ class RegistrationNotifier extends Notifier<AsyncValue<RegistrationData>> {
   Future<void> clearRegistration() async {
     await _secureStorage.delete(key: _registrationDraftKey);
     state = AsyncValue.data(RegistrationData());
+  }
+
+  Future<void> seedFromGoogleUser(User user) async {
+    final draft = RegistrationData(
+      userId: user.id,
+      userType: user.userType,
+      fullName: user.fullName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      isOtpVerified: true,
+    );
+    await _saveData(draft);
   }
 
   Future<void> _saveData(RegistrationData data) async {

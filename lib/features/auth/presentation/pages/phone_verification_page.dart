@@ -14,13 +14,11 @@ import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 class PhoneVerificationPage extends ConsumerStatefulWidget {
   final UserType userType;
 
-  const PhoneVerificationPage({
-    super.key,
-    required this.userType,
-  });
+  const PhoneVerificationPage({super.key, required this.userType});
 
   @override
-  ConsumerState<PhoneVerificationPage> createState() => _PhoneVerificationPageState();
+  ConsumerState<PhoneVerificationPage> createState() =>
+      _PhoneVerificationPageState();
 }
 
 class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
@@ -28,10 +26,7 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
     6,
     (index) => TextEditingController(),
   );
-  final List<FocusNode> _focusNodes = List.generate(
-    6,
-    (index) => FocusNode(),
-  );
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
   bool _isLoading = false;
   bool _isResending = false;
 
@@ -61,10 +56,7 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
         debugPrint('Send OTP error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     }
@@ -89,7 +81,6 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
 
   void _onBackspace(int index) {
     if (index > 0) {
-      _controllers[index - 1].clear();
       _focusNodes[index - 1].requestFocus();
     }
   }
@@ -123,10 +114,7 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
           debugPrint('Verify OTP error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: AppColors.error,
-            ),
+            SnackBar(content: Text(message), backgroundColor: AppColors.error),
           );
         }
       } finally {
@@ -165,10 +153,7 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
         debugPrint('Resend OTP error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -232,7 +217,7 @@ class _PhoneVerificationPageState extends ConsumerState<PhoneVerificationPage> {
 
                     // Subtitle
                     BodyText(
-                      'Enter the code we sent your number to verify it\'s yours.',
+                      'Enter the code we sent your email to verify it\'s yours.',
                       size: BodySize.medium,
                       color: AppColors.textSecondary,
                       height: 1.4,
@@ -335,36 +320,42 @@ class _OTPBoxState extends State<_OTPBox> {
           width: 2,
         ),
       ),
-      child: TextFormField(
-        controller: widget.controller,
-        focusNode: widget.focusNode,
-        keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
-        maxLength: 1,
-        style: TextStyle(
-          fontSize: 24.sp,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-        ],
-        decoration: const InputDecoration(
-          counterText: '',
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-        ),
-        onChanged: (value) {
-          widget.onChanged(value);
-        },
-        onTap: () {
-          if (widget.controller.text.isNotEmpty) {
-            widget.controller.clear();
+      child: Focus(
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.backspace &&
+              widget.controller.text.isEmpty) {
+            widget.onBackspace();
+            return KeyEventResult.handled;
           }
+          return KeyEventResult.ignored;
         },
-        onEditingComplete: () {
-          // Do nothing, let onChanged handle navigation
-        },
+        child: TextFormField(
+          controller: widget.controller,
+          focusNode: widget.focusNode,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          maxLength: 1,
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            counterText: '',
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+          onChanged: (value) {
+            if (value.isEmpty) {
+              widget.onBackspace();
+              return;
+            }
+            widget.onChanged(value);
+          },
+          onEditingComplete: () {},
+        ),
       ),
     );
   }

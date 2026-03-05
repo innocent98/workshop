@@ -28,6 +28,7 @@ import '../../features/artisan_home/presentation/pages/job_detail_page.dart';
 import '../../features/main_navigation/presentation/pages/artisan_main_navigation_page.dart';
 import '../../features/profile/presentation/pages/job_history_page.dart';
 import '../../features/location/presentation/pages/location_gate_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -47,6 +48,7 @@ class AppRoutes {
   static const String bookings = '/bookings';
   static const String jobHistory = '/profile/job-history';
   static const String locationGate = '/location-gate';
+  static const String notifications = '/notifications';
 
   // Auth routes
   static const String login = '/auth/login';
@@ -321,6 +323,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const JobHistoryPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      ),
+
+      GoRoute(
+        path: AppRoutes.notifications,
+        name: 'notifications',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const NotificationsPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },

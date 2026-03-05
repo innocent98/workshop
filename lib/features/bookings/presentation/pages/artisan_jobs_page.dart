@@ -326,6 +326,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
           onSecondaryActionPressed: () => _onRejectPressed(booking),
           onPhonePressed: null,
           onDirectionsPressed: () => _openDirections(booking),
+          negotiationSummary: _negotiationSummary(booking),
           onCardTap: () => _openBookingDetail(booking),
         );
 
@@ -624,6 +625,27 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
     ];
 
     return '${weekdays[local.weekday - 1]}, ${local.day} ${months[local.month - 1]}, ${local.year} • $hour:$minute $period';
+  }
+
+  String _negotiationSummary(ArtisanBooking booking) {
+    final status = booking.negotiationStatus;
+    final amount = booking.negotiatedAmount;
+    final amountText = amount != null ? '₦${amount.toStringAsFixed(0)}' : '';
+    final rounds =
+        'A${booking.artisanNegotiationRoundsUsed}/2 C${booking.clientNegotiationRoundsUsed}/2';
+
+    switch (status) {
+      case 'pending_client':
+        return 'Offer $amountText sent • Awaiting client ($rounds)';
+      case 'pending_artisan':
+        return 'Client counter $amountText • Your response ($rounds)';
+      case 'agreed':
+        return 'Negotiated $amountText • Ready to accept';
+      case 'declined':
+        return 'Negotiation declined';
+      default:
+        return 'Tap to open and negotiate price.';
+    }
   }
 
   Future<double?> _showAmountInputDialog(ArtisanBooking booking) async {

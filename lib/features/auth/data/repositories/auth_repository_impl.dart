@@ -107,6 +107,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<LoginResponse> googleSignIn({
+    required String googleToken,
+    String? userType,
+  }) async {
+    return await _remoteDataSource.googleSignIn(
+      googleToken: googleToken,
+      userType: userType,
+    );
+  }
+
+  @override
   Future<ForgotPasswordResponse> sendPasswordResetCode({
     required String email,
   }) async {

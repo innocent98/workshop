@@ -155,16 +155,18 @@ class _ProfilePicturePageState extends ConsumerState<ProfilePicturePage> {
       }
 
       final registrationData = ref.read(registrationProvider).value;
-      if (registrationData?.email == null ||
-          registrationData?.password == null) {
+      if (registrationData?.email == null) {
         throw Exception(
           'Registration data not found. Please start registration again.',
         );
       }
 
-      await ref
-          .read(authProvider.notifier)
-          .login(registrationData!.email!, registrationData.password!);
+      if (registrationData?.password != null &&
+          registrationData!.password!.isNotEmpty) {
+        await ref
+            .read(authProvider.notifier)
+            .login(registrationData.email!, registrationData.password!);
+      }
 
       ref.read(registrationProvider.notifier).clearRegistration();
 

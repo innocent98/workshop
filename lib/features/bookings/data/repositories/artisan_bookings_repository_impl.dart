@@ -62,6 +62,21 @@ class ArtisanBookingsRepositoryImpl implements ArtisanBookingsRepository {
   }
 
   @override
+  Future<ArtisanBooking> logProgress({
+    required int bookingId,
+    required String description,
+    String? imagePath,
+  }) async {
+    await _remoteDataSource.logProgress(
+      bookingId: bookingId,
+      description: description,
+      imagePath: imagePath,
+    );
+    final refreshed = await _remoteDataSource.getBooking(bookingId);
+    return refreshed.toDomain();
+  }
+
+  @override
   Future<ArtisanBooking> completeBooking({
     required int bookingId,
     String? completionNotes,

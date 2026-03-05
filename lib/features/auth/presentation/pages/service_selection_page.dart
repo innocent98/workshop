@@ -16,18 +16,24 @@ import '../../../services/presentation/providers/services_provider.dart';
 class ServiceSelectionPage extends ConsumerStatefulWidget {
   final UserType userType;
 
-  const ServiceSelectionPage({
-    super.key,
-    required this.userType,
-  });
+  const ServiceSelectionPage({super.key, required this.userType});
 
   @override
-  ConsumerState<ServiceSelectionPage> createState() => _ServiceSelectionPageState();
+  ConsumerState<ServiceSelectionPage> createState() =>
+      _ServiceSelectionPageState();
 }
 
 class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
   final Set<String> _selectedServices = {};
+  final TextEditingController _searchController = TextEditingController();
   bool _isLoading = false;
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _toggleService(String service) {
     setState(() {
@@ -53,9 +59,9 @@ class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(registrationProvider.notifier).registerServices(
-            _selectedServices.toList(),
-          );
+      await ref
+          .read(registrationProvider.notifier)
+          .registerServices(_selectedServices.toList());
 
       if (mounted) {
         context.push(AppRoutes.profilePicture, extra: widget.userType);
@@ -74,10 +80,7 @@ class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
         debugPrint('Save services error: $e');
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -135,10 +138,7 @@ class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
                   ),
 
                   // Progress Indicator
-                  const StepProgressIndicator(
-                    totalSteps: 4,
-                    currentStep: 2,
-                  ),
+                  const StepProgressIndicator(totalSteps: 4, currentStep: 2),
                 ],
               ),
             ),
@@ -167,29 +167,83 @@ class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
                         color: AppColors.textSecondary,
                         height: 1.4,
                       ),
+                      SizedBox(height: 20.h),
+
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value.trim().toLowerCase();
+                            });
+                          },
+                          decoration: InputDecoration(
+                            icon: Icon(
+                              Icons.search,
+                              color: AppColors.textSecondary,
+                              size: 20.r,
+                            ),
+                            hintText: 'Search services',
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
                       SizedBox(height: 32.h),
 
                       // Service Cards Grid
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16.w,
-                          mainAxisSpacing: 16.h,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: services.length,
-                        itemBuilder: (context, index) {
-                          final service = services[index];
-                          final serviceName = service.name;
-                          final imageUrl = service.imageUrl;
+                      Builder(
+                        builder: (context) {
+                          final filteredServices = _searchQuery.isEmpty
+                              ? services
+                              : services
+                                    .where(
+                                      (service) => service.name
+                                          .toLowerCase()
+                                          .contains(_searchQuery),
+                                    )
+                                    .toList();
 
-                          return ServiceCard(
-                            imagePath: imageUrl ?? '',
-                            title: serviceName,
-                            isSelected: _selectedServices.contains(serviceName),
-                            onTap: () => _toggleService(serviceName),
+                          if (filteredServices.isEmpty) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24.h),
+                              child: BodyText(
+                                'No service matches "$_searchQuery"',
+                                size: BodySize.small,
+                                color: AppColors.textSecondary,
+                              ),
+                            );
+                          }
+
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 16.w,
+                                  mainAxisSpacing: 16.h,
+                                  childAspectRatio: 0.85,
+                                ),
+                            itemCount: filteredServices.length,
+                            itemBuilder: (context, index) {
+                              final service = filteredServices[index];
+                              final serviceName = service.name;
+                              final imageUrl = service.imageUrl;
+
+                              return ServiceCard(
+                                imagePath: imageUrl ?? '',
+                                title: serviceName,
+                                isSelected: _selectedServices.contains(
+                                  serviceName,
+                                ),
+                                onTap: () => _toggleService(serviceName),
+                              );
+                            },
                           );
                         },
                       ),
@@ -204,7 +258,11 @@ class _ServiceSelectionPageState extends ConsumerState<ServiceSelectionPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
                       SizedBox(height: 16.h),
                       BodyText(
                         'Failed to load services',

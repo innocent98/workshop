@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/common/loading_indicator.dart';
@@ -130,10 +132,16 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
                           size: BodySize.small,
                           color: AppColors.textSecondary,
                         ),
-                        if (booking.negotiatedAmount != null) ...[
+                        if (booking.negotiationStatus != 'none') ...[
                           SizedBox(height: 4.h),
                           BodyText(
-                            'Negotiated ${booking.artisanNegotiationRoundsUsed}/2 • ${booking.clientNegotiationRoundsUsed}/2',
+                            '${_negotiationStatusLabel(booking.negotiationStatus)}'
+                            '${booking.negotiatedAmount != null ? ' • ₦${booking.negotiatedAmount!.toStringAsFixed(0)}' : ''}',
+                            size: BodySize.small,
+                            color: AppColors.textSecondary,
+                          ),
+                          BodyText(
+                            'Rounds A${booking.artisanNegotiationRoundsUsed}/2 • C${booking.clientNegotiationRoundsUsed}/2',
                             size: BodySize.small,
                             color: AppColors.textSecondary,
                           ),
@@ -231,6 +239,31 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
                   size: BodySize.small,
                   color: AppColors.textSecondary,
                 ),
+                SizedBox(height: 12.h),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42.h,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openDirections(booking),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    icon: Icon(
+                      Icons.directions,
+                      size: 16.r,
+                      color: AppColors.primary,
+                    ),
+                    label: BodyText(
+                      'Get Direction',
+                      size: BodySize.small,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
                 SizedBox(height: 24.h),
                 BodyText(
                   'Details',
@@ -293,6 +326,16 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
                     ],
                   ),
                 ),
+                if (_shouldShowProgressLogSection(booking)) ...[
+                  SizedBox(height: 24.h),
+                  BodyText(
+                    'Progress Log',
+                    size: BodySize.medium,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  SizedBox(height: 10.h),
+                  _buildProgressLogSection(booking),
+                ],
                 SizedBox(height: 36.h),
                 _buildActionSection(booking),
                 SizedBox(height: 20.h),
@@ -314,6 +357,7 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     }
 
     if (booking.status == ArtisanBookingStatus.pending) {
+      final canNegotiate = _canNegotiate(booking);
       return SizedBox(
         width: double.infinity,
         height: 44.h,
@@ -336,24 +380,26 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
                 ),
               ),
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _negotiateBooking(booking),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFBCCBCB)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
+            if (canNegotiate) ...[
+              SizedBox(width: 12.w),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _negotiateBooking(booking),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFBCCBCB)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  child: BodyText(
+                    'Negotiate',
+                    size: BodySize.small,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                child: BodyText(
-                  'Negotiate',
-                  size: BodySize.small,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
               ),
-            ),
+            ],
             SizedBox(width: 12.w),
             Expanded(
               child: ElevatedButton(
@@ -395,10 +441,40 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     }
 
     if (booking.status == ArtisanBookingStatus.inProgress) {
-      return _primaryButton(
-        text: 'Complete Job',
-        onPressed: () => _completeBooking(booking),
-        icon: Icons.check_circle_outline,
+      final canComplete = booking.progressLogs.isNotEmpty;
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 42.h,
+            child: OutlinedButton.icon(
+              onPressed: () => _logProgress(booking),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              icon: Icon(
+                Icons.edit_note_rounded,
+                size: 16.r,
+                color: AppColors.primary,
+              ),
+              label: BodyText(
+                'Log Progress',
+                size: BodySize.small,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          SizedBox(height: 10.h),
+          _primaryButton(
+            text: canComplete ? 'Complete Job' : 'Log Progress to Complete',
+            onPressed: canComplete ? () => _completeBooking(booking) : null,
+            icon: Icons.check_circle_outline,
+          ),
+        ],
       );
     }
 
@@ -560,6 +636,16 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
   }
 
   Future<void> _completeBooking(ArtisanBooking booking) async {
+    if (booking.progressLogs.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Log at least one progress update before completion'),
+        ),
+      );
+      return;
+    }
+
     final notes = await _showTextDialog(
       title: 'Complete Job',
       hint: 'Add completion notes (optional)',
@@ -571,6 +657,65 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
           .read(artisanBookingsProvider.notifier)
           .completeBooking(bookingId: booking.id, completionNotes: notes);
     }, successMessage: 'Job completed');
+  }
+
+  Future<void> _logProgress(ArtisanBooking booking) async {
+    final input = await showModalBottomSheet<_ProgressLogInput>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _LogProgressDialog(),
+    );
+    if (input == null) return;
+
+    await _runAction(() async {
+      await ref
+          .read(artisanBookingsProvider.notifier)
+          .logProgress(
+            bookingId: booking.id,
+            description: input.description,
+            imagePath: input.imagePath,
+          );
+    }, successMessage: 'Progress logged');
+  }
+
+  Future<void> _openDirections(ArtisanBooking booking) async {
+    Uri mapUri;
+
+    if (booking.jobLatitude != null && booking.jobLongitude != null) {
+      mapUri = Uri.https('www.google.com', '/maps/dir/', {
+        'api': '1',
+        'destination': '${booking.jobLatitude},${booking.jobLongitude}',
+        'travelmode': 'driving',
+      });
+    } else {
+      final address = booking.jobAddress.trim();
+      if (address.isEmpty) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Job location is not available')),
+        );
+        return;
+      }
+
+      mapUri = Uri.https('www.google.com', '/maps/dir/', {
+        'api': '1',
+        'destination': address,
+        'travelmode': 'driving',
+      });
+    }
+
+    final launched = await launchUrl(
+      mapUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open Google Maps')),
+      );
+    }
   }
 
   Future<void> _runAction(
@@ -610,6 +755,104 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     return showDialog<double>(
       context: context,
       builder: (context) => _AcceptBookingDialog(booking: booking),
+    );
+  }
+
+  bool _canNegotiate(ArtisanBooking booking) {
+    if (booking.status != ArtisanBookingStatus.pending) {
+      return false;
+    }
+
+    final status = booking.negotiationStatus;
+    if (status == 'agreed' || status == 'declined') {
+      return false;
+    }
+
+    if (booking.artisanNegotiationRoundsUsed >= 2 ||
+        booking.clientNegotiationRoundsUsed >= 2) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool _shouldShowProgressLogSection(ArtisanBooking booking) {
+    if (booking.startedAt != null) return true;
+    return booking.status == ArtisanBookingStatus.inProgress ||
+        booking.status == ArtisanBookingStatus.completed ||
+        booking.status == ArtisanBookingStatus.disputed;
+  }
+
+  Widget _buildProgressLogSection(ArtisanBooking booking) {
+    final logs = booking.progressLogs;
+    if (logs.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(12.r),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F5),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: BodyText(
+          'No progress logged yet. Add at least one update before completing this job.',
+          size: BodySize.small,
+          color: AppColors.textSecondary,
+        ),
+      );
+    }
+
+    return Column(
+      children: logs.map((log) {
+        return Container(
+          width: double.infinity,
+          margin: EdgeInsets.only(bottom: 10.h),
+          padding: EdgeInsets.all(12.r),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F5),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BodyText(
+                _dateTimeLabel(log.createdAt),
+                size: BodySize.small,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+              SizedBox(height: 6.h),
+              BodyText(
+                log.description,
+                size: BodySize.small,
+                color: AppColors.textPrimary,
+                height: 1.45,
+              ),
+              if ((log.imageUrl ?? '').trim().isNotEmpty) ...[
+                SizedBox(height: 10.h),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10.r),
+                  child: Image.network(
+                    log.imageUrl!,
+                    height: 120.h,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 80.h,
+                      color: Colors.grey.shade200,
+                      alignment: Alignment.center,
+                      child: BodyText(
+                        'Image unavailable',
+                        size: BodySize.small,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -663,6 +906,21 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     return '₦${booking.budgetMin.toStringAsFixed(0)} - ₦${booking.budgetMax.toStringAsFixed(0)}';
   }
 
+  String _negotiationStatusLabel(String status) {
+    switch (status) {
+      case 'pending_client':
+        return 'Negotiation: Awaiting client';
+      case 'pending_artisan':
+        return 'Negotiation: Client countered';
+      case 'agreed':
+        return 'Negotiation: Agreed';
+      case 'declined':
+        return 'Negotiation: Declined';
+      default:
+        return 'Negotiation';
+    }
+  }
+
   String _dateOnly(DateTime date) {
     final local = date.toLocal();
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -692,6 +950,10 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     final period = local.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
   }
+
+  String _dateTimeLabel(DateTime value) {
+    return '${_dateOnly(value)} • ${_timeOnly(value)}';
+  }
 }
 
 class _AcceptBookingDialog extends StatefulWidget {
@@ -701,6 +963,156 @@ class _AcceptBookingDialog extends StatefulWidget {
 
   @override
   State<_AcceptBookingDialog> createState() => _AcceptBookingDialogState();
+}
+
+class _ProgressLogInput {
+  final String description;
+  final String? imagePath;
+
+  const _ProgressLogInput({required this.description, this.imagePath});
+}
+
+class _LogProgressDialog extends StatefulWidget {
+  const _LogProgressDialog();
+
+  @override
+  State<_LogProgressDialog> createState() => _LogProgressDialogState();
+}
+
+class _LogProgressDialogState extends State<_LogProgressDialog> {
+  final TextEditingController _descriptionController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+  XFile? _selectedImage;
+  String? _error;
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedImage = picked;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return SafeArea(
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 14.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD7DEDE),
+                      borderRadius: BorderRadius.circular(999.r),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                const Text(
+                  'Log Progress',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 10.h),
+                TextField(
+                  controller: _descriptionController,
+                  minLines: 3,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Progress Description',
+                    hintText: 'Describe what has been completed so far',
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                OutlinedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.cloud_upload_outlined),
+                  label: Text(
+                    _selectedImage == null
+                        ? 'Add Image (Optional)'
+                        : 'Image selected: ${_selectedImage!.name}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+                if (_error != null) ...[
+                  SizedBox(height: 8.h),
+                  Text(
+                    _error!,
+                    style: TextStyle(fontSize: 11.sp, color: AppColors.error),
+                  ),
+                ],
+                SizedBox(height: 12.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final description = _descriptionController.text
+                              .trim();
+                          if (description.length < 5) {
+                            setState(
+                              () => _error =
+                                  'Description should be at least 5 characters',
+                            );
+                            return;
+                          }
+                          Navigator.of(context).pop(
+                            _ProgressLogInput(
+                              description: description,
+                              imagePath: _selectedImage?.path,
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Save Progress',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AcceptBookingDialogState extends State<_AcceptBookingDialog> {
@@ -813,42 +1225,50 @@ class _NegotiationDialogState extends State<_NegotiationDialog> {
         'Rounds: Artisan ${widget.booking.artisanNegotiationRoundsUsed}/2 • Client ${widget.booking.clientNegotiationRoundsUsed}/2';
     return AlertDialog(
       title: const Text('Negotiate Price'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Client range: ₦${widget.booking.budgetMin.toStringAsFixed(0)} - ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.86,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Client range: ₦${widget.booking.budgetMin.toStringAsFixed(0)} - ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+              ),
+              SizedBox(height: 6.h),
+              Text(rounds, style: TextStyle(fontSize: 11.sp)),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: _amountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Negotiated amount',
+                  prefixText: '₦ ',
+                ),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: _conditionController,
+                minLines: 2,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Condition for bargaining',
+                  hintText: 'Explain why this amount is needed',
+                ),
+              ),
+              if (_error != null) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  _error!,
+                  style: TextStyle(fontSize: 11.sp, color: AppColors.error),
+                ),
+              ],
+            ],
           ),
-          SizedBox(height: 6.h),
-          Text(rounds, style: TextStyle(fontSize: 11.sp)),
-          SizedBox(height: 10.h),
-          TextField(
-            controller: _amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Negotiated amount',
-              prefixText: '₦ ',
-            ),
-          ),
-          SizedBox(height: 8.h),
-          TextField(
-            controller: _conditionController,
-            minLines: 3,
-            maxLines: 5,
-            decoration: const InputDecoration(
-              labelText: 'Condition for bargaining',
-              hintText: 'Explain why this amount is needed',
-            ),
-          ),
-          if (_error != null) ...[
-            SizedBox(height: 8.h),
-            Text(
-              _error!,
-              style: TextStyle(fontSize: 11.sp, color: AppColors.error),
-            ),
-          ],
-        ],
+        ),
       ),
       actions: [
         TextButton(

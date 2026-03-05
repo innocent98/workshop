@@ -127,6 +127,24 @@ class AuthRemoteDataSource {
     }
   }
 
+  Future<LoginResponse> googleSignIn({
+    required String googleToken,
+    String? userType,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/google',
+        data: {
+          'google_token': googleToken,
+          if (userType != null && userType.isNotEmpty) 'user_type': userType,
+        },
+      );
+      return LoginResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   Future<ForgotPasswordResponse> sendPasswordResetCode(
     ForgotPasswordSendCodeRequest request,
   ) async {

@@ -99,6 +99,7 @@ class PushNotificationService {
       case 'booking_rejected':
       case 'booking_started':
       case 'booking_completed':
+      case 'progress_logged':
         return '/client-home';
       default:
         return '/';

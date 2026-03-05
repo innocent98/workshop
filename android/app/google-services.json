@@ -12,7 +12,20 @@
           "package_name": "com.workchop.workchop"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1245303414-hrti9ekiqsk3hkj7cslfrpus31tnsgsu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.workchop.workchop",
+            "certificate_hash": "6d7e8ba6c48af203c26aa5ccfd9a9c63e7340913"
+          }
+        },
+        {
+          "client_id": "1245303414-p0b5vdm6t2v9a1pfmkocajmj7ft04ek8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC4iYFjhiVf5exjkn7_UUFhW1agrI9wsQw"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1245303414-p0b5vdm6t2v9a1pfmkocajmj7ft04ek8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1245303414-o0kqjk7p67f7ajpmsf61ekavg0rnn5lc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.workchop.workchop"
+              }
+            }
+          ]
         }
       }
     }

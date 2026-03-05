@@ -11,7 +11,6 @@ class JobRequestCard extends StatelessWidget {
   final ArtisanBooking booking;
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
-  final VoidCallback? onNegotiate;
   final VoidCallback? onDecline;
   final VoidCallback? onCall;
 
@@ -20,7 +19,6 @@ class JobRequestCard extends StatelessWidget {
     required this.booking,
     this.onTap,
     this.onAccept,
-    this.onNegotiate,
     this.onDecline,
     this.onCall,
   });
@@ -42,7 +40,7 @@ class JobRequestCard extends StatelessWidget {
         child: Container(
           width: 0.85.sw,
           margin: EdgeInsets.only(right: 12.w),
-          padding: EdgeInsets.all(12.r),
+          padding: EdgeInsets.all(10.r),
           decoration: BoxDecoration(
             color: const Color(0xFFF1F5F5),
             borderRadius: BorderRadius.circular(12.r),
@@ -104,12 +102,12 @@ class JobRequestCard extends StatelessWidget {
                 size: BodySize.small,
                 fontWeight: FontWeight.w500,
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: 3.h),
               if (neededServices.isEmpty)
                 _buildListItem('No extra details provided')
               else
                 ...neededServices.map(_buildListItem),
-              SizedBox(height: 10.h),
+              SizedBox(height: 8.h),
               Row(
                 children: [
                   Container(
@@ -147,12 +145,35 @@ class JobRequestCard extends StatelessWidget {
                 size: BodySize.small,
                 color: AppColors.textSecondary,
               ),
-              SizedBox(height: 12.h),
+              SizedBox(height: 4.h),
+              Row(
+                children: [
+                  Icon(
+                    Icons.handshake_outlined,
+                    size: 13.r,
+                    color: const Color(0xFF8A5A00),
+                  ),
+                  SizedBox(width: 5.w),
+                  Expanded(
+                    child: Text(
+                      _negotiationSummary(booking),
+                      style: TextStyle(
+                        fontSize: 10.5.sp,
+                        color: const Color(0xFF8A5A00),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 4.h),
               Row(
                 children: [
                   Expanded(
                     child: SizedBox(
-                      height: 38.h,
+                      height: 35.h,
                       child: OutlinedButton(
                         onPressed: onDecline,
                         style: OutlinedButton.styleFrom(
@@ -174,33 +195,10 @@ class JobRequestCard extends StatelessWidget {
                   ),
                   SizedBox(width: 8.w),
                   Expanded(
-                    child: SizedBox(
-                      height: 38.h,
-                      child: OutlinedButton(
-                        onPressed: onNegotiate,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFBCCBCB)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                        ),
-                        child: Text(
-                          'Negotiate',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
                     child: GestureDetector(
                       onTap: onAccept,
                       child: Container(
-                        height: 38.h,
+                        height: 35.h,
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(8.r),
@@ -284,5 +282,26 @@ class JobRequestCard extends StatelessWidget {
     ];
 
     return '${weekdays[local.weekday - 1]}, ${local.day} ${months[local.month - 1]}, ${local.year} • $hour:$minute $period';
+  }
+
+  String _negotiationSummary(ArtisanBooking booking) {
+    final status = booking.negotiationStatus;
+    final amount = booking.negotiatedAmount;
+    final amountText = amount != null ? '₦${amount.toStringAsFixed(0)}' : '';
+    final rounds =
+        'A${booking.artisanNegotiationRoundsUsed}/2 C${booking.clientNegotiationRoundsUsed}/2';
+
+    switch (status) {
+      case 'pending_client':
+        return 'Offer $amountText sent • Awaiting client ($rounds)';
+      case 'pending_artisan':
+        return 'Client counter $amountText • Your response ($rounds)';
+      case 'agreed':
+        return 'Negotiated $amountText • Ready to accept';
+      case 'declined':
+        return 'Negotiation declined';
+      default:
+        return 'Tap to open and negotiate price.';
+    }
   }
 }

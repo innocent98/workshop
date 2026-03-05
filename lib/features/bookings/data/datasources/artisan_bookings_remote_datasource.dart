@@ -106,6 +106,24 @@ class ArtisanBookingsRemoteDataSource {
     }
   }
 
+  Future<void> logProgress({
+    required int bookingId,
+    required String description,
+    String? imagePath,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'description': description.trim(),
+        if (imagePath != null && imagePath.trim().isNotEmpty)
+          'image': await MultipartFile.fromFile(imagePath.trim()),
+      });
+      await _dio.post('/bookings/$bookingId/progress-logs', data: formData);
+    } on DioException catch (e) {
+      _logger.e('Failed to log progress for booking $bookingId: ${e.message}');
+      rethrow;
+    }
+  }
+
   Future<ArtisanBookingResponseModel> completeBooking({
     required int bookingId,
     String? completionNotes,

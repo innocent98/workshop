@@ -1,4 +1,5 @@
 import '../../domain/models/artisan_booking.dart';
+import '../../domain/models/booking_progress_log.dart';
 
 class ArtisanBookingResponseModel {
   final int id;
@@ -46,6 +47,7 @@ class ArtisanBookingResponseModel {
   final DateTime? completionConfirmationDeadlineAt;
   final DateTime? completionDisputedAt;
   final String? completionDisputeReason;
+  final List<BookingProgressLog> progressLogs;
   final String? cancellationReason;
   final String? rejectionReason;
   final DateTime createdAt;
@@ -97,6 +99,7 @@ class ArtisanBookingResponseModel {
     this.completionConfirmationDeadlineAt,
     this.completionDisputedAt,
     this.completionDisputeReason,
+    this.progressLogs = const [],
     this.cancellationReason,
     this.rejectionReason,
     required this.createdAt,
@@ -196,6 +199,19 @@ class ArtisanBookingResponseModel {
           ? DateTime.parse(json['completion_disputed_at'] as String)
           : null,
       completionDisputeReason: json['completion_dispute_reason'] as String?,
+      progressLogs: (json['progress_logs'] as List<dynamic>? ?? const []).map((
+        item,
+      ) {
+        final map = item as Map<String, dynamic>;
+        return BookingProgressLog(
+          id: (map['id'] as num).toInt(),
+          bookingId: (map['booking_id'] as num).toInt(),
+          artisanId: map['artisan_id'].toString(),
+          description: (map['description'] as String? ?? '').trim(),
+          imageUrl: map['image_url'] as String?,
+          createdAt: DateTime.parse(map['created_at'] as String),
+        );
+      }).toList(),
       cancellationReason: json['cancellation_reason'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -250,6 +266,7 @@ class ArtisanBookingResponseModel {
       completionConfirmationDeadlineAt: completionConfirmationDeadlineAt,
       completionDisputedAt: completionDisputedAt,
       completionDisputeReason: completionDisputeReason,
+      progressLogs: progressLogs,
       cancellationReason: cancellationReason,
       rejectionReason: rejectionReason,
       createdAt: createdAt,

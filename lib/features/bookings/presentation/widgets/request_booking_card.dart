@@ -15,6 +15,7 @@ class RequestBookingCard extends StatelessWidget {
   final String? primaryActionLabel;
   final VoidCallback? onSecondaryTap;
   final VoidCallback? onPrimaryTap;
+  final VoidCallback? onCallTap;
 
   const RequestBookingCard({
     super.key,
@@ -26,6 +27,7 @@ class RequestBookingCard extends StatelessWidget {
     this.primaryActionLabel,
     this.onSecondaryTap,
     this.onPrimaryTap,
+    this.onCallTap,
   });
 
   String _formatDateTime(DateTime dateTime) {
@@ -196,6 +198,26 @@ class RequestBookingCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onCallTap != null) ...[
+                  SizedBox(width: AppSizes.spacingSmall),
+                  GestureDetector(
+                    onTap: onCallTap,
+                    child: Container(
+                      padding: EdgeInsets.all(12.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusSmall,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.phone_outlined,
+                        size: 20.r,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],

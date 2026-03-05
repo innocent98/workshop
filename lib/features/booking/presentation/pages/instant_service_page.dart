@@ -28,6 +28,7 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
   final BookingRemoteDataSource _bookingRemoteDataSource =
       BookingRemoteDataSource();
   bool _isSubmitting = false;
+  int _selectedServiceIndex = 0;
 
   @override
   void initState() {
@@ -49,15 +50,23 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
     return double.tryParse(normalized);
   }
 
-  Future<int?> _resolveServiceId() async {
-    if (widget.artisan.serviceId != null) {
-      return widget.artisan.serviceId;
+  List<ArtisanServiceOption> _serviceOptions() {
+    if (widget.artisan.offeredServices.isNotEmpty) {
+      return widget.artisan.offeredServices;
     }
+    return [
+      ArtisanServiceOption(
+        id: widget.artisan.serviceId,
+        name: widget.artisan.service,
+      ),
+    ];
+  }
 
+  Future<int?> _resolveServiceIdByName(String serviceName) async {
     final services = await ref.read(servicesProvider.future);
-    final serviceName = widget.artisan.service.trim().toLowerCase();
     for (final service in services) {
-      if (service.name.trim().toLowerCase() == serviceName) {
+      if (service.name.trim().toLowerCase() ==
+          serviceName.trim().toLowerCase()) {
         return int.tryParse(service.id);
       }
     }
@@ -83,12 +92,22 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
       return;
     }
 
-    final serviceId = await _resolveServiceId();
+    final options = _serviceOptions();
+    if (options.isEmpty || _selectedServiceIndex >= options.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a service to continue')),
+      );
+      return;
+    }
+    final selectedService = options[_selectedServiceIndex];
+    final serviceId =
+        selectedService.id ??
+        await _resolveServiceIdByName(selectedService.name);
     if (serviceId == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to resolve service. Please retry from search.'),
+          content: Text('Unable to resolve selected service. Please retry.'),
         ),
       );
       return;
@@ -105,7 +124,7 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
         : '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
 
     final notes = _notesController.text.trim();
-    final description = notes.isNotEmpty ? notes : widget.artisan.service;
+    final description = notes.isNotEmpty ? notes : selectedService.name;
 
     setState(() => _isSubmitting = true);
     try {
@@ -144,6 +163,8 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
       artisanPublicProfileProvider(widget.artisan.id),
     );
     final artisanLocation = artisanProfileAsync.asData?.value.locationAddress;
+
+    final serviceOptions = _serviceOptions();
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -251,9 +272,9 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                     ),
                     SizedBox(height: AppSizes.spacing),
 
-                    // Service selected
+                    // Select service
                     const BodyText(
-                      'Service selected',
+                      'Select service',
                       size: BodySize.medium,
                       fontWeight: FontWeight.w600,
                     ),
@@ -262,7 +283,7 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                       width: double.infinity,
                       padding: EdgeInsets.symmetric(
                         horizontal: AppSizes.spacing,
-                        vertical: AppSizes.spacing,
+                        vertical: AppSizes.spacingSmall,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.cardBackground,
@@ -270,10 +291,50 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                           AppSizes.radiusSmall,
                         ),
                       ),
-                      child: BodyText(
-                        widget.artisan.service,
-                        size: BodySize.small,
-                        fontWeight: FontWeight.w500,
+                      child: Column(
+                        children: List.generate(serviceOptions.length, (index) {
+                          final option = serviceOptions[index];
+                          final selected = _selectedServiceIndex == index;
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(8.r),
+                            onTap: () {
+                              setState(() => _selectedServiceIndex = index);
+                            },
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 2.h),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 22.w,
+                                    height: 22.h,
+                                    child: Checkbox(
+                                      value: selected,
+                                      visualDensity: const VisualDensity(
+                                        horizontal: -4,
+                                        vertical: -4,
+                                      ),
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      onChanged: (_) {
+                                        setState(
+                                          () => _selectedServiceIndex = index,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  Expanded(
+                                    child: BodyText(
+                                      option.name,
+                                      size: BodySize.small,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
                       ),
                     ),
 
