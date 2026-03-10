@@ -6,6 +6,7 @@ import '../services/push_notification_service.dart';
 import '../services/token_storage_service.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import 'registration_provider.dart';
+import 'service_guard_provider.dart';
 
 /// Auth notifier that manages user authentication state
 class AuthNotifier extends AsyncNotifier<User?> {
@@ -128,6 +129,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
       await ref.read(registrationProvider.notifier).clearRegistration();
+      ref.read(serviceGuardProvider.notifier).clear();
       return null;
     });
   }

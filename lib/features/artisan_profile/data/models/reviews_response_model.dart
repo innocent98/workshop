@@ -24,13 +24,13 @@ class ReviewResponseModel {
 
   factory ReviewResponseModel.fromJson(Map<String, dynamic> json) {
     return ReviewResponseModel(
-      id: json['id'] as String,
-      rating: (json['rating'] as num).toDouble(),
+      id: (json['id'] ?? '').toString(),
+      rating: (json['rating'] as num? ?? 0).toDouble(),
       reviewText: json['review_text'] as String?,
-      customerName: json['customer_name'] as String,
+      customerName: (json['customer_name'] as String?) ?? 'Anonymous',
       customerProfilePicture: json['customer_profile_picture'] as String?,
       artisanResponse: json['artisan_response'] as String?,
-      createdAt: json['created_at'] as String,
+      createdAt: (json['created_at'] as String?) ?? '',
     );
   }
 
@@ -103,7 +103,10 @@ class ReviewsResponseModel {
     final reviewsList = json['reviews'] as List? ?? [];
     return ReviewsResponseModel(
       reviews: reviewsList
-          .map((item) => ReviewResponseModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                ReviewResponseModel.fromJson(item as Map<String, dynamic>),
+          )
           .toList(),
       total: json['total'] as int? ?? 0,
       averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0.0,

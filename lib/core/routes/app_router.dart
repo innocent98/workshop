@@ -29,6 +29,7 @@ import '../../features/main_navigation/presentation/pages/artisan_main_navigatio
 import '../../features/profile/presentation/pages/job_history_page.dart';
 import '../../features/location/presentation/pages/location_gate_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../providers/service_guard_provider.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -206,13 +207,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.serviceCategories,
         name: 'serviceCategories',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ServiceCategoriesPage(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
+        pageBuilder: (context, state) {
+          final initialCategoryId = state.uri.queryParameters['category_id'];
+          final initialCategoryName =
+              state.uri.queryParameters['category_name'];
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ServiceCategoriesPage(
+              initialCategoryId: initialCategoryId,
+              initialCategoryName: initialCategoryName,
+            ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+          );
+        },
       ),
 
       GoRoute(
@@ -414,7 +424,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.serviceSelection,
         name: 'serviceSelection',
         pageBuilder: (context, state) {
-          final userType = state.extra as UserType;
+          final userType = (state.extra is UserType)
+              ? state.extra as UserType
+              : ((state.uri.queryParameters['user_type'] ?? 'client') ==
+                        'artisan'
+                    ? UserType.artisan
+                    : UserType.client);
 
           return CustomTransitionPage(
             key: state.pageKey,
@@ -501,6 +516,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final hasToken = await tokenStorage.hasToken();
       final authAsync = ref.read(authProvider);
       final currentPath = state.matchedLocation;
+      final serviceGuard = ref.read(serviceGuardProvider);
 
       final publicPaths = [
         AppRoutes.splash,
@@ -528,7 +544,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               currentPath == AppRoutes.personalInformation ||
               currentPath == AppRoutes.password ||
               currentPath == AppRoutes.phoneVerification ||
-              currentPath == AppRoutes.serviceSelection ||
               currentPath == AppRoutes.profilePicture)) {
         if (authAsync.isLoading) {
           // Avoid login -> splash bounce during post-login auth hydration.
@@ -537,9 +552,32 @@ final routerProvider = Provider<GoRouter>((ref) {
 
         final user = authAsync.value;
         if (user != null) {
+          if (serviceGuard.hasCheckedThisSession &&
+              serviceGuard.userId == user.id &&
+              !serviceGuard.hasServices) {
+            final userType = user.role == UserRole.artisan
+                ? 'artisan'
+                : 'client';
+            return '${AppRoutes.serviceSelection}?user_type=$userType';
+          }
           return user.role == UserRole.artisan
               ? AppRoutes.artisanHome
               : AppRoutes.clientHome;
+        }
+      }
+
+      if (hasToken &&
+          authAsync.hasValue &&
+          authAsync.value != null &&
+          currentPath != AppRoutes.splash &&
+          currentPath != AppRoutes.serviceSelection &&
+          currentPath != AppRoutes.profilePicture) {
+        final user = authAsync.value!;
+        if (serviceGuard.hasCheckedThisSession &&
+            serviceGuard.userId == user.id &&
+            !serviceGuard.hasServices) {
+          final userType = user.role == UserRole.artisan ? 'artisan' : 'client';
+          return '${AppRoutes.serviceSelection}?user_type=$userType';
         }
       }
 

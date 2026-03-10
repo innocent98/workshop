@@ -39,7 +39,6 @@ class ServiceCard extends StatelessWidget {
     if (_isNetworkImage) {
       return Image.network(
         imagePath,
-        height: 100.h,
         width: double.infinity,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
@@ -58,7 +57,6 @@ class ServiceCard extends StatelessWidget {
 
     return Image.asset(
       imagePath,
-      height: 100.h,
       width: double.infinity,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
@@ -88,25 +86,35 @@ class ServiceCard extends StatelessWidget {
           children: [
             // Card Content
             Padding(
-              padding: EdgeInsets.all(20.w),
+              padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 8.h),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   // Service Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12.r),
-                    child: _buildServiceImage(),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10.r),
+                      child: _buildServiceImage(),
+                    ),
                   ),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: 6.h),
 
                   // Service Title
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
+                  SizedBox(
+                    height: 34.h,
+                    child: Center(
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                          height: 1.15,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -118,8 +126,8 @@ class ServiceCard extends StatelessWidget {
               top: 12.h,
               right: 12.w,
               child: Container(
-                width: 32.w,
-                height: 32.h,
+                width: 24.w,
+                height: 24.h,
                 decoration: BoxDecoration(
                   color: isSelected ? const Color(0xFFE2725B) : Colors.white,
                   shape: BoxShape.circle,
@@ -131,7 +139,7 @@ class ServiceCard extends StatelessWidget {
                   ),
                 ),
                 child: isSelected
-                    ? Icon(Icons.check, color: Colors.white, size: 18.r)
+                    ? Icon(Icons.check, color: Colors.white, size: 14.r)
                     : null,
               ),
             ),

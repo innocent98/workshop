@@ -87,7 +87,10 @@ class ArtisanResultCard extends StatelessWidget {
                     ],
                   ),
                   BodyText(
-                    artisan.service,
+                    (artisan.category != null &&
+                            artisan.category!.trim().isNotEmpty)
+                        ? artisan.category!
+                        : artisan.service,
                     size: BodySize.small,
                     color: AppColors.primary,
                   ),

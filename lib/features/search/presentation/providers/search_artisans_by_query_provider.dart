@@ -43,7 +43,12 @@ final searchArtisansByQueryProvider =
       final matchedServiceIds = query.isEmpty
           ? <String>[]
           : services
-                .where((service) => service.name.toLowerCase().contains(query))
+                .where(
+                  (service) =>
+                      service.name.toLowerCase().contains(query) ||
+                      (service.categoryName?.toLowerCase().contains(query) ??
+                          false),
+                )
                 .map((service) => service.id)
                 .toList();
 

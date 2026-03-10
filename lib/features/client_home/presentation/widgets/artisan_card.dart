@@ -9,11 +9,7 @@ class ArtisanCard extends StatelessWidget {
   final Artisan artisan;
   final VoidCallback? onTap;
 
-  const ArtisanCard({
-    super.key,
-    required this.artisan,
-    this.onTap,
-  });
+  const ArtisanCard({super.key, required this.artisan, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -75,8 +71,11 @@ class ArtisanCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       BodyText(
-                        artisan.service,
-                        size: BodySize.small,
+                        (artisan.category != null &&
+                                artisan.category!.trim().isNotEmpty)
+                            ? artisan.category!
+                            : artisan.service,
+                        size: BodySize.tiny,
                         color: AppColors.textSecondary,
                       ),
                     ],
@@ -108,11 +107,7 @@ class ArtisanCard extends StatelessWidget {
                     ],
                     // Rating
                     if (artisan.rating > 0) ...[
-                      Icon(
-                        Icons.star,
-                        size: 12.r,
-                        color: Colors.amber,
-                      ),
+                      Icon(Icons.star, size: 12.r, color: Colors.amber),
                       SizedBox(width: 2.w),
                       BodyText(
                         artisan.rating.toStringAsFixed(1),
@@ -137,7 +132,8 @@ class ArtisanCard extends StatelessWidget {
 
   Widget _buildWorkImage() {
     // Check if it's a network URL
-    if (artisan.imageUrl.startsWith('http://') || artisan.imageUrl.startsWith('https://')) {
+    if (artisan.imageUrl.startsWith('http://') ||
+        artisan.imageUrl.startsWith('https://')) {
       return Image.network(
         artisan.imageUrl,
         width: 190.w,
@@ -148,11 +144,7 @@ class ArtisanCard extends StatelessWidget {
             width: 190.w,
             height: 190.h,
             color: Colors.grey.shade200,
-            child: Icon(
-              Icons.person,
-              size: 48.r,
-              color: Colors.grey.shade400,
-            ),
+            child: Icon(Icons.person, size: 48.r, color: Colors.grey.shade400),
           );
         },
         loadingBuilder: (context, child, loadingProgress) {
@@ -164,7 +156,8 @@ class ArtisanCard extends StatelessWidget {
             child: Center(
               child: CircularProgressIndicator(
                 value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
                     : null,
                 strokeWidth: 2,
               ),
@@ -185,7 +178,8 @@ class ArtisanCard extends StatelessWidget {
 
   Widget _buildAvatar() {
     // Check if it's a network URL
-    if (artisan.avatarUrl.startsWith('http://') || artisan.avatarUrl.startsWith('https://')) {
+    if (artisan.avatarUrl.startsWith('http://') ||
+        artisan.avatarUrl.startsWith('https://')) {
       return CircleAvatar(
         radius: 18.r,
         backgroundImage: NetworkImage(artisan.avatarUrl),

@@ -5,6 +5,7 @@ import '../../../artisan_profile/domain/models/artisan_profile.dart';
 import '../../../services/presentation/providers/services_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
+import '../../../../core/widgets/cards/service_card.dart';
 import '../providers/profile_actions_provider.dart';
 
 class ArtisanProfileEditPage extends ConsumerStatefulWidget {
@@ -37,6 +38,8 @@ class _ArtisanProfileEditPageState
   bool _isSaving = false;
   bool _isLoadingSelectedServices = true;
   Set<String> _selectedServiceIds = <String>{};
+  String? _selectedCategoryId;
+  String? _selectedCategoryName;
 
   @override
   void initState() {
@@ -84,9 +87,30 @@ class _ArtisanProfileEditPageState
       final services = await ref
           .read(profileRemoteDataSourceProvider)
           .fetchMyArtisanServices();
+      final allServices = await ref.read(servicesProvider.future);
       if (!mounted) return;
+
+      String? resolvedCategoryId;
+      for (final selectedService in services) {
+        final match = allServices.where((s) => s.id == selectedService.id);
+        if (match.isNotEmpty) {
+          resolvedCategoryId = match.first.categoryId;
+          if (resolvedCategoryId != null && resolvedCategoryId.isNotEmpty) {
+            break;
+          }
+        }
+      }
+
       setState(() {
         _selectedServiceIds = services.map((service) => service.id).toSet();
+        _selectedCategoryId = resolvedCategoryId;
+        if (resolvedCategoryId != null) {
+          final categoryMatch = allServices.firstWhere(
+            (s) => s.categoryId == resolvedCategoryId,
+            orElse: () => allServices.first,
+          );
+          _selectedCategoryName = categoryMatch.categoryName;
+        }
       });
     } catch (_) {
       // Best-effort prefill; selection can still be updated manually.
@@ -168,16 +192,73 @@ class _ArtisanProfileEditPageState
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _categoryImage(String categoryName) {
+    switch (categoryName) {
+      case 'Construction & Building Trades':
+        return 'https://res.cloudinary.com/dlw4um9gc/image/upload/v1769783411/construction_mt2zp8.png';
+      case 'Mechanical & Automotive Trades':
+        return 'https://res.cloudinary.com/dlw4um9gc/image/upload/v1769783410/car_repairs_mjsx70.png';
+      case 'Electrical & Electronics Trades':
+        return 'https://res.cloudinary.com/dlw4um9gc/image/upload/v1769783640/electronics_kqfajq.png';
+      case 'Fashion & Personal Care Trades':
+        return 'https://res.cloudinary.com/dlw4um9gc/image/upload/v1769783641/fashion_design_mupfnt.png';
+      case 'Food Production & Catering Trades':
+        return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80';
+      case 'Wood & Craft Production':
+        return 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=1200&q=80';
+      case 'Printing & Creative Production':
+        return 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80';
+      case 'Cleaning Services':
+        return 'https://res.cloudinary.com/dlw4um9gc/image/upload/v1769783410/cleaner_wizbgr.png';
+      default:
+        return '';
+    }
+  }
+
+  Future<void> _openCategoryServicesSheet({
+    required String categoryId,
+    required String categoryName,
+  }) async {
+    final initial = (_selectedCategoryId == categoryId)
+        ? _selectedServiceIds
+        : <String>{};
+    final result = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) => _EditProfileServicesSheet(
+        categoryId: categoryId,
+        categoryName: categoryName,
+        initialSelected: initial,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _selectedCategoryName = categoryName;
+      _selectedServiceIds
+        ..clear()
+        ..addAll(result);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final servicesAsync = ref.watch(servicesProvider);
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Edit Artisan Profile'),
+        title: Text(
+          'Edit Artisan Profile',
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+        ),
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _save,
@@ -187,7 +268,7 @@ class _ArtisanProfileEditPageState
                     height: 16.r,
                     child: const CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text('Save', style: TextStyle(fontSize: 12.sp)),
           ),
         ],
       ),
@@ -246,8 +327,8 @@ class _ArtisanProfileEditPageState
             Align(
               alignment: Alignment.centerLeft,
               child: BodyText(
-                'Services you provide',
-                size: BodySize.medium,
+                'Category',
+                size: BodySize.small,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -258,52 +339,110 @@ class _ArtisanProfileEditPageState
                 child: const LinearProgressIndicator(minHeight: 2),
               )
             else
-              servicesAsync.when(
-                data: (services) {
-                  return Wrap(
-                    spacing: 8.w,
-                    runSpacing: 8.h,
-                    children: services.map((service) {
-                      final selected = _selectedServiceIds.contains(service.id);
-                      return FilterChip(
-                        selected: selected,
-                        label: Text(service.name),
-                        onSelected: (value) {
-                          setState(() {
-                            if (value) {
-                              _selectedServiceIds.add(service.id);
-                            } else {
-                              _selectedServiceIds.remove(service.id);
-                            }
-                          });
+              categoriesAsync.when(
+                data: (categories) {
+                  if (categories.isNotEmpty && _selectedCategoryId == null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      setState(() {
+                        _selectedCategoryId = categories.first.id;
+                        _selectedCategoryName = categories.first.name;
+                      });
+                    });
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: categories.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10.w,
+                          mainAxisSpacing: 10.h,
+                          childAspectRatio: 0.85,
+                        ),
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          return ServiceCard(
+                            imagePath: _categoryImage(category.name),
+                            title: category.name,
+                            isSelected: _selectedCategoryId == category.id,
+                            onTap: () => _openCategoryServicesSheet(
+                              categoryId: category.id,
+                              categoryName: category.name,
+                            ),
+                          );
                         },
-                        selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                        checkmarkColor: AppColors.primary,
-                      );
-                    }).toList(),
+                      ),
+                      SizedBox(height: 10.h),
+                      if (_selectedCategoryId != null)
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 10.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F4F2),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedCategoryName ??
+                                          'Selected category',
+                                      style: TextStyle(
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2.h),
+                                    Text(
+                                      '${_selectedServiceIds.length} service(s) selected',
+                                      style: TextStyle(
+                                        fontSize: 9.sp,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => _openCategoryServicesSheet(
+                                  categoryId: _selectedCategoryId!,
+                                  categoryName:
+                                      _selectedCategoryName ??
+                                      'Selected category',
+                                ),
+                                child: Text(
+                                  'Edit',
+                                  style: TextStyle(
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   );
                 },
                 loading: () => const LinearProgressIndicator(minHeight: 2),
                 error: (error, _) => BodyText(
-                  'Failed to load services',
+                  'Failed to load categories',
                   size: BodySize.small,
                   color: AppColors.error,
                 ),
               ),
-            SizedBox(height: 16.h),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4FAFA),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: const BodyText(
-                'This updates profile details in the backend. Portfolio is managed separately.',
-                size: BodySize.small,
-                color: AppColors.textSecondary,
-              ),
-            ),
           ],
         ),
       ),
@@ -324,11 +463,297 @@ class _ArtisanProfileEditPageState
         keyboardType: keyboard,
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: TextStyle(fontSize: 10.sp),
+          floatingLabelStyle: TextStyle(fontSize: 10.sp),
+          hintStyle: TextStyle(fontSize: 10.sp),
           filled: true,
           fillColor: const Color(0xFFF8FAFC),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 12.w,
+            vertical: 10.h,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
             borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditProfileServicesSheet extends ConsumerStatefulWidget {
+  final String categoryId;
+  final String categoryName;
+  final Set<String> initialSelected;
+
+  const _EditProfileServicesSheet({
+    required this.categoryId,
+    required this.categoryName,
+    required this.initialSelected,
+  });
+
+  @override
+  ConsumerState<_EditProfileServicesSheet> createState() =>
+      _EditProfileServicesSheetState();
+}
+
+class _EditProfileServicesSheetState
+    extends ConsumerState<_EditProfileServicesSheet> {
+  late final TextEditingController _searchController;
+  late Set<String> _localSelected;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _localSelected = <String>{...widget.initialSelected};
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final servicesAsync = ref.watch(
+      servicesByCategoryProvider(widget.categoryId),
+    );
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16.w,
+          right: 16.w,
+          top: 12.h,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 12.h,
+        ),
+        child: SizedBox(
+          height: 620.h,
+          child: Column(
+            children: [
+              Container(
+                width: 40.w,
+                height: 4.h,
+                margin: EdgeInsets.only(bottom: 10.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDADADA),
+                  borderRadius: BorderRadius.circular(999.r),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.categoryName,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(
+                      Icons.close,
+                      size: 18.r,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Select one or more services',
+                  style: TextStyle(
+                    fontSize: 9.sp,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(9.r),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: TextStyle(fontSize: 10.sp),
+                  onChanged: (value) {
+                    setState(() => _query = value.trim().toLowerCase());
+                  },
+                  decoration: InputDecoration(
+                    icon: Icon(
+                      Icons.search,
+                      color: AppColors.textSecondary,
+                      size: 18.r,
+                    ),
+                    hintText: 'Search services',
+                    hintStyle: TextStyle(fontSize: 10.sp),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${_localSelected.length} selected',
+                  style: TextStyle(
+                    fontSize: 9.sp,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              SizedBox(height: 6.h),
+              Expanded(
+                child: servicesAsync.when(
+                  data: (services) {
+                    final filtered = _query.isEmpty
+                        ? services
+                        : services
+                              .where(
+                                (s) => s.name.toLowerCase().contains(_query),
+                              )
+                              .toList();
+
+                    if (filtered.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'No services match your search',
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (context, index) =>
+                          SizedBox(height: 6.h),
+                      itemBuilder: (context, index) {
+                        final service = filtered[index];
+                        final selected = _localSelected.contains(service.id);
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(12.r),
+                          onTap: () {
+                            setState(() {
+                              if (selected) {
+                                _localSelected.remove(service.id);
+                              } else {
+                                _localSelected.add(service.id);
+                              }
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 160),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10.w,
+                              vertical: 10.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? const Color(0xFFFBEDE8)
+                                  : const Color(0xFFF9F9F9),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                color: selected
+                                    ? AppColors.primary
+                                    : const Color(0xFFEAEAEA),
+                                width: selected ? 1.2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 18.w,
+                                  height: 18.h,
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selected
+                                          ? AppColors.primary
+                                          : const Color(0xFFCFCFCF),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: selected
+                                      ? Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 11.r,
+                                        )
+                                      : null,
+                                ),
+                                SizedBox(width: 10.w),
+                                Expanded(
+                                  child: Text(
+                                    service.name,
+                                    style: TextStyle(
+                                      fontSize: 10.sp,
+                                      color: AppColors.textPrimary,
+                                      fontWeight: selected
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
+                  error: (error, stackTrace) => Center(
+                    child: Text(
+                      'Failed to load services',
+                      style: TextStyle(fontSize: 10.sp, color: AppColors.error),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size(double.infinity, 44.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(_localSelected),
+                  child: Text(
+                    'Apply Selection',
+                    style: TextStyle(fontSize: 11.sp),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

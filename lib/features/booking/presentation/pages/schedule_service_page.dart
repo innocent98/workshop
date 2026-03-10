@@ -29,7 +29,7 @@ class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
   final BookingRemoteDataSource _bookingRemoteDataSource =
       BookingRemoteDataSource();
   bool _isSubmitting = false;
-  int _selectedServiceIndex = 0;
+  final Set<int> _selectedServiceIndexes = <int>{0};
 
   late DateTime _currentMonth;
   late int _selectedDay;
@@ -132,22 +132,34 @@ class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
 
   Future<void> _submitBooking({required bool ignoreBudget}) async {
     final options = _serviceOptions();
-    if (options.isEmpty || _selectedServiceIndex >= options.length) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a service to continue')),
-      );
-      return;
-    }
-    final selectedService = options[_selectedServiceIndex];
-    final serviceId =
-        selectedService.id ??
-        await _resolveServiceIdByName(selectedService.name);
-    if (serviceId == null) {
+    if (options.isEmpty || _selectedServiceIndexes.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to resolve selected service. Please retry.'),
+          content: Text('Select at least one service to continue'),
+        ),
+      );
+      return;
+    }
+    final selectedIndexes = _selectedServiceIndexes.toList()..sort();
+    final selectedServices = selectedIndexes
+        .where((index) => index >= 0 && index < options.length)
+        .map((index) => options[index])
+        .toList();
+    final selectedServiceIds = <int>[];
+    for (final selectedService in selectedServices) {
+      final serviceId =
+          selectedService.id ??
+          await _resolveServiceIdByName(selectedService.name);
+      if (serviceId != null) {
+        selectedServiceIds.add(serviceId);
+      }
+    }
+    if (selectedServiceIds.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to resolve selected services. Please retry.'),
         ),
       );
       return;
@@ -197,13 +209,16 @@ class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
         : '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
 
     final notes = _notesController.text.trim();
-    final description = notes.isNotEmpty ? notes : selectedService.name;
+    final selectedServiceNames = selectedServices.map((s) => s.name).toList();
+    final description = notes.isNotEmpty
+        ? notes
+        : selectedServiceNames.join(', ');
 
     setState(() => _isSubmitting = true);
     try {
       await _bookingRemoteDataSource.createBooking(
         artisanId: widget.artisan.id,
-        serviceId: serviceId,
+        serviceIds: selectedServiceIds,
         jobDateUtc: scheduled.toUtc(),
         jobAddress: address,
         jobLatitude: latitude,
@@ -334,7 +349,12 @@ class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
                                       color: Colors.red,
                                     ),
                                   BodyText(
-                                    widget.artisan.service,
+                                    (widget.artisan.category != null &&
+                                            widget.artisan.category!
+                                                .trim()
+                                                .isNotEmpty)
+                                        ? widget.artisan.category!
+                                        : widget.artisan.service,
                                     size: BodySize.small,
                                     color: AppColors.textSecondary,
                                   ),
@@ -423,7 +443,7 @@ class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
 
                     // Select service
                     const BodyText(
-                      'Select service',
+                      'Select service(s)',
                       size: BodySize.medium,
                       fontWeight: FontWeight.w600,
                     ),
@@ -443,11 +463,19 @@ class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
                       child: Column(
                         children: List.generate(serviceOptions.length, (index) {
                           final option = serviceOptions[index];
-                          final selected = _selectedServiceIndex == index;
+                          final selected = _selectedServiceIndexes.contains(
+                            index,
+                          );
                           return InkWell(
                             borderRadius: BorderRadius.circular(8.r),
                             onTap: () {
-                              setState(() => _selectedServiceIndex = index);
+                              setState(() {
+                                if (selected) {
+                                  _selectedServiceIndexes.remove(index);
+                                } else {
+                                  _selectedServiceIndexes.add(index);
+                                }
+                              });
                             },
                             child: Padding(
                               padding: EdgeInsets.symmetric(vertical: 2.h),
@@ -465,9 +493,15 @@ class _ScheduleServicePageState extends ConsumerState<ScheduleServicePage> {
                                       materialTapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
                                       onChanged: (_) {
-                                        setState(
-                                          () => _selectedServiceIndex = index,
-                                        );
+                                        setState(() {
+                                          if (selected) {
+                                            _selectedServiceIndexes.remove(
+                                              index,
+                                            );
+                                          } else {
+                                            _selectedServiceIndexes.add(index);
+                                          }
+                                        });
                                       },
                                     ),
                                   ),

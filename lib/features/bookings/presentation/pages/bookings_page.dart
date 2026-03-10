@@ -180,7 +180,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
     try {
       await _bookingRemoteDataSource.createBooking(
         artisanId: booking.artisanId,
-        serviceId: booking.serviceId,
+        serviceIds: [booking.serviceId],
         jobDateUtc: updated.jobDateLocal.toUtc(),
         jobAddress: booking.jobAddress,
         jobLatitude: booking.jobLatitude!,

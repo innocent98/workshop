@@ -9,8 +9,11 @@ import '../../../../core/routes/app_router.dart';
 import '../../../../core/services/onboarding_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/service_guard_provider.dart';
 import '../../../../core/providers/location_provider.dart';
 import '../../../../core/models/user.dart';
+import '../../../auth/data/datasources/auth_remote_datasource.dart';
+import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -26,6 +29,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   late Animation<double> _scaleAnimation;
   final OnboardingService _onboardingService = OnboardingService();
   final TokenStorageService _tokenStorage = TokenStorageService();
+  final AuthRemoteDataSource _authRemoteDataSource = AuthRemoteDataSource();
   bool _hasNavigated = false;
 
   @override
@@ -80,6 +84,18 @@ class _SplashPageState extends ConsumerState<SplashPage>
         if (_hasNavigated) return;
 
         if (user != null) {
+          final hasSelectedServices = await _hasSelectedServices();
+          if (!mounted) return;
+          if (!hasSelectedServices) {
+            _hasNavigated = true;
+            context.go(
+              AppRoutes.serviceSelection,
+              extra: user.role == UserRole.artisan
+                  ? UserType.artisan
+                  : UserType.client,
+            );
+            return;
+          }
           await _goToRoleHomeWithLocationGate(user);
         } else {
           _hasNavigated = true;
@@ -131,6 +147,35 @@ class _SplashPageState extends ConsumerState<SplashPage>
       AppRoutes.locationGate,
       extra: {'scope': scope, 'nextRoute': route},
     );
+  }
+
+  Future<bool> _hasSelectedServices() async {
+    final user = ref.read(authProvider).value;
+    if (user != null) {
+      final guardState = ref.read(serviceGuardProvider);
+      if (guardState.hasCheckedThisSession && guardState.userId == user.id) {
+        return guardState.hasServices;
+      }
+    }
+
+    try {
+      final services = await _authRemoteDataSource.fetchMyServices();
+      final hasServices = services.isNotEmpty;
+      if (user != null) {
+        ref
+            .read(serviceGuardProvider.notifier)
+            .setForUser(userId: user.id, hasServices: hasServices);
+      }
+      return hasServices;
+    } catch (_) {
+      // Strict guard: if service selection cannot be verified, force selection flow.
+      if (user != null) {
+        ref
+            .read(serviceGuardProvider.notifier)
+            .setForUser(userId: user.id, hasServices: false);
+      }
+      return false;
+    }
   }
 
   @override

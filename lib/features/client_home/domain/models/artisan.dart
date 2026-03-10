@@ -10,6 +10,7 @@ class ArtisanServiceOption {
 class Artisan {
   final String id;
   final String name;
+  final String? category;
   final String service;
   final String imageUrl;
   final String avatarUrl;
@@ -24,6 +25,7 @@ class Artisan {
   const Artisan({
     required this.id,
     required this.name,
+    this.category,
     required this.service,
     required this.imageUrl,
     required this.avatarUrl,
@@ -58,6 +60,7 @@ class Artisan {
     return Artisan(
       id: model.id,
       name: displayName.isNotEmpty ? displayName : 'Unknown',
+      category: model.categoryName,
       service: serviceName,
       imageUrl: model.portfolioUrl ?? avatar,
       avatarUrl: avatar,

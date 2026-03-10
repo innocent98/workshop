@@ -10,10 +10,12 @@ import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/service_guard_provider.dart';
 import '../../../../core/providers/registration_provider.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/models/user.dart';
 import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
+import '../../data/datasources/auth_remote_datasource.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -28,6 +30,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  final AuthRemoteDataSource _authRemoteDataSource = AuthRemoteDataSource();
 
   @override
   void dispose() {
@@ -48,17 +51,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         final authAsync = ref.read(authProvider);
         final user = authAsync.value;
         if (mounted && user != null) {
-          final isClient = user.role == UserRole.client;
-          final route = user.role == UserRole.artisan
-              ? AppRoutes.artisanHome
-              : AppRoutes.clientHome;
-          context.go(
-            AppRoutes.locationGate,
-            extra: {
-              'scope': isClient ? 'client' : 'artisan',
-              'nextRoute': route,
-            },
-          );
+          await _routeAfterLogin(user);
         }
       } catch (e) {
         if (mounted) {
@@ -210,14 +203,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final authAsync = ref.read(authProvider);
       final user = authAsync.value;
       if (mounted && user != null) {
-        final isClient = user.role == UserRole.client;
-        final route = user.role == UserRole.artisan
-            ? AppRoutes.artisanHome
-            : AppRoutes.clientHome;
-        context.go(
-          AppRoutes.locationGate,
-          extra: {'scope': isClient ? 'client' : 'artisan', 'nextRoute': route},
-        );
+        await _routeAfterLogin(user);
       }
     } catch (e) {
       if (mounted) {
@@ -239,6 +225,44 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _routeAfterLogin(User user) async {
+    final guardNotifier = ref.read(serviceGuardProvider.notifier);
+    final guardState = ref.read(serviceGuardProvider);
+
+    if (!(guardState.hasCheckedThisSession && guardState.userId == user.id)) {
+      try {
+        final services = await _authRemoteDataSource.fetchMyServices();
+        guardNotifier.setForUser(
+          userId: user.id,
+          hasServices: services.isNotEmpty,
+        );
+      } catch (_) {
+        guardNotifier.setForUser(userId: user.id, hasServices: false);
+      }
+    }
+
+    final latest = ref.read(serviceGuardProvider);
+    if (!mounted) return;
+    if (!latest.hasServices) {
+      final userType = user.role == UserRole.artisan
+          ? UserType.artisan
+          : UserType.client;
+      context.go(
+        '${AppRoutes.serviceSelection}?user_type=${userType == UserType.artisan ? 'artisan' : 'client'}',
+      );
+      return;
+    }
+
+    final isClient = user.role == UserRole.client;
+    final route = user.role == UserRole.artisan
+        ? AppRoutes.artisanHome
+        : AppRoutes.clientHome;
+    context.go(
+      AppRoutes.locationGate,
+      extra: {'scope': isClient ? 'client' : 'artisan', 'nextRoute': route},
+    );
   }
 
   @override

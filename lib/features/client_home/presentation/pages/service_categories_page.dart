@@ -13,7 +13,14 @@ import '../../../search/presentation/providers/search_history_provider.dart';
 import '../../../search/presentation/widgets/search_suggestion_item.dart';
 
 class ServiceCategoriesPage extends ConsumerStatefulWidget {
-  const ServiceCategoriesPage({super.key});
+  final String? initialCategoryId;
+  final String? initialCategoryName;
+
+  const ServiceCategoriesPage({
+    super.key,
+    this.initialCategoryId,
+    this.initialCategoryName,
+  });
 
   @override
   ConsumerState<ServiceCategoriesPage> createState() =>
@@ -24,10 +31,16 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showSuggestions = false;
+  String? _selectedCategoryId;
+  String? _selectedCategoryName;
+
+  bool get _isServicesMode => _selectedCategoryId != null;
 
   @override
   void initState() {
     super.initState();
+    _selectedCategoryId = widget.initialCategoryId;
+    _selectedCategoryName = widget.initialCategoryName;
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onFocusChanged);
   }
@@ -42,7 +55,8 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
 
   void _onSearchChanged() {
     setState(() {
-      _showSuggestions = true;
+      // Only show suggestion/history panel while user is actively in the search field.
+      _showSuggestions = _searchFocusNode.hasFocus;
     });
   }
 
@@ -70,48 +84,113 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
     }
   }
 
-  void _onCategoryTap(String categoryName) {
-    // Navigate to search page with category filter
-    context.push('${AppRoutes.searchResult}?query=$categoryName');
+  void _onCategorySelected(String categoryId, String categoryName) {
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _selectedCategoryName = categoryName;
+      _showSuggestions = false;
+    });
+    _searchController.clear();
+    _searchFocusNode.unfocus();
   }
 
-  IconData _iconForServiceName(String name) {
-    final normalized = name.toLowerCase();
-    if (normalized.contains('plumb')) return Icons.plumbing_outlined;
-    if (normalized.contains('electric') || normalized.contains('rewire')) {
-      return Icons.electrical_services_outlined;
+  void _onBackPressed() {
+    if (_isServicesMode) {
+      setState(() {
+        _selectedCategoryId = null;
+        _selectedCategoryName = null;
+        _showSuggestions = false;
+      });
+      _searchController.clear();
+      _searchFocusNode.unfocus();
+      return;
     }
-    if (normalized.contains('ac') || normalized.contains('air')) {
-      return Icons.ac_unit_outlined;
+    context.pop();
+  }
+
+  Widget _buildServiceListItem({
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
+      leading: Container(
+        width: 32.w,
+        height: 32.h,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        child: Icon(
+          Icons.design_services,
+          color: AppColors.primary,
+          size: 16.r,
+        ),
+      ),
+      title: BodyText(title, size: BodySize.small, fontWeight: FontWeight.w600),
+      subtitle: (subtitle != null && subtitle.trim().isNotEmpty)
+          ? BodyText(
+              subtitle,
+              size: BodySize.small,
+              color: AppColors.textSecondary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : null,
+      trailing: Icon(
+        Icons.chevron_right,
+        size: 18.r,
+        color: AppColors.textSecondary,
+      ),
+      onTap: onTap,
+    );
+  }
+
+  IconData _iconForCategory(String? iconName) {
+    switch (iconName) {
+      case 'construction':
+        return Icons.construction;
+      case 'directions_car':
+        return Icons.directions_car;
+      case 'bolt':
+        return Icons.bolt;
+      case 'style':
+        return Icons.style;
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'handyman':
+        return Icons.handyman;
+      case 'print':
+        return Icons.print;
+      case 'cleaning_services':
+        return Icons.cleaning_services;
+      default:
+        return Icons.category_outlined;
     }
-    if (normalized.contains('carpen')) return Icons.carpenter_outlined;
-    if (normalized.contains('paint')) return Icons.format_paint_outlined;
-    if (normalized.contains('clean')) return Icons.cleaning_services_outlined;
-    if (normalized.contains('hair')) return Icons.content_cut_outlined;
-    if (normalized.contains('beaut') || normalized.contains('makeup')) {
-      return Icons.face_outlined;
-    }
-    if (normalized.contains('photo')) return Icons.camera_alt_outlined;
-    if (normalized.contains('mechanic') || normalized.contains('auto')) {
-      return Icons.build_outlined;
-    }
-    return Icons.handyman_outlined;
   }
 
   @override
   Widget build(BuildContext context) {
     final searchHistory = ref.watch(searchHistoryProvider);
     final servicesAsync = ref.watch(servicesProvider);
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
     final typed = _searchController.text.toLowerCase().trim();
-    final serviceSuggestions =
-        servicesAsync.value
-            ?.map((service) => service.name)
-            .where(
-              (name) => typed.isNotEmpty && name.toLowerCase().contains(typed),
-            )
-            .toSet()
-            .toList() ??
-        const <String>[];
+    final allServices = servicesAsync.value ?? const <dynamic>[];
+    final servicesPool = _isServicesMode
+        ? allServices
+              .where(
+                (service) =>
+                    service.categoryId?.toString() == _selectedCategoryId,
+              )
+              .toList()
+        : allServices;
+    final serviceSuggestions = servicesPool
+        .map((service) => service.name as String)
+        .where((name) => typed.isNotEmpty && name.toLowerCase().contains(typed))
+        .toSet()
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -124,10 +203,13 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
             color: AppColors.textPrimary,
             size: 24.r,
           ),
-          onPressed: () => context.pop(),
+          onPressed: _onBackPressed,
         ),
         centerTitle: true,
-        title: HeaderText('Service Categories', size: HeaderSize.h4),
+        title: HeaderText(
+          _isServicesMode ? 'Services' : 'Service Categories',
+          size: HeaderSize.h4,
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -162,7 +244,9 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
                           color: AppColors.textPrimary,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'What service do you need?',
+                          hintText: _isServicesMode
+                              ? 'Search services in this category'
+                              : 'What service do you need?',
                           hintStyle: TextStyle(
                             fontSize: AppSizes.caption,
                             color: AppColors.textSecondary,
@@ -241,46 +325,185 @@ class _ServiceCategoriesPageState extends ConsumerState<ServiceCategoriesPage> {
                 ),
               )
             else
-              // Service list from API (GET /services)
+              // Categories list from API (GET /services/categories)
               Expanded(
-                child: servicesAsync.when(
-                  data: (services) => ListView.separated(
-                    padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
-                    itemCount: services.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 0.h),
-                    itemBuilder: (context, index) {
-                      final service = services[index];
-                      final category = ServiceCategory(
-                        id: service.id.toString(),
-                        name: service.name,
-                        icon: _iconForServiceName(service.name),
-                      );
-                      return ServiceCategoryListItem(
-                        category: category,
-                        onTap: () => _onCategoryTap(service.name),
-                      );
-                    },
-                  ),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        BodyText(
-                          'Failed to load services',
-                          size: BodySize.medium,
-                          color: AppColors.error,
+                child: _isServicesMode
+                    ? Column(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSizes.spacing,
+                            ),
+                            child: Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.w,
+                                vertical: 10.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardBackground,
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: BodyText(
+                                      _selectedCategoryName ?? '',
+                                      size: BodySize.small,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedCategoryId = null;
+                                        _selectedCategoryName = null;
+                                      });
+                                    },
+                                    child: BodyText(
+                                      'Change',
+                                      size: BodySize.small,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Expanded(
+                            child: servicesAsync.when(
+                              data: (services) {
+                                final filteredServices = services
+                                    .where(
+                                      (service) =>
+                                          service.categoryId?.toString() ==
+                                          _selectedCategoryId,
+                                    )
+                                    .toList();
+                                if (services.isEmpty) {
+                                  return ListView(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: AppSizes.spacing,
+                                    ),
+                                    children: [
+                                      SizedBox(height: 60.h),
+                                      BodyText(
+                                        'No services found in this category',
+                                        size: BodySize.small,
+                                        color: AppColors.textSecondary,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  );
+                                }
+                                if (filteredServices.isEmpty) {
+                                  return ListView(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: AppSizes.spacing,
+                                    ),
+                                    children: [
+                                      SizedBox(height: 60.h),
+                                      BodyText(
+                                        'No services found in this category',
+                                        size: BodySize.small,
+                                        color: AppColors.textSecondary,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  );
+                                }
+                                return ListView.separated(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: AppSizes.spacing,
+                                  ),
+                                  itemCount: filteredServices.length,
+                                  separatorBuilder: (context, index) => Divider(
+                                    height: 1.h,
+                                    color: AppColors.divider,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final service = filteredServices[index];
+                                    return _buildServiceListItem(
+                                      title: service.name,
+                                      subtitle: service.description,
+                                      onTap: () =>
+                                          _onSuggestionTap(service.name),
+                                    );
+                                  },
+                                );
+                              },
+                              loading: () => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                              error: (error, _) => Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    BodyText(
+                                      'Failed to load services',
+                                      size: BodySize.medium,
+                                      color: AppColors.error,
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    TextButton(
+                                      onPressed: () =>
+                                          ref.invalidate(servicesProvider),
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : categoriesAsync.when(
+                        data: (categories) => ListView.separated(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSizes.spacing,
+                          ),
+                          itemCount: categories.length,
+                          separatorBuilder: (context, index) =>
+                              SizedBox(height: 0.h),
+                          itemBuilder: (context, index) {
+                            final categoryData = categories[index];
+                            final category = ServiceCategory(
+                              id: categoryData.id,
+                              name: categoryData.name,
+                              icon: _iconForCategory(categoryData.icon),
+                            );
+                            return ServiceCategoryListItem(
+                              category: category,
+                              onTap: () => _onCategorySelected(
+                                categoryData.id,
+                                categoryData.name,
+                              ),
+                            );
+                          },
                         ),
-                        SizedBox(height: 8.h),
-                        TextButton(
-                          onPressed: () => ref.invalidate(servicesProvider),
-                          child: const Text('Retry'),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (error, _) => Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              BodyText(
+                                'Failed to load categories',
+                                size: BodySize.medium,
+                                color: AppColors.error,
+                              ),
+                              SizedBox(height: 8.h),
+                              TextButton(
+                                onPressed: () =>
+                                    ref.invalidate(serviceCategoriesProvider),
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
               ),
           ],
         ),

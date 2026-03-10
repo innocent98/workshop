@@ -8,7 +8,7 @@ class BookingRemoteDataSource {
 
   Future<void> createBooking({
     required String artisanId,
-    required int serviceId,
+    required List<int> serviceIds,
     required DateTime jobDateUtc,
     required String jobAddress,
     required double jobLatitude,
@@ -22,7 +22,8 @@ class BookingRemoteDataSource {
         '/bookings',
         data: {
           'artisan_id': artisanId,
-          'service_id': serviceId,
+          'service_ids': serviceIds,
+          'service_id': serviceIds.first,
           if (jobDescription != null && jobDescription.trim().isNotEmpty)
             'job_description': jobDescription.trim(),
           'job_date': jobDateUtc.toIso8601String(),

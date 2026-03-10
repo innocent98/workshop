@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/utils/phone_launcher.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../widgets/service_category_chip.dart';
@@ -21,8 +22,32 @@ class ClientHomePage extends ConsumerStatefulWidget {
 }
 
 class _ClientHomePageState extends ConsumerState<ClientHomePage> {
+  IconData _iconForCategory(String? iconName) {
+    switch (iconName) {
+      case 'construction':
+        return Icons.construction;
+      case 'directions_car':
+        return Icons.directions_car;
+      case 'bolt':
+        return Icons.bolt;
+      case 'style':
+        return Icons.style;
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'handyman':
+        return Icons.handyman;
+      case 'print':
+        return Icons.print;
+      case 'cleaning_services':
+        return Icons.cleaning_services;
+      default:
+        return Icons.category_outlined;
+    }
+  }
+
   Future<void> _onRefresh() async {
     await Future.wait([
+      ref.refresh(serviceCategoriesProvider.future),
       ref.refresh(servicesProvider.future),
       ref.refresh(nearbyArtisansProvider.future),
       ref.refresh(notificationsProvider.future),
@@ -38,8 +63,14 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
     context.push(AppRoutes.notifications);
   }
 
-  void _onCallNowTap() {
-    // TODO: Implement call functionality
+  Future<void> _onCallNowTap() async {
+    const phoneNumber = '07025000478';
+    final launched = await launchPhoneDialer(phoneNumber);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open dialer right now')),
+      );
+    }
   }
 
   void _onBookServiceTap() {
@@ -382,11 +413,11 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
   }
 
   Widget _buildServiceCategories() {
-    final servicesAsync = ref.watch(servicesProvider);
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
 
-    return servicesAsync.when(
-      data: (services) {
-        if (services.isEmpty) {
+    return categoriesAsync.when(
+      data: (categories) {
+        if (categories.isEmpty) {
           return SizedBox(
             height: 44.h,
             child: Center(
@@ -404,14 +435,15 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
           child: ListView.separated(
             padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
             scrollDirection: Axis.horizontal,
-            itemCount: services.length,
+            itemCount: categories.length,
             separatorBuilder: (context, index) =>
                 SizedBox(width: AppSizes.spacingSmall),
             itemBuilder: (context, index) {
-              final service = services[index];
+              final category = categories[index];
               return ServiceCategoryChip(
-                service: service,
-                onTap: () => _onCategoryTap(service.name),
+                label: category.name,
+                icon: _iconForCategory(category.icon),
+                onTap: () => _onCategoryTap(category.id, category.name),
               );
             },
           ),
@@ -442,7 +474,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
               ),
               SizedBox(width: 8.w),
               TextButton(
-                onPressed: () => ref.refresh(servicesProvider),
+                onPressed: () => ref.refresh(serviceCategoriesProvider),
                 child: const BodyText(
                   'Retry',
                   size: BodySize.small,
@@ -680,8 +712,11 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
     );
   }
 
-  void _onCategoryTap(String categoryName) {
-    // Navigate directly to search result with category
-    context.push('${AppRoutes.searchResult}?query=$categoryName');
+  void _onCategoryTap(String categoryId, String categoryName) {
+    final encodedId = Uri.encodeComponent(categoryId);
+    final encodedName = Uri.encodeComponent(categoryName);
+    context.push(
+      '${AppRoutes.serviceCategories}?category_id=$encodedId&category_name=$encodedName',
+    );
   }
 }

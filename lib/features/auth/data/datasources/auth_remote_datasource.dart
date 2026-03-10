@@ -189,6 +189,27 @@ class AuthRemoteDataSource {
     }
   }
 
+  Future<List<String>> fetchMyServices() async {
+    try {
+      final response = await _dio.get('/auth/me/services');
+      final data = response.data as Map<String, dynamic>;
+      final services = (data['services'] as List<dynamic>? ?? const <dynamic>[])
+          .map((item) => item.toString())
+          .toList();
+      return services;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<void> updateMyServices(List<String> services) async {
+    try {
+      await _dio.put('/auth/me/services', data: {'services': services});
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   Exception _handleError(DioException error) {
     // print('DioException caught: ${error.error}, ${error.message}, type: ${error.type}, response: ${error.response?.data}');
     if (error.type == DioExceptionType.connectionTimeout ||

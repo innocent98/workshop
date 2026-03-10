@@ -12,6 +12,8 @@ import '../widgets/portfolio_item_widget.dart';
 import '../widgets/review_item_widget.dart';
 import '../providers/artisan_public_profile_providers.dart';
 import '../../domain/models/artisan_public_profile.dart';
+import '../../../services/presentation/providers/services_provider.dart';
+import '../../../services/domain/models/service.dart';
 
 class ArtisanProfilePage extends ConsumerStatefulWidget {
   final Artisan artisan;
@@ -44,6 +46,11 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
     final profileAsync = ref.watch(
       artisanPublicProfileProvider(widget.artisan.id),
     );
+    final servicesAsync = ref.watch(servicesProvider);
+    final artisanCategoryName = servicesAsync.maybeWhen(
+      data: _resolveArtisanCategoryName,
+      orElse: () => null,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -53,7 +60,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
             _buildTopBar(),
             Expanded(
               child: profileAsync.when(
-                data: (profile) => _buildContent(profile),
+                data: (profile) => _buildContent(profile, artisanCategoryName),
                 loading: () => _buildLoadingSkeleton(),
                 error: (error, stack) => _buildError(error),
               ),
@@ -84,24 +91,41 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
           ),
           GestureDetector(
             onTap: _onShare,
-            child: Icon(
-              null,
-              size: 24.r,
-              color: AppColors.textPrimary,
-            ),
+            child: Icon(null, size: 24.r, color: AppColors.textPrimary),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContent(ArtisanPublicProfile profile) {
+  String? _resolveArtisanCategoryName(List<Service> allServices) {
+    if (allServices.isEmpty) return null;
+    final offered = widget.artisan.offeredServices;
+    if (offered.isEmpty) return null;
+
+    for (final option in offered) {
+      final match = allServices.where(
+        (service) =>
+            service.id.toString() == (option.id?.toString() ?? '') ||
+            service.name.toLowerCase() == option.name.toLowerCase(),
+      );
+      if (match.isNotEmpty) {
+        final categoryName = match.first.categoryName;
+        if (categoryName != null && categoryName.trim().isNotEmpty) {
+          return categoryName.trim();
+        }
+      }
+    }
+    return null;
+  }
+
+  Widget _buildContent(ArtisanPublicProfile profile, String? categoryName) {
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.spacing),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileHeader(profile),
+          _buildProfileHeader(profile, categoryName),
           SizedBox(height: AppSizes.spacing),
           _buildRatingSection(profile),
           SizedBox(height: AppSizes.spacing),
@@ -117,7 +141,10 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
     );
   }
 
-  Widget _buildProfileHeader(ArtisanPublicProfile profile) {
+  Widget _buildProfileHeader(
+    ArtisanPublicProfile profile,
+    String? categoryName,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -141,9 +168,9 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                   ),
                   if (widget.artisan.isVerified)
                     Icon(Icons.verified, size: 16.r, color: Colors.red),
-                  if (profile.specialization != null)
+                  if (categoryName != null && categoryName.trim().isNotEmpty)
                     BodyText(
-                      profile.specialization!,
+                      categoryName,
                       size: BodySize.small,
                       color: AppColors.textSecondary,
                     ),

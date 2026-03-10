@@ -15,6 +15,7 @@ class ArtisanSearchModel {
   final String? phoneNumber;
   final String? profilePictureUrl;
   final List<ServiceInfo> services;
+  final String? categoryName;
   final double? distanceKm;
   final double? averageRating;
   final int? ratingsCount;
@@ -37,6 +38,7 @@ class ArtisanSearchModel {
     this.phoneNumber,
     this.profilePictureUrl,
     this.services = const [],
+    this.categoryName,
     this.distanceKm,
     this.averageRating,
     this.ratingsCount,
@@ -75,6 +77,13 @@ class ArtisanSearchModel {
           .whereType<Object>()
           .map(ServiceInfo.fromDynamic)
           .toList(),
+      categoryName:
+          json['category_name'] as String? ??
+          json['category'] as String? ??
+          json['service_category'] as String? ??
+          ((json['category'] is Map<String, dynamic>)
+              ? (json['category']['name'] as String?)
+              : null),
       distanceKm: json['distance_km'] != null
           ? (json['distance_km'] as num).toDouble()
           : null,
