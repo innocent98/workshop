@@ -43,6 +43,20 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                 ),
               ),
               SizedBox(height: 16.h),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F4F2),
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                child: BodyText(
+                  'Workchop deducts a 10% service fee from each completed job before funds become available to you.',
+                  size: BodySize.small,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              SizedBox(height: 16.h),
               balanceState.when(
                 data: (balance) => Row(
                   children: [

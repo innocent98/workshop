@@ -95,7 +95,21 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
                 // Stats Cards Section
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: _buildStatsCardsSection(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildStatsCardsSection(),
+                      SizedBox(height: 8.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 2.w),
+                        child: BodyText(
+                          'A 10% Workchop service fee is deducted from each completed job.',
+                          size: BodySize.small,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
                 SizedBox(height: 16.h),
