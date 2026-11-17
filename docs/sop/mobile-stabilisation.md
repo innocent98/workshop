@@ -1,0 +1,51 @@
+# SOP: Mobile stabilisation (branch `chore/mobile-stabilisation`)
+
+**What shipped:** a single PR that removes the temporary ngrok URL, adds the missing client dispute-completion action, makes Paystack payment returns robust, deletes dead code and stubs, adds identity verification (Dojah) on the artisan side, replaces the broken template test with a real hermetic suite, adds CI, Crashlytics and release prep. PR: see the PR for this branch (`gh pr view`).
+
+## Why
+The app was feature-complete on paper but not releasable: the API URL was a throwaway ngrok host, payments were confirmed by a single in-memory verify that was lost if the app was killed, clients had no way to dispute a job, raw `DioException` text reached users, mock data and dead buttons shipped, `test/widget_test.dart` was the failing counter template and there was no CI.
+
+## How (decisions)
+
+| Area | Decision | Rejected alternative |
+| --- | --- | --- |
+| API URL | `String.fromEnvironment('API_BASE_URL')` with a placeholder prod default, plus `APP_ENV` (`dev/staging/prod`). No flavors, no secrets in defines. | Gradle/Xcode flavors: much more native config for no gain at this stage. |
+| Network logging | `LogInterceptor` now logs method/URL/status only, only in debug + non-prod. It used to log request/response bodies (passwords, NIN, tokens). | Keep bodies in dev: too easy to leak PII into shared logs. |
+| Errors | `core/network/dio_error_mapper.dart` (`mapDioError`, `userMessage`, `isOfflineError`) is the single place that turns `DioException` into `ApiException` / `NetworkException` / `UnauthorizedException`; understands FastAPI `detail` as string, `{code,message}` and validation lists. `ApiException` gained an optional `code`. | Per-datasource copies (existed in payments/reviews). |
+| Dispute completion | `PATCH /bookings/{id}/dispute-completion` body `{"dispute_reason": str}`; backend validates 10..500 chars, mirrored in `domain/dispute_rules.dart`. Button shown only when `canDisputeCompletion` (completed, not confirmed/disputed, before `completion_confirmation_deadline_at`). After success the list is re-fetched. Disputed bookings (backend status `disputed`) show a red "Disputed" banner with the reason on the ongoing card. | Optimistic local status: the server owns this state machine. |
+| Payments | A `PaymentVerificationController` (Riverpod `Notifier`) owns pending payments. State machine: `awaitingReturn -> verifying -> (confirmed: removed) / unconfirmed`. There is deliberately **no success state**: a payment leaves the set only after the backend says `paid: true` (then the bookings list is refreshed and a "Payment confirmed" snackbar fires) or the reference is invalid (404/403). Verifier runs 5 attempts over 20s (waits 2/4/6/8s). Transient errors (network, 5xx, malformed body) and `paid:false` are retried, never treated as success or terminal. References persist in `shared_preferences` (`pending_payments_v1`, 24h TTL) and are restored + verified when the client shell starts, so a killed app recovers. Observer attached in `MainNavigationPage`; resume triggers `verifyAll()`. Cleared on logout. UI: banner "Confirming payment..." with attempt count, manual "I've paid, check again", and "I didn't pay" to dismiss. | Polling in the page (what existed): lost on kill, tied to one screen. |
+| Dead code | Deleted 7 mock/data files, the 3 legacy artisan_home models + `CompletedJobCard`, the "Legacy mock job" branch of `JobDetailPage` (it now takes an `ArtisanBooking`; the route redirects to artisan home if opened without one), hamburger `more_vert` TODO buttons on both booking pages, the share stub on the public artisan profile, and the registration-page Google button (+ its "or" divider). Google sign-in remains on the login page. Support screen untouched (its `mock_support_data.dart` is still used there). | Wiring the registration Google button: it would need a different flow (no password step, role choice), not safe in this PR. |
+| Error states | New `core/widgets/common/ErrorState` (friendly text, offline variant, retry) used on bookings, artisan jobs, job history and job detail; `userMessage` replaces `error.toString()` / `e.toString()` in snackbars across ~15 pages. | n/a |
+| Crashlytics | Added (`firebase_crashlytics`, Gradle plugin, Dart handlers, off in debug). Needs no certificates. iOS dSYM upload script is not added (see release-prep). | Sentry: second vendor/account. |
+| Dojah verification | See [Identity verification](#identity-verification-dojah). | n/a |
+| CI | `.github/workflows/ci.yml`: path-filtered (`docs-only` PRs run only the cheap `changes` job), `concurrency` cancel-in-progress, format check on **changed** Dart files only (the legacy code base is not formatted to the current formatter; a repo-wide reformat should be its own PR), `flutter analyze`, `flutter test`, and an Android release-build job that proves R8/Crashlytics config compiles. | Repo-wide `dart format --set-exit-if-changed`: would fail on ~100 untouched files. |
+
+## Identity verification (Dojah)
+Client side of `GET/POST /profiles/artisans/me/verification` (multipart `nin` + `selfie`). Contract: `fe-integration-guide-verification-admin.md` in the backend worktree (fixtures are the contract's draft shapes with placeholder values; swap for live captures when available). Details of states, error-code messages and polling in `lib/features/verification/` (`domain/verification_error_messages.dart` holds the code->copy map). Highlights: 11-digit NIN, front-camera selfie compressed with `core/utils/image_compressor.dart`; states unverified / pending (poll every 5s, max ~2 min then manual "Check again") / verified / failed (backend reason + attempts left) / locked (0 attempts, `retry_available_at`); after a network error on submit the screen re-fetches status because the upload may have gone through. **Privacy:** NIN and selfie are never logged or persisted, are cleared/deleted after every submit (success or failure), and the shared Dio logger no longer prints bodies. The profile page shows a status tile for artisans (`ArtisanProfile.verificationStatus` / `isVerified`, parsed leniently).
+
+## What's involved (paths)
+- Config: `lib/core/config/api_config.dart`, `lib/core/network/{dio_client,api_exception,dio_error_mapper}.dart`, `README.md`
+- Disputes: `lib/features/bookings/domain/dispute_rules.dart`, datasource/repository/provider `disputeCompletion`, `presentation/widgets/{dispute_completion_dialog,completed_booking_card,ongoing_booking_card}.dart`, `presentation/pages/bookings_page.dart`
+- Payments: `lib/features/bookings/domain/payment_verification.dart`, `data/pending_payment_store.dart`, `presentation/providers/payment_verification_provider.dart`, `presentation/widgets/pending_payment_banner.dart`, `main_navigation_page.dart` (attach), `core/providers/auth_provider.dart` (clear on logout)
+- Verification: `lib/features/verification/**`, `core/routes/app_router.dart` (`AppRoutes.verifyIdentity`), `features/profile/.../profile_page.dart`
+- Release/CI: `android/app/build.gradle.kts`, `android/settings.gradle.kts`, `android/app/proguard-rules.pro`, `android/key.properties.example`, `ios/Podfile`, `pubspec.yaml`, `.gitignore`, `.github/workflows/ci.yml`, `docs/sop/release-prep.md`
+- Tests: `test/helpers/`, `test/core/`, `test/features/bookings/`, `test/features/verification/`
+
+## Verification
+- `flutter analyze lib test`: no issues.
+- Tests run locally (only the touched files): `test/core`, `test/features/bookings` (57 tests: validators, error mapper, booking/wallet/payment datasources against a fake `HttpClientAdapter` incl. 4xx/offline mapping, dispute rules, payment retry/recovery state machine, `PendingPaymentStore`, payment-pending banner widget) and `test/features/verification` (50 tests). The full suite and the Android release build run in CI only.
+- Not verified on a real device: Paystack round trip (external browser + resume), camera selfie, Crashlytics reporting, R8 release build (CI job covers compilation only).
+- Dispute and verification have not been exercised against the live backend; payloads were taken from the backend source/contract, not from a live capture.
+
+## Operate / roll back
+- Run: see README ("Running the app", "Environment defines"). Release builds **must** pass `--dart-define=API_BASE_URL=...`; the default is a non-working placeholder by design.
+- Roll back: revert the PR. No migrations. Persisted state added: `pending_payments_v1` in `shared_preferences` (harmless if left behind).
+
+## Follow-ups
+- Backend: `GET /payments/verify/{ref}` marks the payment `FAILED` whenever Paystack is not yet `success` (including "pending/abandoned"), so a premature verify poisons the local status until the next successful verify. The app tolerates this (treats `paid:false` as retryable), but the backend should only mark `failed` on a terminal Paystack status.
+- Backend: dispute does not appear to hold/notify anything about the artisan beyond the status change; confirm the intended escrow behaviour and push notification to the artisan.
+- Decision needed: Sign in with Apple vs. removing Google sign-in on iOS (App Store guideline 4.8), see `release-prep.md`.
+- Owner assets: app icon source image, upload keystore, APNs key, privacy policy URL.
+- Pin third-party GitHub Actions to commit SHAs; add a repo-wide `dart format` PR.
+- Add Crashlytics dSYM Run Script on iOS; add `PERMISSION_*` follow-through test on a device.
+- Widget/integration tests for the verification page and the bookings page flows (need image_picker/url_launcher fakes).
