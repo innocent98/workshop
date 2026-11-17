@@ -9,6 +9,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../artisan_profile/domain/models/portfolio_item.dart';
 import '../providers/profile_actions_provider.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class ArtisanPortfolioManagementPage extends ConsumerStatefulWidget {
   const ArtisanPortfolioManagementPage({super.key});
@@ -39,7 +40,7 @@ class _ArtisanPortfolioManagementPageState
           .fetchMyPortfolio();
       if (mounted) setState(() => _items = items);
     } catch (e) {
-      _showMessage(e.toString());
+      _showMessage(userMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -183,7 +184,7 @@ class _ArtisanPortfolioManagementPageState
       await _loadPortfolio();
       _showMessage('Portfolio item added');
     } catch (e) {
-      _showMessage(e.toString());
+      _showMessage(userMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -295,7 +296,7 @@ class _ArtisanPortfolioManagementPageState
       await _loadPortfolio();
       _showMessage('Portfolio item updated');
     } catch (e) {
-      _showMessage(e.toString());
+      _showMessage(userMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -335,7 +336,7 @@ class _ArtisanPortfolioManagementPageState
       await _loadPortfolio();
       _showMessage('Portfolio item deleted');
     } catch (e) {
-      _showMessage(e.toString());
+      _showMessage(userMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -11,6 +11,7 @@ import '../../../client_home/domain/models/artisan.dart';
 import '../../../client_profile/presentation/providers/client_profile_provider.dart';
 import '../../../services/presentation/providers/services_provider.dart';
 import '../../data/booking_remote_datasource.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class InstantServicePage extends ConsumerStatefulWidget {
   final Artisan artisan;
@@ -164,7 +165,7 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -196,18 +197,6 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
         ),
         centerTitle: true,
         title: HeaderText('Instant Service', size: HeaderSize.h4),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.more_vert,
-              color: AppColors.textPrimary,
-              size: 24.r,
-            ),
-            onPressed: () {
-              // TODO: Implement menu
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(

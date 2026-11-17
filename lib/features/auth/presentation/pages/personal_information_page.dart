@@ -15,16 +15,15 @@ import '../../../onboarding/presentation/pages/user_type_selection_page.dart';
 class PersonalInformationPage extends ConsumerStatefulWidget {
   final UserType userType;
 
-  const PersonalInformationPage({
-    super.key,
-    required this.userType,
-  });
+  const PersonalInformationPage({super.key, required this.userType});
 
   @override
-  ConsumerState<PersonalInformationPage> createState() => _PersonalInformationPageState();
+  ConsumerState<PersonalInformationPage> createState() =>
+      _PersonalInformationPageState();
 }
 
-class _PersonalInformationPageState extends ConsumerState<PersonalInformationPage> {
+class _PersonalInformationPageState
+    extends ConsumerState<PersonalInformationPage> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -44,8 +43,12 @@ class _PersonalInformationPageState extends ConsumerState<PersonalInformationPag
       setState(() => _isLoading = true);
 
       try {
-        final userType = widget.userType == UserType.artisan ? 'artisan' : 'client';
-        await ref.read(registrationProvider.notifier).registerPersonalInfo(
+        final userType = widget.userType == UserType.artisan
+            ? 'artisan'
+            : 'client';
+        await ref
+            .read(registrationProvider.notifier)
+            .registerPersonalInfo(
               fullName: _fullNameController.text.trim(),
               email: _emailController.text.trim(),
               phoneNumber: _phoneController.text.trim(),
@@ -69,10 +72,7 @@ class _PersonalInformationPageState extends ConsumerState<PersonalInformationPag
           debugPrint('Save personal information error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: AppColors.error,
-            ),
+            SnackBar(content: Text(message), backgroundColor: AppColors.error),
           );
         }
       } finally {
@@ -81,11 +81,6 @@ class _PersonalInformationPageState extends ConsumerState<PersonalInformationPag
         }
       }
     }
-  }
-
-  void _handleGoogleSignIn() {
-    // TODO: Implement Google Sign-In
-    print('Google Sign-In clicked');
   }
 
   @override
@@ -122,10 +117,7 @@ class _PersonalInformationPageState extends ConsumerState<PersonalInformationPag
                   ),
 
                   // Progress Indicator
-                  const StepProgressIndicator(
-                    totalSteps: 4,
-                    currentStep: 1,
-                  ),
+                  const StepProgressIndicator(totalSteps: 4, currentStep: 1),
                 ],
               ),
             ),
@@ -202,65 +194,6 @@ class _PersonalInformationPageState extends ConsumerState<PersonalInformationPag
                           }
                           return null;
                         },
-                      ),
-                      SizedBox(height: 32.h),
-
-                      // Divider with "or"
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Divider(
-                              color: AppColors.border,
-                              thickness: 1,
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w),
-                            child: BodyText(
-                              'or',
-                              size: BodySize.medium,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              color: AppColors.border,
-                              thickness: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 32.h),
-
-                      // Google Sign-In Button
-                      GestureDetector(
-                        onTap: _handleGoogleSignIn,
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(vertical: 16.h),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD3D3D3),
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Google Logo
-                              Image.asset(
-                                'assets/images/google.png',
-                                width: 24.r,
-                                height: 24.r,
-                              ),
-                              SizedBox(width: 12.w),
-                              BodyText(
-                                'Continue with Google',
-                                size: BodySize.large,
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                       SizedBox(height: 32.h),
                     ],

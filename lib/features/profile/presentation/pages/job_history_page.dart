@@ -8,6 +8,7 @@ import '../../../../core/widgets/common/loading_indicator.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../bookings/domain/models/artisan_booking.dart';
 import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
+import '../../../../core/widgets/common/error_state.dart';
 
 class JobHistoryPage extends ConsumerStatefulWidget {
   const JobHistoryPage({super.key});
@@ -75,28 +76,11 @@ class _JobHistoryPageState extends ConsumerState<JobHistoryPage> {
                 );
               },
               loading: () => const Center(child: LoadingIndicator()),
-              error: (error, _) => Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      BodyText(
-                        error.toString(),
-                        size: BodySize.small,
-                        color: Colors.red,
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 12.h),
-                      ElevatedButton(
-                        onPressed: () => ref
-                            .read(artisanBookingsProvider.notifier)
-                            .refresh(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
+              error: (error, _) => ErrorState(
+                error: error,
+                title: 'Could not load your job history',
+                onRetry: () =>
+                    ref.read(artisanBookingsProvider.notifier).refresh(),
               ),
             ),
           ),

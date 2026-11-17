@@ -21,6 +21,7 @@ import '../../../artisan_profile/domain/models/wallet_balance.dart';
 import '../../../bookings/domain/models/artisan_booking.dart';
 import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class ArtisanHomePage extends ConsumerStatefulWidget {
   const ArtisanHomePage({super.key});
@@ -1010,7 +1011,7 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ).showSnackBar(SnackBar(content: Text(userMessage(e))));
       }
     }
   }
@@ -1038,7 +1039,7 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ).showSnackBar(SnackBar(content: Text(userMessage(e))));
       }
     }
   }

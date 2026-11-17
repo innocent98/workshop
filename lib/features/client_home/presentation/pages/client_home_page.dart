@@ -13,6 +13,7 @@ import '../widgets/artisan_card.dart';
 import '../../../services/presentation/providers/services_provider.dart';
 import '../../../search/presentation/providers/nearby_artisans_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class ClientHomePage extends ConsumerStatefulWidget {
   const ClientHomePage({super.key});
@@ -570,7 +571,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                 ),
                 SizedBox(height: 4.h),
                 BodyText(
-                  error.toString(),
+                  userMessage(error),
                   size: BodySize.small,
                   color: AppColors.textSecondary,
                   textAlign: TextAlign.center,
