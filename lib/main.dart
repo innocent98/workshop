@@ -38,7 +38,13 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await _initCrashReporting();
   DioClient().init();
-  await PushNotificationService.instance.initialize();
+  try {
+    await PushNotificationService.instance.initialize();
+  } catch (error, stack) {
+    // Push is optional: a failure here (missing entitlement, no network, ...)
+    // must never leave the user with a blank screen.
+    FirebaseCrashlytics.instance.recordError(error, stack);
+  }
   runApp(const ProviderScope(child: MyApp()));
 }
 
