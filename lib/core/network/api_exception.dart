@@ -2,7 +2,11 @@ class ApiException implements Exception {
   final String message;
   final int? statusCode;
 
-  ApiException(this.message, [this.statusCode]);
+  /// Machine-readable error code when the backend provides one
+  /// (e.g. `{"detail": {"code": "...", "message": "..."}}`).
+  final String? code;
+
+  ApiException(this.message, [this.statusCode, this.code]);
 
   @override
   String toString() => message;
@@ -11,7 +15,9 @@ class ApiException implements Exception {
 class NetworkException implements Exception {
   final String message;
 
-  NetworkException([this.message = 'Network error occurred. Please check your connection.']);
+  NetworkException([
+    this.message = 'Network error occurred. Please check your connection.',
+  ]);
 
   @override
   String toString() => message;
