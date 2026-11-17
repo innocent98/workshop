@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
-import '../services/push_notification_service.dart';
+import '../services/push_token_gateway.dart';
 import '../services/token_storage_service.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
-import '../../features/bookings/data/pending_payment_store.dart';
 import '../../features/bookings/presentation/providers/payment_verification_provider.dart';
 import 'registration_provider.dart';
 import 'service_guard_provider.dart';
@@ -13,8 +13,13 @@ import 'service_guard_provider.dart';
 /// Auth notifier that manages user authentication state
 class AuthNotifier extends AsyncNotifier<User?> {
   static const String _userKey = 'user_data';
+
+  /// A dead backend must never hold the user on the profile screen.
+  static const Duration _remoteCallTimeout = Duration(seconds: 10);
+
   final TokenStorageService _tokenStorage = TokenStorageService();
   late AuthRepository _repository;
+  bool _endingSession = false;
 
   @override
   Future<User?> build() async {
@@ -39,12 +44,12 @@ class AuthNotifier extends AsyncNotifier<User?> {
         await _syncPushTokenBestEffort();
         return User.fromJson(userJson);
       } else {
-        await logout();
+        await _clearLocalSession();
         return null;
       }
     } catch (e) {
       // If loading fails, clear invalid data
-      await logout();
+      await _clearLocalSession();
       return null;
     }
   }
@@ -117,26 +122,82 @@ class AuthNotifier extends AsyncNotifier<User?> {
     }
   }
 
-  /// Logout user and clear storage
-  Future<void> logout() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      // Best-effort API logout; still clear local state if remote call fails.
-      try {
-        await _repository.logout();
-      } catch (_) {}
+  /// Logs out: tells the backend and unregisters push (both best effort), then
+  /// ALWAYS clears the local session and ends in a signed-out state, even if
+  /// every remote step fails. Never throws and never leaves [authProvider] in
+  /// an error state, so a failed network call cannot trap the user in the app.
+  Future<void> logout() => _endSession(notifyServer: true);
 
-      await PushNotificationService.instance.unregisterCurrentToken();
-      await _tokenStorage.deleteToken();
+  /// Ends the session without talking to the backend. Used when the server has
+  /// already rejected the token (401), where there is nothing left to tell it.
+  Future<void> endSessionLocally() => _endSession(notifyServer: false);
+
+  /// Permanently deletes the account, then ends the session like a logout.
+  /// Throws (leaving the user signed in) if the backend refuses or is
+  /// unreachable, so the caller can show the reason and offer a retry.
+  Future<void> deleteAccount() async {
+    await _repository.deleteAccount();
+    await _endSession(notifyServer: false);
+  }
+
+  Future<void> _endSession({required bool notifyServer}) async {
+    if (_endingSession) return;
+    _endingSession = true;
+    try {
+      if (notifyServer) {
+        // Both calls need the token, so they run before it is deleted.
+        await _bestEffort(
+          'remote logout',
+          () => _repository.logout().timeout(_remoteCallTimeout),
+        );
+        await _bestEffort(
+          'push unregister',
+          () => ref
+              .read(pushTokenGatewayProvider)
+              .unregister()
+              .timeout(_remoteCallTimeout),
+        );
+      }
+      await _clearLocalSession();
+    } finally {
+      _endingSession = false;
+    }
+    if (ref.mounted) {
+      state = const AsyncValue.data(null);
+    }
+  }
+
+  /// Wipes everything the device stores about the account. Each step is
+  /// independent: one failing never stops the others.
+  Future<void> _clearLocalSession() async {
+    await _bestEffort('delete token', _tokenStorage.deleteToken);
+    await _bestEffort('remove user', () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
-      // A pending payment belongs to the account that started it.
-      await PendingPaymentStore().clear();
-      ref.read(paymentVerificationProvider.notifier).reset();
-      await ref.read(registrationProvider.notifier).clearRegistration();
-      ref.read(serviceGuardProvider.notifier).clear();
-      return null;
     });
+    // A pending payment belongs to the account that started it.
+    await _bestEffort(
+      'clear pending payments',
+      () => ref.read(pendingPaymentStoreProvider).clear(),
+    );
+    await _bestEffort('reset payment verification', () async {
+      ref.read(paymentVerificationProvider.notifier).reset();
+    });
+    await _bestEffort(
+      'clear registration',
+      () => ref.read(registrationProvider.notifier).clearRegistration(),
+    );
+    await _bestEffort('clear service guard', () async {
+      ref.read(serviceGuardProvider.notifier).clear();
+    });
+  }
+
+  Future<void> _bestEffort(String step, Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (e) {
+      debugPrint('Session cleanup step "$step" failed: $e');
+    }
   }
 
   /// Update user data
@@ -165,7 +226,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
   Future<void> _syncPushTokenBestEffort() async {
     try {
-      await PushNotificationService.instance.syncTokenToBackend();
+      await ref.read(pushTokenGatewayProvider).sync();
     } catch (_) {
       // Keep auth persistence independent from push registration/network state.
     }

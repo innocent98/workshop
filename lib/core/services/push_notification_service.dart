@@ -114,13 +114,15 @@ class PushNotificationService {
   }
 
   Future<void> unregisterCurrentToken() async {
-    final hasAuth = await _tokenStorage.hasToken();
-    if (!hasAuth) return;
-
-    final token = await _messaging.getToken();
-    if (token == null || token.isEmpty) return;
-
+    // Best effort end to end: on the iOS simulator (or any device without an
+    // APNs token) `getToken()` throws, and that must never block logout.
     try {
+      final hasAuth = await _tokenStorage.hasToken();
+      if (!hasAuth) return;
+
+      final token = await _messaging.getToken();
+      if (token == null || token.isEmpty) return;
+
       await DioClient().dio.post(
         '/notifications/devices/unregister',
         data: {'fcm_token': token},

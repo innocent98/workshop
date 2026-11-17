@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../domain/models/artisan.dart';
 import '../../../search/presentation/providers/all_artisans_provider.dart';
@@ -300,19 +302,10 @@ class _ArtisanListItem extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
-    if (artisan.avatarUrl.startsWith('http://') ||
-        artisan.avatarUrl.startsWith('https://')) {
-      return CircleAvatar(
-        radius: 24.r,
-        backgroundColor: AppColors.cardBackground,
-        backgroundImage: NetworkImage(artisan.avatarUrl),
-      );
-    }
-
-    return CircleAvatar(
-      radius: 24.r,
-      backgroundColor: AppColors.cardBackground,
-      backgroundImage: AssetImage(artisan.avatarUrl),
+    return ProfileAvatar(
+      imageUrl: artisan.avatarUrl,
+      name: artisan.name,
+      radius: 24,
     );
   }
 
@@ -326,11 +319,14 @@ class _ArtisanListItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            verified ? Icons.verified : Icons.gpp_bad_outlined,
-            size: 12.r,
-            color: verified ? Colors.green.shade700 : Colors.red.shade700,
-          ),
+          if (verified)
+            const VerifiedBadge(size: 12)
+          else
+            Icon(
+              Icons.gpp_bad_outlined,
+              size: 12.r,
+              color: Colors.red.shade700,
+            ),
           SizedBox(width: 4.w),
           BodyText(
             verified ? 'Verified' : 'Unverified',

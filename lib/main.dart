@@ -12,7 +12,9 @@ import 'core/routes/app_router.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/services/auth_session_service.dart';
+import 'core/models/user.dart';
 import 'core/providers/auth_provider.dart';
+import 'core/providers/session_reset.dart';
 import 'firebase_options.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -57,21 +59,47 @@ class MyApp extends ConsumerStatefulWidget {
 
 class _MyAppState extends ConsumerState<MyApp> {
   StreamSubscription<String>? _forcedLogoutSub;
+  ProviderSubscription<AsyncValue<User?>>? _signedOutSub;
 
   @override
   void initState() {
     super.initState();
+    // One exit path for every way a session can end (Logout button, account
+    // deletion, 401 forced logout): the moment a signed-in user becomes
+    // signed-out, land on the login screen. Provider cleanup is handled by
+    // sessionResetProvider.
+    _signedOutSub = ref.listenManual<AsyncValue<User?>>(authProvider, (
+      previous,
+      next,
+    ) {
+      final wasSignedIn = previous?.value != null;
+      final isSignedOut =
+          !next.isLoading && next.hasValue && next.value == null;
+      if (wasSignedIn && isSignedOut) {
+        ref.read(routerProvider).go(AppRoutes.login);
+      }
+    });
+
     _forcedLogoutSub = AuthSessionService.instance.forcedLogoutStream.listen((
       _,
-    ) {
-      ref.invalidate(authProvider);
-      final router = ref.read(routerProvider);
-      router.go(AppRoutes.login);
+    ) async {
+      if (ref.read(authProvider).value != null) {
+        // Same cleanup as a normal logout, minus the backend call (the server
+        // just told us the token is no good).
+        await ref.read(authProvider.notifier).endSessionLocally();
+      } else {
+        // Nobody signed in (e.g. a 401 on the login form): just re-read the
+        // stored session so state matches the cleared storage.
+        ref.invalidate(authProvider);
+      }
+      if (!mounted) return;
+      ref.read(routerProvider).go(AppRoutes.login);
     });
   }
 
   @override
   void dispose() {
+    _signedOutSub?.close();
     _forcedLogoutSub?.cancel();
     super.dispose();
   }
@@ -79,6 +107,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    ref.watch(sessionResetProvider);
     PushNotificationService.instance.attachRouter(router);
 
     return ScreenUtilInit(

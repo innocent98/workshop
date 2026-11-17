@@ -5,8 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/providers/location_provider.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
+import '../widgets/service_checkbox.dart';
 import '../../../artisan_profile/presentation/providers/artisan_public_profile_providers.dart';
+import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../../client_home/domain/models/artisan.dart';
 import '../../../client_profile/presentation/providers/client_profile_provider.dart';
 import '../../../services/presentation/providers/services_provider.dart';
@@ -29,11 +33,16 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
   final BookingRemoteDataSource _bookingRemoteDataSource =
       BookingRemoteDataSource();
   bool _isSubmitting = false;
-  final Set<int> _selectedServiceIndexes = <int>{0};
+  late final Set<int> _selectedServiceIndexes;
 
   @override
   void initState() {
     super.initState();
+    _selectedServiceIndexes = <int>{
+      widget.artisan.initialServiceIndex(_serviceOptions()),
+    };
+    // The API requires a budget range, so start from a visible default the
+    // user can edit rather than an empty (invalid) form.
     _minBudgetController.text = '25,000';
     _maxBudgetController.text = '35,000';
   }
@@ -157,6 +166,8 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
       );
 
       if (!mounted) return;
+      // Bookings tab must show the new request without a pull-to-refresh.
+      ref.read(artisanBookingsProvider.notifier).refreshSilently();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Booking request sent successfully')),
       );
@@ -211,11 +222,10 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 20.r,
-                          backgroundImage: _resolveImageProvider(
-                            widget.artisan.avatarUrl,
-                          ),
+                        ProfileAvatar(
+                          imageUrl: widget.artisan.avatarUrl,
+                          name: widget.artisan.name,
+                          radius: 20,
                         ),
                         SizedBox(width: AppSizes.spacingSmall),
                         Expanded(
@@ -233,11 +243,7 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                   if (widget.artisan.isVerified)
-                                    Icon(
-                                      Icons.verified,
-                                      size: 14.r,
-                                      color: Colors.red,
-                                    ),
+                                    const VerifiedBadge(),
                                   BodyText(
                                     (widget.artisan.category != null &&
                                             widget.artisan.category!
@@ -318,33 +324,10 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                               });
                             },
                             child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 2.h),
+                              padding: EdgeInsets.symmetric(vertical: 10.h),
                               child: Row(
                                 children: [
-                                  SizedBox(
-                                    width: 22.w,
-                                    height: 22.h,
-                                    child: Checkbox(
-                                      value: selected,
-                                      visualDensity: const VisualDensity(
-                                        horizontal: -4,
-                                        vertical: -4,
-                                      ),
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      onChanged: (_) {
-                                        setState(() {
-                                          if (selected) {
-                                            _selectedServiceIndexes.remove(
-                                              index,
-                                            );
-                                          } else {
-                                            _selectedServiceIndexes.add(index);
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ),
+                                  ServiceCheckbox(selected: selected),
                                   SizedBox(width: 8.w),
                                   Expanded(
                                     child: BodyText(
@@ -425,25 +408,10 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                     SizedBox(height: AppSizes.spacingLarge),
 
                     // Budget Range Section
-                    RichText(
-                      text: TextSpan(
-                        text: 'Budget range ',
-                        style: TextStyle(
-                          fontSize: AppSizes.body,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: '(optional)',
-                            style: TextStyle(
-                              fontSize: AppSizes.body,
-                              fontWeight: FontWeight.w400,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
+                    const BodyText(
+                      'Budget range',
+                      size: BodySize.medium,
+                      fontWeight: FontWeight.w600,
                     ),
                     SizedBox(height: 2.h),
                     const BodyText(
@@ -474,6 +442,12 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
                           ),
                         ),
                       ],
+                    ),
+                    SizedBox(height: 6.h),
+                    const BodyText(
+                      'Default range, edit to match your budget',
+                      size: BodySize.small,
+                      color: AppColors.textSecondary,
                     ),
                     SizedBox(height: AppSizes.spacingLarge),
                   ],
@@ -518,13 +492,6 @@ class _InstantServicePageState extends ConsumerState<InstantServicePage> {
       ),
     );
   }
-
-  ImageProvider _resolveImageProvider(String imageUrl) {
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return NetworkImage(imageUrl);
-    }
-    return AssetImage(imageUrl);
-  }
 }
 
 // Custom Budget TextField Widget
@@ -546,7 +513,7 @@ class _BudgetTextField extends StatelessWidget {
       ),
       child: Row(
         children: [
-          BodyText('NGN', size: BodySize.small, color: AppColors.textPrimary),
+          BodyText('₦', size: BodySize.small, color: AppColors.textPrimary),
           SizedBox(width: 4.w),
           Expanded(
             child: TextField(

@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
+import '../../../../core/constants/support_contact.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 import '../models/requests/register_personal_info_request.dart';
 import '../models/requests/register_password_request.dart';
 import '../models/requests/send_otp_request.dart';
@@ -22,7 +24,14 @@ import '../models/responses/forgot_password_response.dart';
 import '../models/responses/verify_code_response.dart';
 
 class AuthRemoteDataSource {
-  final Dio _dio = DioClient().dio;
+  AuthRemoteDataSource({Dio? dio}) : _dio = dio ?? DioClient().dio;
+
+  final Dio _dio;
+
+  /// Shown when the backend has no account-deletion endpoint yet.
+  static String get deletionUnavailableMessage =>
+      'Account deletion is not available yet. Please contact support on '
+      '${SupportContact.phoneDisplay} and we will delete your account for you.';
 
   Future<RegisterPersonalInfoResponse> registerPersonalInfo(
     RegisterPersonalInfoRequest request,
@@ -186,6 +195,28 @@ class AuthRemoteDataSource {
       await _dio.post('/auth/logout');
     } on DioException catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  /// Permanently deletes the signed-in account (`DELETE /auth/me`, no body).
+  /// Any 2xx counts as success (204 or 200 with JSON). 404/405/501 mean the
+  /// backend does not offer deletion yet and are mapped to a support message.
+  Future<void> deleteAccount() async {
+    try {
+      await _dio.delete('/auth/me');
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 404 || status == 405 || status == 501) {
+        throw ApiException(
+          deletionUnavailableMessage,
+          status,
+          'account_deletion_unavailable',
+        );
+      }
+      throw mapDioError(
+        e,
+        fallbackMessage: 'We could not delete your account. Please try again.',
+      );
     }
   }
 

@@ -22,6 +22,10 @@ class Artisan {
   final int? serviceId;
   final List<ArtisanServiceOption> offeredServices;
 
+  /// The service the user came looking for (set when they arrive from a
+  /// search). The booking pages pre-select it instead of the first service.
+  final ArtisanServiceOption? preferredService;
+
   const Artisan({
     required this.id,
     required this.name,
@@ -36,7 +40,60 @@ class Artisan {
     this.ratingsCount,
     this.serviceId,
     this.offeredServices = const [],
+    this.preferredService,
   });
+
+  /// Returns a copy that remembers which of this artisan's services matches
+  /// [query] (a service name the user searched for or tapped). Unchanged when
+  /// nothing matches, so booking falls back to the first service.
+  Artisan withPreferredServiceFromQuery(String? query) {
+    final needle = (query ?? '').trim().toLowerCase();
+    if (needle.isEmpty) return this;
+    ArtisanServiceOption? match;
+    for (final option in offeredServices) {
+      if (option.name.trim().toLowerCase() == needle) {
+        match = option;
+        break;
+      }
+    }
+    match ??= () {
+      for (final option in offeredServices) {
+        final name = option.name.trim().toLowerCase();
+        if (name.contains(needle) || needle.contains(name)) return option;
+      }
+      return null;
+    }();
+    if (match == null) return this;
+    return Artisan(
+      id: id,
+      name: name,
+      category: category,
+      service: service,
+      imageUrl: imageUrl,
+      avatarUrl: avatarUrl,
+      rating: rating,
+      jobsCompleted: jobsCompleted,
+      isVerified: isVerified,
+      distanceKm: distanceKm,
+      ratingsCount: ratingsCount,
+      serviceId: serviceId,
+      offeredServices: offeredServices,
+      preferredService: match,
+    );
+  }
+
+  /// Index in [options] of the service to pre-select: the preferred service
+  /// when it is offered, otherwise the first one.
+  int initialServiceIndex(List<ArtisanServiceOption> options) {
+    final preferred = preferredService;
+    if (preferred == null) return 0;
+    final index = options.indexWhere(
+      (o) =>
+          (preferred.id != null && o.id == preferred.id) ||
+          o.name.trim().toLowerCase() == preferred.name.trim().toLowerCase(),
+    );
+    return index < 0 ? 0 : index;
+  }
 
   /// Create Artisan from ArtisanSearchModel (API response)
   factory Artisan.fromSearchModel(ArtisanSearchModel model) {
@@ -51,18 +108,19 @@ class Artisan {
         ? model.services.first.name
         : 'Artisan';
 
-    // Use profile picture or first service image as avatar
-    final avatar =
-        model.profilePictureUrl ??
+    // Empty when the artisan has no photo; the UI shows an initials placeholder.
+    final avatar = model.profilePictureUrl ?? '';
+    final workImage =
+        model.portfolioUrl ??
         (model.services.isNotEmpty ? model.services.first.imageUrl : null) ??
-        'assets/images/regular.jpg';
+        avatar;
 
     return Artisan(
       id: model.id,
       name: displayName.isNotEmpty ? displayName : 'Unknown',
       category: model.categoryName,
       service: serviceName,
-      imageUrl: model.portfolioUrl ?? avatar,
+      imageUrl: workImage,
       avatarUrl: avatar,
       rating: model.averageRating ?? 0.0,
       jobsCompleted: model.totalJobsCompleted ?? 0,

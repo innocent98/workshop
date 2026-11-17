@@ -4,7 +4,11 @@ import '../../../../core/providers/location_provider.dart';
 import '../../data/models/search_request.dart';
 import 'nearby_artisans_provider.dart';
 
-final allArtisansProvider = FutureProvider<List<Artisan>>((ref) async {
+/// Auto-disposed so an empty or failed result is never cached: leaving and
+/// re-entering the screen fetches again.
+final allArtisansProvider = FutureProvider.autoDispose<List<Artisan>>((
+  ref,
+) async {
   final locationData = await ref.watch(locationProvider.future);
   final repository = ref.watch(searchRepositoryProvider);
 

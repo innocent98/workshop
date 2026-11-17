@@ -6,7 +6,9 @@ import '../../../bookings/presentation/pages/bookings_page.dart';
 import '../../../support/presentation/pages/support_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../client_profile/presentation/providers/client_location_sync_provider.dart';
+import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../../bookings/presentation/providers/payment_verification_provider.dart';
+import '../../../search/presentation/providers/nearby_artisans_provider.dart';
 
 class MainNavigationPage extends ConsumerStatefulWidget {
   const MainNavigationPage({super.key});
@@ -40,6 +42,23 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
     setState(() {
       _currentIndex = index;
     });
+    _refreshTab(index);
+  }
+
+  /// Tabs live in an IndexedStack and are built once, so selecting one must
+  /// itself refresh data that may have changed while it was hidden.
+  void _refreshTab(int index) {
+    switch (index) {
+      case 0:
+        // A cached empty/failed nearby list would otherwise stay until restart.
+        final nearby = ref.read(nearbyArtisansProvider);
+        if (!nearby.isLoading &&
+            (nearby.hasError || (nearby.value?.isEmpty ?? false))) {
+          ref.invalidate(nearbyArtisansProvider);
+        }
+      case 1:
+        ref.read(artisanBookingsProvider.notifier).refreshSilently();
+    }
   }
 
   @override

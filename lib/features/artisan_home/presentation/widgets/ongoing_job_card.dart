@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../bookings/domain/models/artisan_booking.dart';
 
@@ -15,8 +16,7 @@ class OngoingJobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clientAvatar =
-        booking.customerProfilePictureUrl ?? 'assets/images/regular.jpg';
+    final clientAvatar = booking.customerProfilePictureUrl ?? '';
     final serviceName = booking.serviceName ?? 'Service Request';
     final clientName = booking.customerName ?? 'Client';
 
@@ -92,9 +92,10 @@ class OngoingJobCard extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 16.r,
-                        backgroundImage: _getAvatarImage(clientAvatar),
+                      ProfileAvatar(
+                        imageUrl: clientAvatar,
+                        name: clientName,
+                        radius: 16,
                       ),
                       SizedBox(width: 10.w),
                       Expanded(
@@ -238,12 +239,5 @@ class OngoingJobCard extends StatelessWidget {
         child: Icon(icon, color: AppColors.textPrimary, size: 18.r),
       ),
     );
-  }
-
-  ImageProvider _getAvatarImage(String avatar) {
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-      return NetworkImage(avatar);
-    }
-    return AssetImage(avatar);
   }
 }

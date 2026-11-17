@@ -7,13 +7,15 @@ import '../../../../core/widgets/text/text_widgets.dart';
 class RatingDistribution extends StatelessWidget {
   final Map<int, double> distribution;
 
-  const RatingDistribution({
-    super.key,
-    required this.distribution,
-  });
+  const RatingDistribution({super.key, required this.distribution});
 
   @override
   Widget build(BuildContext context) {
+    // No reviews counted yet: bars would all read 0% next to a non-zero
+    // average, so show nothing.
+    if (distribution.values.every((value) => value <= 0)) {
+      return const SizedBox.shrink();
+    }
     return Column(
       children: [
         _buildRatingBar(5, distribution[5] ?? 0),
@@ -44,7 +46,9 @@ class RatingDistribution extends StatelessWidget {
             child: LinearProgressIndicator(
               value: percentage / 100,
               backgroundColor: const Color(0xFFE0E0E0),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primary,
+              ),
               minHeight: 6.h,
             ),
           ),

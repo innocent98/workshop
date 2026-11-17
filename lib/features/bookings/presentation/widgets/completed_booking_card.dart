@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import 'package:workchop/features/bookings/domain/models/booking.dart';
 
@@ -54,9 +56,10 @@ class CompletedBookingCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 16.r,
-                  backgroundImage: _resolveImageProvider(booking.artisanAvatar),
+                ProfileAvatar(
+                  imageUrl: booking.artisanAvatar,
+                  name: booking.artisanName,
+                  radius: 16,
                 ),
                 SizedBox(width: AppSizes.spacingSmall),
                 Expanded(
@@ -73,8 +76,7 @@ class CompletedBookingCard extends StatelessWidget {
                             size: BodySize.small,
                             fontWeight: FontWeight.w600,
                           ),
-                          if (booking.isVerified)
-                            Icon(Icons.verified, size: 14.r, color: Colors.red),
+                          if (booking.isVerified) const VerifiedBadge(),
                           BodyText(
                             booking.serviceType,
                             size: BodySize.small,
@@ -238,12 +240,5 @@ class CompletedBookingCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  ImageProvider _resolveImageProvider(String imageUrl) {
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return NetworkImage(imageUrl);
-    }
-    return AssetImage(imageUrl);
   }
 }

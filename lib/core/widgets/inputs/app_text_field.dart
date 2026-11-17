@@ -35,6 +35,18 @@ class AppTextField extends StatefulWidget {
 class _AppTextFieldState extends State<AppTextField> {
   late FocusNode _focusNode;
   bool _isFocused = false;
+  final GlobalKey<FormFieldState<String>> _fieldKey =
+      GlobalKey<FormFieldState<String>>();
+
+  /// Once a validation error is on screen, re-check it on every keystroke so
+  /// it disappears (or changes) as soon as the text becomes valid, instead of
+  /// staying until the next submit.
+  void _revalidateIfShowingError(String _) {
+    final field = _fieldKey.currentState;
+    if (field != null && field.hasError) {
+      field.validate();
+    }
+  }
 
   @override
   void initState() {
@@ -61,8 +73,10 @@ class _AppTextFieldState extends State<AppTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
+          key: _fieldKey,
           controller: widget.controller,
           validator: widget.validator,
+          onChanged: _revalidateIfShowingError,
           obscureText: widget.obscureText,
           keyboardType: widget.keyboardType,
           focusNode: _focusNode,
@@ -87,7 +101,10 @@ class _AppTextFieldState extends State<AppTextField> {
             fillColor: _isFocused
                 ? const Color(0xFFE0F2F1) // Light mint for focused
                 : const Color(0xFFF5F5F5), // Light gray for normal
-            contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 20.w,
+              vertical: 18.h,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(
@@ -97,31 +114,19 @@ class _AppTextFieldState extends State<AppTextField> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(
-                color: Colors.transparent,
-                width: 0,
-              ),
+              borderSide: const BorderSide(color: Colors.transparent, width: 0),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(
-                color: AppColors.primary,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(
-                color: AppColors.error,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: AppColors.error, width: 2),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(
-                color: AppColors.error,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: AppColors.error, width: 2),
             ),
             prefixIcon: widget.prefixIcon,
             suffixIcon: widget.suffixIcon,

@@ -5,6 +5,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../client_home/domain/models/artisan.dart';
 
 class ArtisanResultCard extends StatelessWidget {
@@ -68,11 +70,7 @@ class ArtisanResultCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.verified,
-                                size: 11.r,
-                                color: Colors.green.shade700,
-                              ),
+                              const VerifiedBadge(size: 11),
                               SizedBox(width: 3.w),
                               BodyText(
                                 'Verified',
@@ -142,19 +140,10 @@ class ArtisanResultCard extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
-    if (artisan.avatarUrl.startsWith('http://') ||
-        artisan.avatarUrl.startsWith('https://')) {
-      return CircleAvatar(
-        radius: 24.r,
-        backgroundColor: AppColors.cardBackground,
-        backgroundImage: NetworkImage(artisan.avatarUrl),
-      );
-    }
-
-    return CircleAvatar(
-      radius: 24.r,
-      backgroundColor: AppColors.cardBackground,
-      backgroundImage: AssetImage(artisan.avatarUrl),
+    return ProfileAvatar(
+      imageUrl: artisan.avatarUrl,
+      name: artisan.name,
+      radius: 24,
     );
   }
 }

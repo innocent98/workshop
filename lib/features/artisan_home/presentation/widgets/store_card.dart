@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 
 class StoreCard extends StatelessWidget {
@@ -41,17 +42,22 @@ class StoreCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 14.r,
-                      backgroundImage: const AssetImage('assets/images/regular.jpg'),
-                    ),
+                    AvatarPlaceholder(name: proprietor, radius: 14),
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          BodyText(name, size: BodySize.medium, fontWeight: FontWeight.bold),
-                          BodyText(proprietor, size: BodySize.small, color: AppColors.primary),
+                          BodyText(
+                            name,
+                            size: BodySize.medium,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          BodyText(
+                            proprietor,
+                            size: BodySize.small,
+                            color: AppColors.primary,
+                          ),
                         ],
                       ),
                     ),
@@ -72,11 +78,23 @@ class StoreCard extends StatelessWidget {
                   children: [
                     Icon(Icons.star, size: 10.r, color: Colors.amber),
                     SizedBox(width: 4.w),
-                    BodyText(rating, size: BodySize.small, fontWeight: FontWeight.bold),
+                    BodyText(
+                      rating,
+                      size: BodySize.small,
+                      fontWeight: FontWeight.bold,
+                    ),
                     const Spacer(),
-                    Icon(Icons.location_on, size: 10.r, color: AppColors.textTertiary),
+                    Icon(
+                      Icons.location_on,
+                      size: 10.r,
+                      color: AppColors.textTertiary,
+                    ),
                     SizedBox(width: 4.w),
-                    BodyText(distance, size: BodySize.small, color: AppColors.textSecondary),
+                    BodyText(
+                      distance,
+                      size: BodySize.small,
+                      color: AppColors.textSecondary,
+                    ),
                   ],
                 ),
               ],

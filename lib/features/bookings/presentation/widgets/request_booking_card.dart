@@ -3,6 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/utils/money_format.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import 'package:workchop/features/bookings/domain/models/booking.dart';
 
@@ -30,6 +33,13 @@ class RequestBookingCard extends StatelessWidget {
     this.onCallTap,
   });
 
+  /// A 0 - 0 range means the client did not set a budget, so show nothing.
+  bool get _hasBudget {
+    final min = booking.budgetMin;
+    final max = booking.budgetMax;
+    return min != null && max != null && max > 0;
+  }
+
   String _formatDateTime(DateTime dateTime) {
     final dayFormat = DateFormat('EEEE, d MMM, yyyy');
     final timeFormat = DateFormat('hh:mm a');
@@ -54,9 +64,10 @@ class RequestBookingCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 16.r,
-                  backgroundImage: _resolveImageProvider(booking.artisanAvatar),
+                ProfileAvatar(
+                  imageUrl: booking.artisanAvatar,
+                  name: booking.artisanName,
+                  radius: 16,
                 ),
                 SizedBox(width: AppSizes.spacingSmall),
                 Expanded(
@@ -74,8 +85,7 @@ class RequestBookingCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
                           ),
-                          if (booking.isVerified)
-                            Icon(Icons.verified, size: 14.r, color: Colors.red),
+                          if (booking.isVerified) const VerifiedBadge(),
                           BodyText(
                             booking.serviceType,
                             size: BodySize.small,
@@ -147,6 +157,34 @@ class RequestBookingCard extends StatelessWidget {
                 ),
               ),
             ),
+
+            if (_hasBudget) ...[
+              SizedBox(height: 4.h),
+              Row(
+                key: const Key('request_card_budget'),
+                children: [
+                  Icon(
+                    Icons.payments_outlined,
+                    size: 16.r,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 4.w),
+                  const BodyText(
+                    'Budget: ',
+                    size: BodySize.small,
+                    color: AppColors.textSecondary,
+                  ),
+                  Flexible(
+                    child: BodyText(
+                      formatNairaRange(booking.budgetMin!, booking.budgetMax!),
+                      size: BodySize.small,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
 
             SizedBox(height: AppSizes.spacing),
 
@@ -224,12 +262,5 @@ class RequestBookingCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  ImageProvider _resolveImageProvider(String imageUrl) {
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return NetworkImage(imageUrl);
-    }
-    return AssetImage(imageUrl);
   }
 }

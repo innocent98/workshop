@@ -327,7 +327,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                       // Subtitle
                       BodyText(
-                        'Welcome back! Enter your details to log in',
+                        'Enter your details to log in',
                         size: BodySize.medium,
                         color: AppColors.textSecondary,
                         height: 1.4,

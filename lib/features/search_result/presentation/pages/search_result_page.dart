@@ -270,7 +270,9 @@ class _SearchResultPageState extends ConsumerState<SearchResultPage> {
                         ...artisans.map(
                           (artisan) => ArtisanResultCard(
                             key: ValueKey(artisan.id),
-                            artisan: artisan,
+                            artisan: artisan.withPreferredServiceFromQuery(
+                              widget.query,
+                            ),
                             distance: artisan.distanceKm != null
                                 ? '${artisan.distanceKm!.toStringAsFixed(1)} km away'
                                 : null,
