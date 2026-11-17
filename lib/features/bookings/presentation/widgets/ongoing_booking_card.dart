@@ -107,6 +107,10 @@ class OngoingBookingCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (booking.isDisputed) ...[
+              SizedBox(height: AppSizes.spacingSmall),
+              _DisputedBanner(reason: booking.disputeReason),
+            ],
             SizedBox(height: AppSizes.spacingSmall),
 
             // Needed Service
@@ -219,5 +223,51 @@ class OngoingBookingCard extends StatelessWidget {
       return NetworkImage(imageUrl);
     }
     return AssetImage(imageUrl);
+  }
+}
+
+class _DisputedBanner extends StatelessWidget {
+  final String? reason;
+
+  const _DisputedBanner({this.reason});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = (reason ?? '').trim();
+    return Container(
+      key: const Key('disputed_banner'),
+      width: double.infinity,
+      padding: EdgeInsets.all(10.r),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDECEC),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.report_gmailerrorred, size: 16.r, color: AppColors.error),
+          SizedBox(width: 6.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const BodyText(
+                  'Disputed',
+                  size: BodySize.small,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.error,
+                ),
+                if (text.isNotEmpty)
+                  BodyText(
+                    text,
+                    size: BodySize.small,
+                    color: AppColors.textSecondary,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

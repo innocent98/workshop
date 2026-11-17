@@ -3,11 +3,14 @@ import 'package:logger/logger.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 import '../models/wallet_response_models.dart';
 
 class WalletRemoteDataSource {
-  final Dio _dio = DioClient().dio;
+  final Dio _dio;
   final Logger _logger = Logger();
+
+  WalletRemoteDataSource({Dio? dio}) : _dio = dio ?? DioClient().dio;
 
   Future<WalletBalanceResponseModel> getWalletBalance() async {
     try {
@@ -17,7 +20,7 @@ class WalletRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to fetch wallet balance: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -42,7 +45,7 @@ class WalletRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to fetch wallet earnings: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -61,7 +64,7 @@ class WalletRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to fetch payout history: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -73,7 +76,7 @@ class WalletRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to fetch wallet stats: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -99,7 +102,7 @@ class WalletRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to request payout: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -116,7 +119,7 @@ class WalletRemoteDataSource {
           .toList();
     } on DioException catch (e) {
       _logger.e('Failed to fetch banks: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 

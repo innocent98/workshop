@@ -111,6 +111,18 @@ class ArtisanBookingsRepositoryImpl implements ArtisanBookingsRepository {
   }
 
   @override
+  Future<ArtisanBooking> disputeCompletion({
+    required int bookingId,
+    required String disputeReason,
+  }) async {
+    final response = await _remoteDataSource.disputeCompletion(
+      bookingId: bookingId,
+      disputeReason: disputeReason,
+    );
+    return response.toDomain();
+  }
+
+  @override
   Future<ArtisanBooking> negotiateBooking({
     required int bookingId,
     required double negotiatedAmount,

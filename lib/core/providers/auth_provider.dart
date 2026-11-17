@@ -5,6 +5,8 @@ import '../models/user.dart';
 import '../services/push_notification_service.dart';
 import '../services/token_storage_service.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/bookings/data/pending_payment_store.dart';
+import '../../features/bookings/presentation/providers/payment_verification_provider.dart';
 import 'registration_provider.dart';
 import 'service_guard_provider.dart';
 
@@ -128,6 +130,9 @@ class AuthNotifier extends AsyncNotifier<User?> {
       await _tokenStorage.deleteToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
+      // A pending payment belongs to the account that started it.
+      await PendingPaymentStore().clear();
+      ref.read(paymentVerificationProvider.notifier).reset();
       await ref.read(registrationProvider.notifier).clearRegistration();
       ref.read(serviceGuardProvider.notifier).clear();
       return null;

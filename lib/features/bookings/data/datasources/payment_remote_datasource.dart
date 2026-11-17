@@ -26,7 +26,9 @@ class VerifyPaymentResult {
 }
 
 class PaymentRemoteDataSource {
-  final Dio _dio = DioClient().dio;
+  final Dio _dio;
+
+  PaymentRemoteDataSource({Dio? dio}) : _dio = dio ?? DioClient().dio;
 
   Future<InitializePaymentResult> initializePayment({
     required int bookingId,
