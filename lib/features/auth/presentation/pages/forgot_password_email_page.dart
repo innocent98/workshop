@@ -14,10 +14,12 @@ class ForgotPasswordEmailPage extends ConsumerStatefulWidget {
   const ForgotPasswordEmailPage({super.key});
 
   @override
-  ConsumerState<ForgotPasswordEmailPage> createState() => _ForgotPasswordEmailPageState();
+  ConsumerState<ForgotPasswordEmailPage> createState() =>
+      _ForgotPasswordEmailPageState();
 }
 
-class _ForgotPasswordEmailPageState extends ConsumerState<ForgotPasswordEmailPage> {
+class _ForgotPasswordEmailPageState
+    extends ConsumerState<ForgotPasswordEmailPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
@@ -33,12 +35,15 @@ class _ForgotPasswordEmailPageState extends ConsumerState<ForgotPasswordEmailPag
       setState(() => _isLoading = true);
 
       try {
-        await ref.read(passwordResetProvider.notifier).sendResetCode(
-              _emailController.text.trim(),
-            );
+        await ref
+            .read(passwordResetProvider.notifier)
+            .sendResetCode(_emailController.text.trim());
 
         if (mounted) {
-          context.push(AppRoutes.forgotPasswordOtp, extra: _emailController.text);
+          context.push(
+            AppRoutes.forgotPasswordOtp,
+            extra: _emailController.text,
+          );
         }
       } catch (e) {
         if (mounted) {
@@ -54,10 +59,7 @@ class _ForgotPasswordEmailPageState extends ConsumerState<ForgotPasswordEmailPag
           debugPrint('Send reset code error: $e');
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: AppColors.error,
-            ),
+            SnackBar(content: Text(message), backgroundColor: AppColors.error),
           );
         }
       } finally {
