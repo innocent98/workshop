@@ -54,6 +54,7 @@ dependencies:
   firebase_core: ^3.15.1
   firebase_auth: ^5.3.1
   firebase_messaging: ^15.1.6
+  firebase_crashlytics: ^4.3.10
   google_sign_in: ^6.2.2
   flutter_local_notifications: ^17.2.4
 
@@ -71,11 +72,23 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+# App icon: drop a square 1024x1024 PNG (no transparency, no rounded corners) at
+# assets/branding/app_icon.png, then run `dart run flutter_launcher_icons`.
+# (No logo asset exists in the repo yet, so icons have not been generated.)
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/branding/app_icon.png"
+  adaptive_icon_background: "#008080"
+  adaptive_icon_foreground: "assets/branding/app_icon_foreground.png"
+
 flutter:
   assets:
     - assets/images/
