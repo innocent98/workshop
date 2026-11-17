@@ -91,6 +91,13 @@ jobs:
           flutter-version: '3.38.7'
           cache: true
       - run: flutter pub get
+      # The runner's SDK has licences unaccepted and lacks the NDK pinned in
+      # android/app/build.gradle.kts (ndkVersion); install what Gradle asks for.
+      - name: Accept Android licences and install SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14033849"
       # No key.properties in CI: Gradle falls back to the debug key. This job
       # only proves the release configuration (R8, shrinking) compiles.
       - run: >
