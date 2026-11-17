@@ -134,6 +134,19 @@ class ArtisanBookingsNotifier extends AsyncNotifier<List<ArtisanBooking>> {
     return updatedBooking;
   }
 
+  Future<ArtisanBooking> disputeCompletion({
+    required int bookingId,
+    required String disputeReason,
+  }) async {
+    final repository = ref.read(artisanBookingsRepositoryProvider);
+    final updatedBooking = await repository.disputeCompletion(
+      bookingId: bookingId,
+      disputeReason: disputeReason,
+    );
+    _upsertBooking(updatedBooking);
+    return updatedBooking;
+  }
+
   Future<ArtisanBooking> negotiateBooking({
     required int bookingId,
     required double negotiatedAmount,

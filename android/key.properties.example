@@ -1,0 +1,5 @@
+# Copy to android/key.properties (gitignored) and fill in. NEVER commit the real file or the keystore.
+storePassword=<keystore password>
+keyPassword=<key password>
+keyAlias=<key alias, e.g. upload>
+storeFile=<absolute path to the keystore, e.g. /Users/you/keys/workchop-upload.jks>

@@ -12,6 +12,8 @@ import '../../../../core/utils/phone_launcher.dart';
 import '../../domain/models/artisan_booking.dart';
 import '../providers/artisan_bookings_provider.dart';
 import '../widgets/artisan_job_card.dart';
+import '../../../../core/network/dio_error_mapper.dart';
+import '../../../../core/widgets/common/error_state.dart';
 
 class ArtisanJobsPage extends ConsumerStatefulWidget {
   const ArtisanJobsPage({super.key});
@@ -122,28 +124,11 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
               loading: () =>
                   const Expanded(child: Center(child: LoadingIndicator())),
               error: (error, _) => Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        BodyText(
-                          error.toString(),
-                          size: BodySize.small,
-                          color: Colors.red,
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 12.h),
-                        ElevatedButton(
-                          onPressed: () => ref
-                              .read(artisanBookingsProvider.notifier)
-                              .refresh(),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: ErrorState(
+                  error: error,
+                  title: 'Could not load your jobs',
+                  onRetry: () =>
+                      ref.read(artisanBookingsProvider.notifier).refresh(),
                 ),
               ),
             ),
@@ -467,7 +452,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     }
   }
 
@@ -499,7 +484,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     }
   }
 
@@ -521,7 +506,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     }
   }
 

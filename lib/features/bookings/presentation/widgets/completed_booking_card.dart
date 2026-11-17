@@ -11,6 +11,9 @@ class CompletedBookingCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDeleteTap;
   final VoidCallback? onRateTap;
+
+  /// When non-null a "Dispute" action is shown next to the primary action.
+  final VoidCallback? onDisputeTap;
   final bool isReviewSubmitted;
   final bool isSubmittingReview;
   final String secondaryActionLabel;
@@ -21,6 +24,7 @@ class CompletedBookingCard extends StatelessWidget {
     this.onTap,
     this.onDeleteTap,
     this.onRateTap,
+    this.onDisputeTap,
     this.isReviewSubmitted = false,
     this.isSubmittingReview = false,
     this.secondaryActionLabel = 'Delete Job',
@@ -169,6 +173,32 @@ class CompletedBookingCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onDisputeTap != null) ...[
+                  SizedBox(width: AppSizes.spacing),
+                  Expanded(
+                    child: GestureDetector(
+                      key: const Key('dispute_completion_action'),
+                      onTap: onDisputeTap,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusSmall,
+                          ),
+                        ),
+                        child: const Center(
+                          child: BodyText(
+                            'Dispute',
+                            size: BodySize.small,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 if (onRateTap != null) ...[
                   SizedBox(width: AppSizes.spacing),
                   Expanded(

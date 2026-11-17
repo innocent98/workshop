@@ -154,7 +154,17 @@ class PushNotificationService {
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
-    const settings = InitializationSettings(android: androidSettings);
+    // Permission is requested once through FirebaseMessaging above; asking
+    // again here would show a second system prompt on iOS.
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const settings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
 
     await _localNotifications.initialize(
       settings,
@@ -187,7 +197,10 @@ class PushNotificationService {
       importance: Importance.high,
       priority: Priority.high,
     );
-    const notificationDetails = NotificationDetails(android: androidDetails);
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
 
     await _localNotifications.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,

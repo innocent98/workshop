@@ -6,17 +6,24 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 import '../../../../core/utils/phone_launcher.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../booking/data/booking_remote_datasource.dart';
 import '../../data/datasources/payment_remote_datasource.dart';
 import '../../data/datasources/review_remote_datasource.dart';
 import '../../domain/models/artisan_booking.dart';
+import '../../domain/dispute_rules.dart';
 import '../../domain/models/booking.dart';
+import '../../domain/payment_verification.dart';
 import '../providers/artisan_bookings_provider.dart';
+import '../providers/payment_verification_provider.dart';
+import '../widgets/dispute_completion_dialog.dart';
+import '../widgets/pending_payment_banner.dart';
 import '../widgets/completed_booking_card.dart';
 import '../widgets/ongoing_booking_card.dart';
 import '../widgets/request_booking_card.dart';
+import '../../../../core/widgets/common/error_state.dart';
 
 class BookingsPage extends ConsumerStatefulWidget {
   const BookingsPage({super.key});
@@ -25,8 +32,7 @@ class BookingsPage extends ConsumerStatefulWidget {
   ConsumerState<BookingsPage> createState() => _BookingsPageState();
 }
 
-class _BookingsPageState extends ConsumerState<BookingsPage>
-    with WidgetsBindingObserver {
+class _BookingsPageState extends ConsumerState<BookingsPage> {
   int _mainTabIndex = 0; // 0: Active, 1: History
   int _filterIndex = 0;
   final BookingRemoteDataSource _bookingRemoteDataSource =
@@ -40,26 +46,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
   final Set<int> _paymentSubmittingBookingIds = <int>{};
   final Set<int> _confirmingCompletionBookingIds = <int>{};
   final Set<int> _negotiationSubmittingBookingIds = <int>{};
-  final Map<int, String> _pendingPaymentReferences = <int, String>{};
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _verifyPendingPayments(autoTriggered: true);
-    }
-  }
+  final Set<int> _disputingBookingIds = <int>{};
 
   List<String> get _filters => _mainTabIndex == 0
       ? const ['All', 'Requested', 'Ongoing']
@@ -106,6 +93,10 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
       status: _statusForUi(booking.status),
       dateTime: booking.jobDate,
       services: [serviceLine],
+      isDisputed:
+          booking.status == ArtisanBookingStatus.disputed ||
+          booking.completionDisputedAt != null,
+      disputeReason: booking.completionDisputeReason,
     );
   }
 
@@ -145,7 +136,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     }
   }
 
@@ -207,7 +198,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     }
   }
 
@@ -289,7 +280,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     }
   }
 
@@ -314,27 +305,14 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
         throw ApiException('Unable to open payment checkout');
       }
 
-      _pendingPaymentReferences[booking.id] = init.paymentReference;
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Complete payment in checkout and return to app. Verification runs automatically.',
-          ),
-          action: SnackBarAction(
-            label: 'Verify now',
-            onPressed: () {
-              _verifyPendingPayments(autoTriggered: false);
-            },
-          ),
-        ),
-      );
+      await ref
+          .read(paymentVerificationProvider.notifier)
+          .track(bookingId: booking.id, reference: init.paymentReference);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     } finally {
       if (mounted) {
         setState(() => _paymentSubmittingBookingIds.remove(booking.id));
@@ -360,44 +338,37 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
     }
   }
 
-  Future<void> _verifyPendingPayments({required bool autoTriggered}) async {
-    if (_pendingPaymentReferences.isEmpty) return;
+  Future<void> _disputeJobCompletion(ArtisanBooking booking) async {
+    if (_disputingBookingIds.contains(booking.id)) return;
 
-    final pending = _pendingPaymentReferences.entries.toList();
-    bool paidAny = false;
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => const DisputeCompletionDialog(),
+    );
+    if (reason == null || !mounted) return;
 
-    for (final entry in pending) {
-      try {
-        final verify = await _paymentRemoteDataSource.verifyPayment(
-          paymentReference: entry.value,
-        );
-        if (verify.paid) {
-          _pendingPaymentReferences.remove(entry.key);
-          paidAny = true;
-        }
-      } catch (_) {
-        // Keep pending for next retry.
-      }
-    }
-
-    if (!mounted) return;
-    if (paidAny) {
+    setState(() => _disputingBookingIds.add(booking.id));
+    try {
+      await ref
+          .read(artisanBookingsProvider.notifier)
+          .disputeCompletion(bookingId: booking.id, disputeReason: reason);
+      // Re-sync from the server so the card reflects the authoritative state.
       await ref.read(artisanBookingsProvider.notifier).refresh();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Payment verified. Booking updated to paid'),
+          content: Text('Dispute submitted. This job is now marked disputed.'),
         ),
       );
-      return;
-    }
-
-    if (!autoTriggered) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment not verified yet. Try again shortly.'),
-        ),
-      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
+    } finally {
+      if (mounted) {
+        setState(() => _disputingBookingIds.remove(booking.id));
+      }
     }
   }
 
@@ -417,7 +388,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     } finally {
       if (mounted) {
         setState(() => _confirmingCompletionBookingIds.remove(booking.id));
@@ -482,7 +453,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     } finally {
       if (mounted) {
         if (progressDialogContext != null && progressDialogContext!.mounted) {
@@ -531,12 +502,18 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
         );
       }
       if (item.status == ArtisanBookingStatus.accepted) {
-        final processing = _paymentSubmittingBookingIds.contains(item.id);
+        final verifyingPayment =
+            ref.watch(paymentVerificationProvider).pending[item.id]?.phase ==
+            PendingPaymentPhase.verifying;
+        final processing =
+            _paymentSubmittingBookingIds.contains(item.id) || verifyingPayment;
         return RequestBookingCard(
           booking: booking,
           onTap: () => _openDetails(item),
           secondaryActionLabel: 'Cancel',
-          primaryActionLabel: processing ? 'Processing...' : 'Pay now',
+          primaryActionLabel: verifyingPayment
+              ? 'Confirming payment...'
+              : (processing ? 'Processing...' : 'Pay now'),
           onSecondaryTap: () => _cancelRequestedBooking(item.id.toString()),
           onPrimaryTap: processing ? null : () => _payForAcceptedBooking(item),
           onCallTap: () => _callArtisan(item),
@@ -611,6 +588,11 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
             ? (confirming ? 'Confirming...' : 'Confirm Job Completion')
             : 'View Details',
         onRateTap: canRate ? () => _rateBooking(item) : null,
+        onDisputeTap: canDisputeCompletion(item)
+            ? (_disputingBookingIds.contains(item.id)
+                  ? null
+                  : () => _disputeJobCompletion(item))
+            : null,
         isReviewSubmitted: canRate && _reviewedBookingIds.contains(item.id),
         isSubmittingReview:
             canRate && _reviewSubmittingBookingIds.contains(item.id),
@@ -621,6 +603,23 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
   @override
   Widget build(BuildContext context) {
     final bookingsAsync = ref.watch(artisanBookingsProvider);
+    final paymentState = ref.watch(paymentVerificationProvider);
+
+    ref.listen<PaymentVerificationState>(paymentVerificationProvider, (
+      previous,
+      next,
+    ) {
+      final messenger = ScaffoldMessenger.of(context);
+      if (next.confirmedCount != (previous?.confirmedCount ?? 0)) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Payment confirmed. Booking is paid.')),
+        );
+      }
+      if (next.notice != null && next.notice != previous?.notice) {
+        messenger.showSnackBar(SnackBar(content: Text(next.notice!)));
+        ref.read(paymentVerificationProvider.notifier).clearNotice();
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -654,6 +653,19 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
               ),
             ),
             SizedBox(height: 16.h),
+            for (final payment in paymentState.pending.values)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: PendingPaymentBanner(
+                  payment: payment,
+                  onCheckAgain: () => ref
+                      .read(paymentVerificationProvider.notifier)
+                      .verify(payment.bookingId),
+                  onDismiss: () => ref
+                      .read(paymentVerificationProvider.notifier)
+                      .dismiss(payment.bookingId),
+                ),
+              ),
             SizedBox(
               height: 32.h,
               child: ListView.builder(
@@ -683,31 +695,11 @@ class _BookingsPageState extends ConsumerState<BookingsPage>
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      BodyText(
-                        'Failed to load bookings',
-                        size: BodySize.medium,
-                        color: AppColors.textSecondary,
-                      ),
-                      SizedBox(height: 8.h),
-                      TextButton(
-                        onPressed: () => ref
-                            .read(artisanBookingsProvider.notifier)
-                            .refresh(),
-                        child: const Text('Retry'),
-                      ),
-                      SizedBox(height: 6.h),
-                      BodyText(
-                        error.toString(),
-                        size: BodySize.small,
-                        color: AppColors.textSecondary,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                error: (error, _) => ErrorState(
+                  error: error,
+                  title: 'Could not load your bookings',
+                  onRetry: () =>
+                      ref.read(artisanBookingsProvider.notifier).refresh(),
                 ),
               ),
             ),

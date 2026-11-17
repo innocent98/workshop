@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/network/api_exception.dart';
 import '../../../../core/widgets/common/loading_indicator.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../domain/models/wallet_models.dart';
 import '../providers/wallet_provider.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class EarningsPage extends ConsumerStatefulWidget {
   const EarningsPage({super.key});
@@ -38,7 +38,7 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                 data: (balance) => _buildBalanceCard(balance),
                 loading: () => _buildLoadingBlock(height: 190.h),
                 error: (error, _) => _buildErrorBlock(
-                  message: error.toString(),
+                  message: userMessage(error),
                   onRetry: _refreshWallet,
                 ),
               ),
@@ -133,7 +133,7 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                 },
                 loading: () => const Center(child: LoadingIndicator()),
                 error: (error, _) => _buildErrorBlock(
-                  message: error.toString(),
+                  message: userMessage(error),
                   onRetry: _refreshWallet,
                 ),
               ),
@@ -514,7 +514,7 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     }
   }
 
@@ -760,15 +760,5 @@ class _PayoutDialogState extends ConsumerState<_PayoutDialog> {
     }
   }
 
-  String _friendlyErrorMessage(Object error) {
-    if (error is ApiException && error.message.trim().isNotEmpty) {
-      return error.message.trim();
-    }
-    final raw = error.toString();
-    const exceptionPrefix = 'Exception: ';
-    if (raw.startsWith(exceptionPrefix)) {
-      return raw.substring(exceptionPrefix.length);
-    }
-    return raw;
-  }
+  String _friendlyErrorMessage(Object error) => userMessage(error);
 }

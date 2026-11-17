@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same PR/branch cancels the run in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Cheap always-run job so required status checks report even on docs-only PRs.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'lib/**'
+              - 'test/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'analysis_options.yaml'
+              - 'android/**'
+              - 'ios/**'
+              - '.github/workflows/ci.yml'
+            android:
+              - 'android/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - '.github/workflows/ci.yml'
+
+  analyze-and-test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          cache: true
+
+      - run: flutter pub get
+
+      # The legacy code base predates a pinned formatter, so formatting is
+      # enforced on the Dart files a PR touches (not repo-wide).
+      - name: Format check (changed files)
+        run: |
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          files=$(git diff --name-only --diff-filter=ACMR "$base" HEAD -- '*.dart' || true)
+          if [ -n "$files" ]; then
+            dart format --output=none --set-exit-if-changed $files
+          else
+            echo "No Dart files changed"
+          fi
+
+      - run: flutter analyze
+
+      - run: flutter test --reporter expanded
+
+  android-release-build:
+    # Catches Gradle / R8 / plugin breakage (Crashlytics, minify) before release.
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          cache: true
+      - run: flutter pub get
+      # The runner's SDK has licences unaccepted and lacks the NDK pinned in
+      # android/app/build.gradle.kts (ndkVersion); install what Gradle asks for.
+      - name: Accept Android licences and install SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14033849"
+      # No key.properties in CI: Gradle falls back to the debug key. This job
+      # only proves the release configuration (R8, shrinking) compiles.
+      - run: >
+          flutter build apk --release
+          --dart-define=APP_ENV=staging
+          --dart-define=API_BASE_URL=https://staging-api.workchop.example/api/v1

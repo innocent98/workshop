@@ -33,10 +33,6 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
     });
   }
 
-  void _onShare() {
-    // TODO: Implement share functionality
-  }
-
   void _onBookService() {
     context.push(AppRoutes.instantService, extra: widget.artisan);
   }
@@ -89,10 +85,8 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
               child: HeaderText('Artisan Info', size: HeaderSize.h4),
             ),
           ),
-          GestureDetector(
-            onTap: _onShare,
-            child: Icon(null, size: 24.r, color: AppColors.textPrimary),
-          ),
+          // Keeps the title centred against the back arrow.
+          SizedBox(width: 24.r),
         ],
       ),
     );

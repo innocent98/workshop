@@ -12,10 +12,11 @@ import '../../../../core/widgets/common/loading_indicator.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../bookings/domain/models/artisan_booking.dart';
 import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
-import '../../domain/models/job_request.dart';
+import '../../../../core/network/dio_error_mapper.dart';
+import '../../../../core/widgets/common/error_state.dart';
 
 class JobDetailPage extends ConsumerStatefulWidget {
-  final dynamic job;
+  final ArtisanBooking job;
 
   const JobDetailPage({super.key, required this.job});
 
@@ -34,13 +35,7 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final booking = widget.job is ArtisanBooking
-        ? widget.job as ArtisanBooking
-        : null;
-
-    if (booking == null) {
-      return _buildLegacyJobDetail(widget.job as JobRequest);
-    }
+    final booking = widget.job;
 
     final detailState = ref.watch(artisanBookingDetailsProvider(booking.id));
 
@@ -53,16 +48,11 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
       error: (error, _) => Scaffold(
         backgroundColor: Colors.white,
         appBar: _buildAppBar(context),
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: BodyText(
-              error.toString(),
-              size: BodySize.small,
-              color: Colors.red,
-              textAlign: TextAlign.center,
-            ),
-          ),
+        body: ErrorState(
+          error: error,
+          title: 'Could not load this job',
+          onRetry: () =>
+              ref.invalidate(artisanBookingDetailsProvider(booking.id)),
         ),
       ),
       data: (item) => _buildBookingDetail(item),
@@ -530,24 +520,6 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     );
   }
 
-  Scaffold _buildLegacyJobDetail(JobRequest job) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: _buildAppBar(context),
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: BodyText(
-            'Legacy mock job: ${job.service}\nUse Artisan Jobs for live booking actions.',
-            textAlign: TextAlign.center,
-            size: BodySize.small,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white,
@@ -725,12 +697,7 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     setState(() => _isSubmitting = true);
     try {
       await action();
-      final booking = widget.job is ArtisanBooking
-          ? widget.job as ArtisanBooking
-          : null;
-      if (booking != null) {
-        ref.invalidate(artisanBookingDetailsProvider(booking.id));
-      }
+      ref.invalidate(artisanBookingDetailsProvider(widget.job.id));
       if (!mounted) {
         return;
       }
@@ -743,7 +710,7 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(userMessage(e))));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

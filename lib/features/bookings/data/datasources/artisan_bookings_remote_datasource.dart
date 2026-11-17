@@ -2,12 +2,15 @@ import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 import '../models/artisan_booking_response_model.dart';
 import '../models/artisan_booking_stats_response_model.dart';
 
 class ArtisanBookingsRemoteDataSource {
-  final Dio _dio = DioClient().dio;
+  final Dio _dio;
   final Logger _logger = Logger();
+
+  ArtisanBookingsRemoteDataSource({Dio? dio}) : _dio = dio ?? DioClient().dio;
 
   Future<ArtisanBookingListResponseModel> listBookings({
     String? statusFilter,
@@ -28,7 +31,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to list artisan bookings: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -40,7 +43,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to fetch booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -52,7 +55,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to fetch booking stats: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -70,7 +73,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to accept booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -88,7 +91,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to reject booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -102,7 +105,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to start booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -120,7 +123,7 @@ class ArtisanBookingsRemoteDataSource {
       await _dio.post('/bookings/$bookingId/progress-logs', data: formData);
     } on DioException catch (e) {
       _logger.e('Failed to log progress for booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -144,7 +147,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to complete booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -162,7 +165,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to cancel booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -180,7 +183,27 @@ class ArtisanBookingsRemoteDataSource {
       _logger.e(
         'Failed to confirm completion for booking $bookingId: ${e.message}',
       );
-      rethrow;
+      throw mapDioError(e);
+    }
+  }
+
+  Future<ArtisanBookingResponseModel> disputeCompletion({
+    required int bookingId,
+    required String disputeReason,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/bookings/$bookingId/dispute-completion',
+        data: {'dispute_reason': disputeReason.trim()},
+      );
+      return ArtisanBookingResponseModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      _logger.e(
+        'Failed to dispute completion for booking $bookingId: ${e.message}',
+      );
+      throw mapDioError(e);
     }
   }
 
@@ -202,7 +225,7 @@ class ArtisanBookingsRemoteDataSource {
       );
     } on DioException catch (e) {
       _logger.e('Failed to negotiate booking $bookingId: ${e.message}');
-      rethrow;
+      throw mapDioError(e);
     }
   }
 
@@ -230,7 +253,7 @@ class ArtisanBookingsRemoteDataSource {
       _logger.e(
         'Failed to respond to negotiation for booking $bookingId: ${e.message}',
       );
-      rethrow;
+      throw mapDioError(e);
     }
   }
 }

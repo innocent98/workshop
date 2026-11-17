@@ -11,6 +11,7 @@ import '../../../search/presentation/providers/search_artisans_by_query_provider
 import '../widgets/artisan_result_card.dart';
 import '../../../search/presentation/providers/search_history_provider.dart';
 import 'service_location_picker_page.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class SearchResultPage extends ConsumerStatefulWidget {
   final String query;
@@ -304,7 +305,7 @@ class _SearchResultPageState extends ConsumerState<SearchResultPage> {
                       ),
                       SizedBox(height: 4.h),
                       BodyText(
-                        error.toString(),
+                        userMessage(error),
                         size: BodySize.small,
                         color: AppColors.textSecondary,
                         textAlign: TextAlign.center,

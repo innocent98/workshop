@@ -1,3 +1,5 @@
+import '../../../verification/domain/models/verification_status.dart';
+
 enum AvailabilityStatus {
   available,
   busy,
@@ -29,6 +31,10 @@ class ArtisanProfile {
   final List<String>? skills;
   final String? location;
 
+  /// Additive backend field; [VerificationStatus.unknown] when absent.
+  final VerificationStatus verificationStatus;
+  final bool isVerified;
+
   const ArtisanProfile({
     required this.id,
     required this.fullName,
@@ -44,7 +50,14 @@ class ArtisanProfile {
     this.serviceRadiusKm,
     this.skills,
     this.location,
+    this.verificationStatus = VerificationStatus.unknown,
+    this.isVerified = false,
   });
+
+  /// `is_verified` is the source of truth for the badge, so a verified
+  /// artisan always reads as verified even if the status field is missing.
+  VerificationStatus get effectiveVerificationStatus =>
+      isVerified ? VerificationStatus.verified : verificationStatus;
 
   ArtisanProfile copyWith({
     String? id,
@@ -61,6 +74,8 @@ class ArtisanProfile {
     double? serviceRadiusKm,
     List<String>? skills,
     String? location,
+    VerificationStatus? verificationStatus,
+    bool? isVerified,
   }) {
     return ArtisanProfile(
       id: id ?? this.id,
@@ -77,6 +92,8 @@ class ArtisanProfile {
       serviceRadiusKm: serviceRadiusKm ?? this.serviceRadiusKm,
       skills: skills ?? this.skills,
       location: location ?? this.location,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      isVerified: isVerified ?? this.isVerified,
     );
   }
 }

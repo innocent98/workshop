@@ -8,6 +8,7 @@ import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../domain/models/artisan.dart';
 import '../../../search/presentation/providers/all_artisans_provider.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class AllArtisansPage extends ConsumerWidget {
   const AllArtisansPage({super.key});
@@ -134,7 +135,7 @@ class AllArtisansPage extends ConsumerWidget {
                     ),
                     SizedBox(height: 6.h),
                     BodyText(
-                      error.toString(),
+                      userMessage(error),
                       size: BodySize.small,
                       color: AppColors.textSecondary,
                       textAlign: TextAlign.center,

@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/cards/service_card.dart';
 import '../providers/profile_actions_provider.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class ArtisanProfileEditPage extends ConsumerStatefulWidget {
   final ArtisanProfile profile;
@@ -179,7 +180,7 @@ class _ArtisanProfileEditPageState
         Navigator.of(context).pop(true);
       }
     } catch (e) {
-      _showMessage(e.toString());
+      _showMessage(userMessage(e));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

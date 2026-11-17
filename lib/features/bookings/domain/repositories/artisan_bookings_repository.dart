@@ -39,6 +39,13 @@ abstract class ArtisanBookingsRepository {
 
   Future<ArtisanBooking> confirmCompletion({required int bookingId});
 
+  /// Client disputes a completion the artisan marked (backend moves the
+  /// booking to `disputed`). [disputeReason] must be 10-500 characters.
+  Future<ArtisanBooking> disputeCompletion({
+    required int bookingId,
+    required String disputeReason,
+  });
+
   Future<ArtisanBooking> negotiateBooking({
     required int bookingId,
     required double negotiatedAmount,

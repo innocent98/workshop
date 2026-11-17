@@ -8,6 +8,10 @@ class Booking {
   final DateTime dateTime;
   final List<String> services;
 
+  /// True once the client disputed the artisan's completion claim.
+  final bool isDisputed;
+  final String? disputeReason;
+
   Booking({
     required this.id,
     required this.artisanName,
@@ -17,5 +21,7 @@ class Booking {
     required this.status,
     required this.dateTime,
     required this.services,
+    this.isDisputed = false,
+    this.disputeReason,
   });
 }

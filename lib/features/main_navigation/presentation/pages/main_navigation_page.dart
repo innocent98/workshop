@@ -6,6 +6,7 @@ import '../../../bookings/presentation/pages/bookings_page.dart';
 import '../../../support/presentation/pages/support_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../client_profile/presentation/providers/client_location_sync_provider.dart';
+import '../../../bookings/presentation/providers/payment_verification_provider.dart';
 
 class MainNavigationPage extends ConsumerStatefulWidget {
   const MainNavigationPage({super.key});
@@ -29,6 +30,9 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(clientLocationSyncServiceProvider).syncOnAppLaunch();
+      // Resume handling + recovery of a payment started before the app was
+      // killed.
+      ref.read(paymentVerificationProvider.notifier).attach();
     });
   }
 
