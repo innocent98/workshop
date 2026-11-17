@@ -7,7 +7,12 @@ import 'package:workchop/core/network/api_exception.dart';
 import 'package:workchop/features/profile/presentation/widgets/delete_account_dialog.dart';
 
 /// Opens the dialog from a button and records what it popped with.
-Widget _host(Future<void> Function() onConfirm, {List<bool?>? results}) {
+Widget _host(
+  Future<void> Function() onConfirm, {
+  List<bool?>? results,
+  DeleteAccountSubmit? submit,
+  Future<String?> Function()? onRequestGoogleToken,
+}) {
   return ScreenUtilInit(
     designSize: const Size(375, 812),
     builder: (_, _) => MaterialApp(
@@ -18,7 +23,11 @@ Widget _host(Future<void> Function() onConfirm, {List<bool?>? results}) {
               onPressed: () async {
                 final r = await showDialog<bool>(
                   context: context,
-                  builder: (_) => DeleteAccountDialog(onConfirm: onConfirm),
+                  builder: (_) => DeleteAccountDialog(
+                    onConfirm:
+                        submit ?? ({password, googleToken}) => onConfirm(),
+                    onRequestGoogleToken: onRequestGoogleToken,
+                  ),
                 );
                 results?.add(r);
               },
@@ -163,5 +172,141 @@ void main() {
 
     expect(calls, 0);
     expect(results, [false]);
+  });
+
+  group('re-authentication', () {
+    Future<void> typeDelete(WidgetTester tester) async {
+      await tester.enterText(
+        find.byKey(const Key('delete_account_confirm_field')),
+        'DELETE',
+      );
+      await tester.pump();
+    }
+
+    testWidgets('sends the typed password with the deletion', (tester) async {
+      String? sentPassword;
+      String? sentToken;
+      await tester.pumpWidget(
+        _host(
+          () async {},
+          submit: ({password, googleToken}) async {
+            sentPassword = password;
+            sentToken = googleToken;
+          },
+        ),
+      );
+      await _open(tester);
+      await tester.enterText(
+        find.byKey(const Key('delete_account_password_field')),
+        'pw-placeholder',
+      );
+      await typeDelete(tester);
+
+      await tester.tap(_confirmButton);
+      await tester.pumpAndSettle();
+
+      expect(sentPassword, 'pw-placeholder');
+      expect(sentToken, isNull);
+    });
+
+    testWidgets('wrong password shows the backend reason and stays open', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          () async {},
+          submit: ({password, googleToken}) async => throw ApiException(
+            'The password is incorrect.',
+            403,
+            'invalid_password',
+          ),
+        ),
+      );
+      await _open(tester);
+      await tester.enterText(
+        find.byKey(const Key('delete_account_password_field')),
+        'wrong',
+      );
+      await typeDelete(tester);
+
+      await tester.tap(_confirmButton);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DeleteAccountDialog), findsOneWidget);
+      expect(find.text('The password is incorrect.'), findsOneWidget);
+      expect(find.textContaining('still signed in'), findsOneWidget);
+    });
+
+    testWidgets('reauth_required switches to Google and retries with a token', (
+      tester,
+    ) async {
+      final calls = <(String?, String?)>[];
+      final results = <bool?>[];
+      await tester.pumpWidget(
+        _host(
+          () async {},
+          results: results,
+          onRequestGoogleToken: () async => 'firebase-token-placeholder',
+          submit: ({password, googleToken}) async {
+            calls.add((password, googleToken));
+            if (googleToken == null) {
+              throw ApiException(
+                'Sign in with Google again to delete your account.',
+                400,
+                'reauth_required',
+              );
+            }
+          },
+        ),
+      );
+      await _open(tester);
+      await typeDelete(tester);
+
+      await tester.tap(_confirmButton);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('delete_account_google_note')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('delete_account_password_field')),
+        findsNothing,
+      );
+      expect(find.text('Confirm with Google'), findsOneWidget);
+      expect(find.byKey(const Key('delete_account_error')), findsNothing);
+
+      await tester.tap(_confirmButton);
+      await tester.pumpAndSettle();
+
+      expect(calls, [('', null), (null, 'firebase-token-placeholder')]);
+      expect(results, [true]);
+    });
+
+    testWidgets('dismissing the Google sheet deletes nothing', (tester) async {
+      var submits = 0;
+      await tester.pumpWidget(
+        _host(
+          () async {},
+          onRequestGoogleToken: () async => null,
+          submit: ({password, googleToken}) async {
+            submits++;
+            throw ApiException('x', 400, 'reauth_required');
+          },
+        ),
+      );
+      await _open(tester);
+      await typeDelete(tester);
+      await tester.tap(_confirmButton);
+      await tester.pumpAndSettle();
+      expect(submits, 1);
+
+      await tester.tap(_confirmButton);
+      await tester.pumpAndSettle();
+
+      expect(submits, 1, reason: 'no request without a Google token');
+      expect(find.byType(DeleteAccountDialog), findsOneWidget);
+      expect(_confirmEnabled(tester), isTrue);
+    });
   });
 }

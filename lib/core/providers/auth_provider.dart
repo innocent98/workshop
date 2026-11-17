@@ -135,8 +135,11 @@ class AuthNotifier extends AsyncNotifier<User?> {
   /// Permanently deletes the account, then ends the session like a logout.
   /// Throws (leaving the user signed in) if the backend refuses or is
   /// unreachable, so the caller can show the reason and offer a retry.
-  Future<void> deleteAccount() async {
-    await _repository.deleteAccount();
+  Future<void> deleteAccount({String? password, String? googleToken}) async {
+    await _repository.deleteAccount(
+      password: password,
+      googleToken: googleToken,
+    );
     await _endSession(notifyServer: false);
   }
 

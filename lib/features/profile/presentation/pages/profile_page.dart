@@ -23,6 +23,7 @@ import 'artisan_profile_edit_page.dart';
 import '../providers/profile_actions_provider.dart';
 import '../widgets/delete_account_dialog.dart';
 import '../../../../core/network/dio_error_mapper.dart';
+import '../../../auth/data/google_reauth.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -126,7 +127,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       barrierDismissible: false,
       builder: (_) => DeleteAccountDialog(
-        onConfirm: () => ref.read(authProvider.notifier).deleteAccount(),
+        onConfirm: ({password, googleToken}) => ref
+            .read(authProvider.notifier)
+            .deleteAccount(password: password, googleToken: googleToken),
+        onRequestGoogleToken: requestFreshGoogleIdToken,
       ),
     );
 

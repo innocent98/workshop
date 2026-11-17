@@ -156,7 +156,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> deleteAccount() async {
-    return await _remoteDataSource.deleteAccount();
+  Future<void> deleteAccount({String? password, String? googleToken}) async {
+    return await _remoteDataSource.deleteAccount(
+      password: password,
+      googleToken: googleToken,
+    );
   }
 }
