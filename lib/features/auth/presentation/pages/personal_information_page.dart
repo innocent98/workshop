@@ -186,7 +186,7 @@ class _PersonalInformationPageState
                       AppTextField(
                         controller: _phoneController,
                         label: 'Phone Number',
-                        hintText: '0708 738 9271',
+                        hintText: '0801 234 5678',
                         keyboardType: TextInputType.phone,
                         validator: (value) {
                           if (value == null || value.isEmpty) {

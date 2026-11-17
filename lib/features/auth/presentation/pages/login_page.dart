@@ -338,7 +338,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       AppTextField(
                         controller: _emailController,
                         label: 'Email',
-                        hintText: 'jerryhook@woodwork.com',
+                        hintText: 'you@example.com',
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value == null || value.isEmpty) {

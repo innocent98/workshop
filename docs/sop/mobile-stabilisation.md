@@ -43,12 +43,20 @@ All SDK-specific code is isolated in `data/real_dojah_widget_launcher.dart` behi
 - Not verified on a real device: Paystack round trip (external browser + resume), the Dojah widget (camera/liveness), Crashlytics reporting, R8 release build (CI job covers compilation only).
 - Dispute and verification have not been exercised against the live backend; payloads were taken from the backend source/contract, not from a live capture.
 
-## UI/UX walkthrough
-The live walkthrough could not be done: no local backend was running, and a debug iOS Simulator build failed on this Mac (Xcode 27 rejects pod deployment targets below 15.0, then Flutter 3.38.7's `debug_unpack_ios` step rejected the simulator `Flutter.framework` architectures). The deployment-target part is fixed in this PR (iOS minimum is now **15.0**: `Podfile`, `AppFrameworkInfo.plist`, Runner project); the framework-architecture error looks like a Flutter-vs-Xcode 27 incompatibility and needs a newer Flutter or a CI/macOS runner to confirm. `screenshots/` are Figma mock-ups, not captures, so only code-level review was possible.
+## UI/UX walkthrough (iOS Simulator, iPhone 17 Pro, no backend reachable)
+Built with Flutter 3.38.7 on Xcode 27 using `EXCLUDED_ARCHS[sdk=iphonesimulator*]=x86_64` as a local workaround (Flutter's `debug_unpack_ios` check fails otherwise; not committed) and ad-hoc signing (an unsigned `--no-codesign` simulator build has no keychain entitlement, so secure storage throws -34018 and the splash never navigates). Only the pre-login screens could be walked: no backend was running, so home/search/booking/bookings and the artisan flows (jobs, earnings, profile, verification) were **not** exercised live; they are covered by tests and code review only.
 
-Defects found by code review and **fixed**: raw `DioException` text in snackbars and error panels (~15 pages); error panels without a retry (job detail) or without an offline variant; dead `more_vert` hamburger buttons on both booking pages; invisible share placeholder on the public artisan profile; stub Google button on registration (printed to console only); "Legacy mock job" screen reachable from a deep link; payment status lost when the app was killed.
+**Found by running the app and fixed:** on iOS the app showed a blank white screen at launch: `FlutterLocalNotificationsPlugin.initialize` threw "iOS settings must be set" because only Android settings were passed, so `main()` died before `runApp`. Fixed (Darwin settings, iOS notification details) and push setup can no longer block start-up. Also replaced a leftover real-looking placeholder email (`jerryhook@woodwork.com`) and phone hint on login, forgot-password and registration.
 
-Found and **left** (cheap but need design/product input): booking cards hard-code `isVerified: false` so verified artisans never show the badge (the bookings API has no artisan verification flag); cards say "Completed:"/"Accepted:" but show the job date, not the event time; the card `more_vert` icon just opens the same details sheet; `Booking`/`ArtisanBooking` duplication in the bookings page; profile "Bank Accounts" entry still disabled (Phase 2); chat button hidden by design (Phase 2).
+**Fixed by code review:** raw `DioException` text in snackbars and error panels (~15 pages); error panels without retry (job detail) or offline variant; dead `more_vert` hamburger buttons on both booking pages; invisible share placeholder on the public artisan profile; stub Google button on registration; "Legacy mock job" screen; payment status lost when the app was killed.
+
+**Left (need design/product input):**
+- The system notification prompt appears at first launch over a blank screen, before any context; ask after login/onboarding.
+- Onboarding uses stock imagery that does not fit: a laptop showing a "Welcome to Pexels" sign-up form on the first slide and a New York (Queens) map on "Find Trusted Artisans Nearby".
+- Registration progress shows 4 dots but the flow has 5 steps; the red back arrow does not match the teal headings; registration to login transition cross-fades the two pages together for a moment.
+- Booking cards hard-code `isVerified: false` (the bookings API has no artisan verification flag) and say "Completed:"/"Accepted:" next to the job date; the card `more_vert` icon only opens the details sheet.
+- Profile "Bank Accounts" entry still disabled and chat hidden (both Phase 2).
+- iOS push cannot register until the Push Notifications capability/entitlement is added in Xcode (`aps-environment` missing: FCM logs `no valid aps-environment entitlement`); see `release-prep.md`.
 
 ## Operate / roll back
 - Run: see README ("Running the app", "Environment defines"). Release builds **must** pass `--dart-define=API_BASE_URL=...`; the default is a non-working placeholder by design.
@@ -58,8 +66,7 @@ Found and **left** (cheap but need design/product input): booking cards hard-cod
 - Backend: `GET /payments/verify/{ref}` marks the payment `FAILED` whenever Paystack is not yet `success` (including "pending/abandoned"), so a premature verify poisons the local status until the next successful verify. The app tolerates this (treats `paid:false` as retryable), but the backend should only mark `failed` on a terminal Paystack status.
 - Backend: dispute does not appear to hold/notify anything about the artisan beyond the status change; confirm the intended escrow behaviour and push notification to the artisan.
 - Decision needed: Sign in with Apple vs. removing Google sign-in on iOS (App Store guideline 4.8), see `release-prep.md`.
-- CI: the first run of `ci.yml` on PR 1 did not start because GitHub reported failed account payments / spending limit (annotation on the `changes` job). Fix billing, then re-run; the workflow itself is unverified until then.
-- iOS: pods now need a Mac toolchain whose Flutter supports the installed Xcode; `ios/Podfile.lock` is not committed (generated by `pod install`); commit it from a working machine.
+- iOS: Flutter 3.38.7 + Xcode 27 needs the x86_64-simulator exclusion shown above to build for the simulator; upgrading Flutter should remove the need.
 - Owner assets: app icon source image, upload keystore, APNs key, privacy policy URL.
 - Pin third-party GitHub Actions to commit SHAs; add a repo-wide `dart format` PR.
 - Add Crashlytics dSYM Run Script on iOS; add `PERMISSION_*` follow-through test on a device.
