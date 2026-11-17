@@ -1,3 +1,4 @@
+import '../../../verification/domain/models/verification_status.dart';
 import '../../domain/models/artisan_profile.dart';
 
 class ArtisanProfileResponseModel {
@@ -15,6 +16,8 @@ class ArtisanProfileResponseModel {
   final double? serviceRadiusKm;
   final List<String>? skills;
   final String? location;
+  final String? verificationStatus;
+  final bool isVerified;
 
   const ArtisanProfileResponseModel({
     required this.id,
@@ -31,6 +34,8 @@ class ArtisanProfileResponseModel {
     this.serviceRadiusKm,
     this.skills,
     this.location,
+    this.verificationStatus,
+    this.isVerified = false,
   });
 
   factory ArtisanProfileResponseModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +56,10 @@ class ArtisanProfileResponseModel {
           ? List<String>.from(json['skills'] as List)
           : null,
       location: json['location_address'] as String?,
+      verificationStatus: json['verification_status'] is String
+          ? json['verification_status'] as String
+          : null,
+      isVerified: json['is_verified'] == true,
     );
   }
 
@@ -74,6 +83,8 @@ class ArtisanProfileResponseModel {
       serviceRadiusKm: serviceRadiusKm,
       skills: skills,
       location: location,
+      verificationStatus: VerificationStatus.fromApi(verificationStatus),
+      isVerified: isVerified,
     );
   }
 }

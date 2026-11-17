@@ -28,8 +28,10 @@ import '../../features/artisan_home/presentation/pages/job_detail_page.dart';
 import '../../features/main_navigation/presentation/pages/artisan_main_navigation_page.dart';
 import '../../features/profile/presentation/pages/job_history_page.dart';
 import '../../features/location/presentation/pages/location_gate_page.dart';
+import '../../features/verification/presentation/pages/verify_identity_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../providers/service_guard_provider.dart';
+import '../../features/bookings/domain/models/artisan_booking.dart';
 
 /// Route paths - centralized route path definitions
 class AppRoutes {
@@ -48,6 +50,7 @@ class AppRoutes {
   static const String scheduleService = '/schedule-service';
   static const String bookings = '/bookings';
   static const String jobHistory = '/profile/job-history';
+  static const String verifyIdentity = '/profile/verify-identity';
   static const String locationGate = '/location-gate';
   static const String notifications = '/notifications';
 
@@ -182,6 +185,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'jobDetail',
         pageBuilder: (context, state) {
           final job = state.extra;
+          // Deep links / restored routes can arrive without the booking
+          // object; send those back to the artisan jobs list instead of
+          // crashing.
+          if (job is! ArtisanBooking) {
+            return const NoTransitionPage(child: _MissingJobRedirect());
+          }
           return CustomTransitionPage(
             key: state.pageKey,
             child: JobDetailPage(job: job),
@@ -337,6 +346,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
+      ),
+
+      GoRoute(
+        path: AppRoutes.verifyIdentity,
+        name: 'verifyIdentity',
+        builder: (context, state) => const VerifyIdentityPage(),
       ),
 
       GoRoute(
@@ -590,3 +605,27 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+/// Shown briefly when the job-detail route is opened without its booking
+/// payload (it is passed via `extra`, which is not restored after a process
+/// restart). Returns the user to the artisan home screen.
+class _MissingJobRedirect extends StatefulWidget {
+  const _MissingJobRedirect();
+
+  @override
+  State<_MissingJobRedirect> createState() => _MissingJobRedirectState();
+}
+
+class _MissingJobRedirectState extends State<_MissingJobRedirect> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.go(AppRoutes.artisanHome);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: CircularProgressIndicator()));
+}

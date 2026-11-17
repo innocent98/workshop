@@ -16,9 +16,11 @@ import '../../../artisan_profile/presentation/providers/artisan_profile_provider
 import '../../../artisan_profile/presentation/providers/artisan_wallet_provider.dart';
 import '../../../client_profile/domain/models/client_profile.dart';
 import '../../../client_profile/presentation/providers/client_profile_provider.dart';
+import '../../../verification/presentation/widgets/verification_status_tile.dart';
 import 'artisan_portfolio_management_page.dart';
 import 'artisan_profile_edit_page.dart';
 import '../providers/profile_actions_provider.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -70,7 +72,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ).showSnackBar(SnackBar(content: Text(userMessage(e))));
       }
     } finally {
       if (mounted) {
@@ -108,7 +110,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ).showSnackBar(SnackBar(content: Text(userMessage(e))));
       }
     } finally {
       if (mounted) {
@@ -137,6 +139,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         );
       }
     }
+  }
+
+  Future<void> _openVerification() async {
+    await context.push(AppRoutes.verifyIdentity);
+    if (mounted) ref.invalidate(artisanProfileProvider);
   }
 
   Future<void> _openPortfolioManager() async {
@@ -451,6 +458,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return Column(
       children: [
         _buildSectionHeader('Account'),
+        if (isArtisan && artisanProfile != null)
+          VerificationStatusTile(
+            status: artisanProfile.effectiveVerificationStatus,
+            onTap: _openVerification,
+          ),
         if (isArtisan && artisanProfile != null)
           _buildMenuItem(
             'Edit Profile',
@@ -777,7 +789,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ).showSnackBar(SnackBar(content: Text(userMessage(e))));
       }
     } finally {
       if (mounted) {
