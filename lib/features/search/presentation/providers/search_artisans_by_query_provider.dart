@@ -28,11 +28,10 @@ class SearchArtisansQueryInput {
   int get hashCode => Object.hash(query, latitude, longitude);
 }
 
-final searchArtisansByQueryProvider =
-    FutureProvider.family<List<Artisan>, SearchArtisansQueryInput>((
-      ref,
-      input,
-    ) async {
+/// Auto-disposed so an empty or failed search is never cached: leaving and
+/// re-entering the results screen fetches again.
+final searchArtisansByQueryProvider = FutureProvider.autoDispose
+    .family<List<Artisan>, SearchArtisansQueryInput>((ref, input) async {
       final query = input.query.trim().toLowerCase();
       final locationData = await ref.watch(locationProvider.future);
       final latitude = input.latitude ?? locationData.latitude;

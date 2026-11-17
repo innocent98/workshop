@@ -9,6 +9,7 @@ import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../bookings/domain/models/artisan_booking.dart';
 import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../../../core/widgets/common/error_state.dart';
+import '../../../../core/utils/money_format.dart';
 
 class JobHistoryPage extends ConsumerStatefulWidget {
   const JobHistoryPage({super.key});
@@ -187,7 +188,7 @@ class _JobHistoryPageState extends ConsumerState<JobHistoryPage> {
           ),
           SizedBox(height: 4.h),
           BodyText(
-            'Amount: ₦${amount.toStringAsFixed(0)}',
+            'Amount: ${formatNaira(amount)}',
             size: BodySize.small,
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w600,

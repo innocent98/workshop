@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 
 enum ArtisanJobStatus { ongoing, next, pending, completed, cancelled }
@@ -153,10 +154,7 @@ class ArtisanJobCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 16.r,
-          backgroundImage: _getAvatarImage(clientAvatar),
-        ),
+        ProfileAvatar(imageUrl: clientAvatar, name: clientName, radius: 16),
         SizedBox(width: 10.w),
         Expanded(
           child: Column(
@@ -174,13 +172,14 @@ class ArtisanJobCard extends StatelessWidget {
                     size: BodySize.small,
                     color: AppColors.textSecondary,
                   ),
-                  BodyText(
-                    clientName,
-                    size: BodySize.small,
-                    fontWeight: FontWeight.w500,
+                  Flexible(
+                    child: BodyText(
+                      clientName,
+                      size: BodySize.small,
+                      fontWeight: FontWeight.w500,
+                      maxLines: 1,
+                    ),
                   ),
-                  SizedBox(width: 4.w),
-                  Icon(Icons.check_circle, size: 10.r, color: Colors.orange),
                 ],
               ),
             ],
@@ -471,12 +470,5 @@ class ArtisanJobCard extends StatelessWidget {
         child: Icon(icon, color: AppColors.textPrimary, size: 18.r),
       ),
     );
-  }
-
-  ImageProvider _getAvatarImage(String avatar) {
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-      return NetworkImage(avatar);
-    }
-    return AssetImage(avatar);
   }
 }

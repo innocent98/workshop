@@ -33,7 +33,13 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 34.h),
+              SizedBox(height: 12.h),
+              BodyText(
+                'Earnings',
+                size: BodySize.large,
+                fontWeight: FontWeight.w500,
+              ),
+              SizedBox(height: 16.h),
               balanceState.when(
                 data: (balance) => _buildBalanceCard(balance),
                 loading: () => _buildLoadingBlock(height: 190.h),
@@ -272,7 +278,6 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                   ],
                 ),
               ),
-              Icon(Icons.verified, color: const Color(0xFFE2725B), size: 20.r),
             ],
           ),
           SizedBox(height: 16.h),

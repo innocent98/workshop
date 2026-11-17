@@ -24,6 +24,7 @@ import '../widgets/completed_booking_card.dart';
 import '../widgets/ongoing_booking_card.dart';
 import '../widgets/request_booking_card.dart';
 import '../../../../core/widgets/common/error_state.dart';
+import '../../../../core/utils/money_format.dart';
 
 class BookingsPage extends ConsumerStatefulWidget {
   const BookingsPage({super.key});
@@ -84,15 +85,14 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
     return Booking(
       id: booking.id.toString(),
       artisanName: booking.artisanName ?? 'Artisan',
-      artisanAvatar:
-          booking.artisanProfilePictureUrl ??
-          booking.serviceImage ??
-          'assets/images/regular.jpg',
+      artisanAvatar: booking.artisanProfilePictureUrl ?? '',
       serviceType: booking.serviceName ?? 'Service',
       isVerified: false,
       status: _statusForUi(booking.status),
       dateTime: booking.jobDate,
       services: [serviceLine],
+      budgetMin: booking.budgetMin,
+      budgetMax: booking.budgetMax,
       isDisputed:
           booking.status == ArtisanBookingStatus.disputed ||
           booking.completionDisputedAt != null,
@@ -786,7 +786,7 @@ class _BookingDetailSheet extends StatelessWidget {
     }
   }
 
-  String _money(double value) => '₦${value.toStringAsFixed(0)}';
+  String _money(double value) => formatNaira(value);
 
   bool _shouldShowProgressLogs(ArtisanBooking booking) {
     if (booking.startedAt != null) return true;
@@ -1101,7 +1101,7 @@ class _NegotiationDecisionDialogState
               Text(
                 offered == null
                     ? 'Artisan sent a new offer.'
-                    : 'Artisan offered ₦${offered.toStringAsFixed(0)}',
+                    : 'Artisan offered ${formatNaira(offered)}',
               ),
               SizedBox(height: 6.h),
               Text(rounds, style: TextStyle(fontSize: 11.sp)),

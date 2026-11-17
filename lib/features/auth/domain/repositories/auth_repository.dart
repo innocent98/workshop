@@ -68,4 +68,7 @@ abstract class AuthRepository {
   });
 
   Future<void> logout();
+
+  /// Permanently deletes the signed-in account.
+  Future<void> deleteAccount();
 }

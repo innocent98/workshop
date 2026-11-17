@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../client_home/domain/models/artisan.dart';
 import '../widgets/rating_distribution.dart';
@@ -142,9 +144,10 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 20.r,
-          backgroundImage: _resolveImageProvider(widget.artisan.avatarUrl),
+        ProfileAvatar(
+          imageUrl: widget.artisan.avatarUrl,
+          name: profile.fullName,
+          radius: 20,
         ),
         SizedBox(width: AppSizes.spacingSmall),
         Expanded(
@@ -160,8 +163,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                     size: BodySize.small,
                     fontWeight: FontWeight.w600,
                   ),
-                  if (widget.artisan.isVerified)
-                    Icon(Icons.verified, size: 16.r, color: Colors.red),
+                  if (widget.artisan.isVerified) const VerifiedBadge(size: 16),
                   if (categoryName != null && categoryName.trim().isNotEmpty)
                     BodyText(
                       categoryName,
@@ -194,13 +196,6 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
         ),
       ],
     );
-  }
-
-  ImageProvider _resolveImageProvider(String imageUrl) {
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return NetworkImage(imageUrl);
-    }
-    return AssetImage(imageUrl);
   }
 
   Widget _buildRatingSection(ArtisanPublicProfile profile) {

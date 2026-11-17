@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../bookings/domain/models/artisan_booking.dart';
+import '../../../../core/utils/money_format.dart';
 
 class JobRequestCard extends StatelessWidget {
   final ArtisanBooking booking;
@@ -51,12 +53,10 @@ class JobRequestCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 16.r,
-                    backgroundImage: _getAvatarImage(
-                      booking.customerProfilePictureUrl ??
-                          'assets/images/regular.jpg',
-                    ),
+                  ProfileAvatar(
+                    imageUrl: booking.customerProfilePictureUrl,
+                    name: clientName,
+                    radius: 16,
                   ),
                   SizedBox(width: 10.w),
                   Expanded(
@@ -243,18 +243,11 @@ class JobRequestCard extends StatelessWidget {
     );
   }
 
-  ImageProvider _getAvatarImage(String avatar) {
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-      return NetworkImage(avatar);
-    }
-    return AssetImage(avatar);
-  }
-
   String _formatBudget(ArtisanBooking booking) {
     if (booking.agreedAmount != null) {
-      return '₦${booking.agreedAmount!.toStringAsFixed(0)}';
+      return formatNaira(booking.agreedAmount!);
     }
-    return '₦${booking.budgetMin.toStringAsFixed(0)} - ₦${booking.budgetMax.toStringAsFixed(0)}';
+    return '${formatNaira(booking.budgetMin)} - ${formatNaira(booking.budgetMax)}';
   }
 
   String _formatDateTime(DateTime dateTime) {
@@ -287,7 +280,7 @@ class JobRequestCard extends StatelessWidget {
   String _negotiationSummary(ArtisanBooking booking) {
     final status = booking.negotiationStatus;
     final amount = booking.negotiatedAmount;
-    final amountText = amount != null ? '₦${amount.toStringAsFixed(0)}' : '';
+    final amountText = amount != null ? formatNaira(amount) : '';
     final rounds =
         'A${booking.artisanNegotiationRoundsUsed}/2 C${booking.clientNegotiationRoundsUsed}/2';
 

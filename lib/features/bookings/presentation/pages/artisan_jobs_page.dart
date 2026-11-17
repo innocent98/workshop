@@ -14,6 +14,7 @@ import '../providers/artisan_bookings_provider.dart';
 import '../widgets/artisan_job_card.dart';
 import '../../../../core/network/dio_error_mapper.dart';
 import '../../../../core/widgets/common/error_state.dart';
+import '../../../../core/utils/money_format.dart';
 
 class ArtisanJobsPage extends ConsumerStatefulWidget {
   const ArtisanJobsPage({super.key});
@@ -264,7 +265,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
                 fontWeight: FontWeight.w500,
               ),
               BodyText(
-                '₦${totalEarned.toStringAsFixed(0)}',
+                formatNaira(totalEarned),
                 size: BodySize.medium,
                 color: const Color(0xFFE2725B),
                 fontWeight: FontWeight.w500,
@@ -284,8 +285,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
   Widget _buildBookingCard(BuildContext context, ArtisanBooking booking) {
     final clientName = booking.customerName ?? 'Client';
     final serviceName = booking.serviceName ?? 'Service Request';
-    final avatar =
-        booking.customerProfilePictureUrl ?? 'assets/images/regular.jpg';
+    final avatar = booking.customerProfilePictureUrl ?? '';
 
     final neededServices = <String>[
       if (booking.jobDescription != null &&
@@ -574,7 +574,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
   }
 
   String _formatBudget(ArtisanBooking booking) {
-    return '₦${booking.budgetMin.toStringAsFixed(0)} - ₦${booking.budgetMax.toStringAsFixed(0)}';
+    return '${formatNaira(booking.budgetMin)} - ${formatNaira(booking.budgetMax)}';
   }
 
   String _formatAgreedAmount(ArtisanBooking booking) {
@@ -582,7 +582,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
     if (amount == null) {
       return _formatBudget(booking);
     }
-    return '₦${amount.toStringAsFixed(0)}';
+    return formatNaira(amount);
   }
 
   String _formatDateTime(DateTime dateTime) {
@@ -615,7 +615,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
   String _negotiationSummary(ArtisanBooking booking) {
     final status = booking.negotiationStatus;
     final amount = booking.negotiatedAmount;
-    final amountText = amount != null ? '₦${amount.toStringAsFixed(0)}' : '';
+    final amountText = amount != null ? formatNaira(amount) : '';
     final rounds =
         'A${booking.artisanNegotiationRoundsUsed}/2 C${booking.clientNegotiationRoundsUsed}/2';
 
@@ -648,7 +648,7 @@ class _ArtisanJobsPageState extends ConsumerState<ArtisanJobsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Set amount between ₦${booking.budgetMin.toStringAsFixed(0)} and ₦${booking.budgetMax.toStringAsFixed(0)}',
+                'Set amount between ${formatNaira(booking.budgetMin)} and ${formatNaira(booking.budgetMax)}',
               ),
               SizedBox(height: 10.h),
               TextField(

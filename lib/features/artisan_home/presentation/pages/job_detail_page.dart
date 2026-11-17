@@ -9,11 +9,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/common/loading_indicator.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../bookings/domain/models/artisan_booking.dart';
 import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../../../core/network/dio_error_mapper.dart';
 import '../../../../core/widgets/common/error_state.dart';
+import '../../../../core/utils/money_format.dart';
 
 class JobDetailPage extends ConsumerStatefulWidget {
   final ArtisanBooking job;
@@ -126,7 +128,7 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
                           SizedBox(height: 4.h),
                           BodyText(
                             '${_negotiationStatusLabel(booking.negotiationStatus)}'
-                            '${booking.negotiatedAmount != null ? ' • ₦${booking.negotiatedAmount!.toStringAsFixed(0)}' : ''}',
+                            '${booking.negotiatedAmount != null ? ' • ${formatNaira(booking.negotiatedAmount!)}' : ''}',
                             size: BodySize.small,
                             color: AppColors.textSecondary,
                           ),
@@ -155,12 +157,10 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 24.r,
-                        backgroundImage: _getAvatarImage(
-                          booking.customerProfilePictureUrl ??
-                              'assets/images/regular.jpg',
-                        ),
+                      ProfileAvatar(
+                        imageUrl: booking.customerProfilePictureUrl,
+                        name: booking.customerName,
+                        radius: 24,
                       ),
                       SizedBox(width: 8.w),
                       Expanded(
@@ -835,13 +835,6 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
     );
   }
 
-  ImageProvider _getAvatarImage(String avatar) {
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-      return NetworkImage(avatar);
-    }
-    return AssetImage(avatar);
-  }
-
   String _statusLabel(ArtisanBookingStatus status) {
     switch (status) {
       case ArtisanBookingStatus.pending:
@@ -868,9 +861,9 @@ class _JobDetailPageState extends ConsumerState<JobDetailPage> {
   String _priceLabel(ArtisanBooking booking) {
     final agreed = booking.agreedAmount;
     if (agreed != null) {
-      return '₦${agreed.toStringAsFixed(0)}';
+      return formatNaira(agreed);
     }
-    return '₦${booking.budgetMin.toStringAsFixed(0)} - ₦${booking.budgetMax.toStringAsFixed(0)}';
+    return '${formatNaira(booking.budgetMin)} - ${formatNaira(booking.budgetMax)}';
   }
 
   String _negotiationStatusLabel(String status) {
@@ -1122,7 +1115,7 @@ class _AcceptBookingDialogState extends State<_AcceptBookingDialog> {
             labelStyle: const TextStyle(fontSize: 13),
             helperStyle: const TextStyle(fontSize: 11),
             helperText:
-                'Between ₦${widget.booking.budgetMin.toStringAsFixed(0)} and ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+                'Between ${formatNaira(widget.booking.budgetMin)} and ${formatNaira(widget.booking.budgetMax)}',
           ),
         ),
       ),
@@ -1201,7 +1194,7 @@ class _NegotiationDialogState extends State<_NegotiationDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Client range: ₦${widget.booking.budgetMin.toStringAsFixed(0)} - ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+                'Client range: ${formatNaira(widget.booking.budgetMin)} - ${formatNaira(widget.booking.budgetMax)}',
               ),
               SizedBox(height: 6.h),
               Text(rounds, style: TextStyle(fontSize: 11.sp)),

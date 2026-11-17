@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -57,7 +59,12 @@ class _LocationGatePageState extends ConsumerState<LocationGatePage> {
       return;
     }
 
-    await notifier.refreshLocation();
+    try {
+      // Without a timeout a missing GPS fix leaves the button spinning forever.
+      await notifier.refreshLocation().timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      // Falls through to the "unable to get your location" state below.
+    }
     final location = ref.read(locationProvider).asData?.value;
     final hasRealFix =
         location != null &&

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/models/user.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/phone_launcher.dart';
@@ -22,6 +23,7 @@ import '../../../bookings/domain/models/artisan_booking.dart';
 import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../../core/network/dio_error_mapper.dart';
+import '../../../../core/utils/money_format.dart';
 
 class ArtisanHomePage extends ConsumerStatefulWidget {
   const ArtisanHomePage({super.key});
@@ -229,7 +231,17 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
                 ),
                 SizedBox(height: 10.h),
                 SizedBox(
-                  height: 250.h,
+                  // Compact when there is nothing to show; a full card height
+                  // for requests (long service names wrap to three lines).
+                  height: bookingsAsync.maybeWhen(
+                    data: (bookings) =>
+                        bookings.any(
+                          (b) => b.status == ArtisanBookingStatus.pending,
+                        )
+                        ? 275.h
+                        : 72.h,
+                    orElse: () => 120.h,
+                  ),
                   child: bookingsAsync.when(
                     data: (bookings) {
                       final pending = bookings
@@ -246,6 +258,7 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
                           children: [
                             Container(
                               width: 0.85.sw,
+                              alignment: Alignment.centerLeft,
                               padding: EdgeInsets.all(16.r),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF1F5F5),
@@ -491,15 +504,7 @@ class _ArtisanHomePageState extends ConsumerState<ArtisanHomePage> {
   Widget _buildHeader(String name, String? profilePictureUrl, int unreadCount) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 18.r,
-          backgroundImage: profilePictureUrl != null
-              ? NetworkImage(profilePictureUrl) as ImageProvider
-              : const AssetImage('assets/images/regular.jpg'),
-          onBackgroundImageError: profilePictureUrl != null
-              ? (exception, stackTrace) {}
-              : null,
-        ),
+        ProfileAvatar(imageUrl: profilePictureUrl, name: name, radius: 18),
         SizedBox(width: 10.w),
         Expanded(
           child: Row(
@@ -1120,7 +1125,7 @@ class _HomeAcceptBookingDialogState extends State<_HomeAcceptBookingDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Set amount between ₦${widget.booking.budgetMin.toStringAsFixed(0)} and ₦${widget.booking.budgetMax.toStringAsFixed(0)}',
+            'Set amount between ${formatNaira(widget.booking.budgetMin)} and ${formatNaira(widget.booking.budgetMax)}',
           ),
           SizedBox(height: 10.h),
           TextField(

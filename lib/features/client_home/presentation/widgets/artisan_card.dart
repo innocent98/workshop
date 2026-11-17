@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../domain/models/artisan.dart';
 
@@ -35,15 +37,11 @@ class ArtisanCard extends StatelessWidget {
                     right: 8.w,
                     child: Container(
                       padding: EdgeInsets.all(4.r),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade600,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        Icons.verified,
-                        size: 16.r,
-                        color: Colors.white,
-                      ),
+                      child: const VerifiedBadge(size: 16),
                     ),
                   ),
               ],
@@ -167,33 +165,20 @@ class ArtisanCard extends StatelessWidget {
       );
     }
 
-    // Asset image
-    return Image.asset(
-      artisan.imageUrl,
+    // No usable work photo yet.
+    return Container(
       width: 190.w,
       height: 190.h,
-      fit: BoxFit.cover,
+      color: Colors.grey.shade200,
+      child: Icon(Icons.person, size: 48.r, color: Colors.grey.shade400),
     );
   }
 
   Widget _buildAvatar() {
-    // Check if it's a network URL
-    if (artisan.avatarUrl.startsWith('http://') ||
-        artisan.avatarUrl.startsWith('https://')) {
-      return CircleAvatar(
-        radius: 18.r,
-        backgroundImage: NetworkImage(artisan.avatarUrl),
-        onBackgroundImageError: (error, stackTrace) {},
-        child: artisan.avatarUrl.isEmpty
-            ? Icon(Icons.person, size: 18.r)
-            : null,
-      );
-    }
-
-    // Asset image
-    return CircleAvatar(
-      radius: 18.r,
-      backgroundImage: AssetImage(artisan.avatarUrl),
+    return ProfileAvatar(
+      imageUrl: artisan.avatarUrl,
+      name: artisan.name,
+      radius: 18,
     );
   }
 }

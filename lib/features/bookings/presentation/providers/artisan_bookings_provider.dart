@@ -31,6 +31,30 @@ class ArtisanBookingsNotifier extends AsyncNotifier<List<ArtisanBooking>> {
     });
   }
 
+  Future<void>? _silentRefresh;
+
+  /// Re-fetches the list without flipping the UI back to a spinner: whatever
+  /// is on screen stays until the new list replaces it, and a failed refresh
+  /// keeps the old list instead of swapping it for an error. Concurrent calls
+  /// share one request. Use after something changed the list server-side
+  /// (a booking was created) and when a tab showing it is selected.
+  Future<void> refreshSilently() {
+    return _silentRefresh ??= _fetchSilently().whenComplete(
+      () => _silentRefresh = null,
+    );
+  }
+
+  Future<void> _fetchSilently() async {
+    try {
+      final repository = ref.read(artisanBookingsRepositoryProvider);
+      final bookings = await repository.listBookings();
+      if (ref.mounted) state = AsyncValue.data(bookings);
+    } catch (e, st) {
+      // Only surface the failure when there is nothing to show.
+      if (ref.mounted && !state.hasValue) state = AsyncValue.error(e, st);
+    }
+  }
+
   Future<ArtisanBooking> getBooking(int bookingId) async {
     final repository = ref.read(artisanBookingsRepositoryProvider);
     final booking = await repository.getBooking(bookingId);

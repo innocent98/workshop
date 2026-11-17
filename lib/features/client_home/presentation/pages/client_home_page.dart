@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/constants/support_contact.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/utils/phone_launcher.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
@@ -65,8 +66,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
   }
 
   Future<void> _onCallNowTap() async {
-    const phoneNumber = '07025000478';
-    final launched = await launchPhoneDialer(phoneNumber);
+    final launched = await launchPhoneDialer(SupportContact.phone);
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unable to open dialer right now')),
@@ -228,7 +228,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                                       ),
                                     ),
                                     TextSpan(
-                                      text: '0702 500 0478',
+                                      text: SupportContact.phoneDisplay,
                                       style: TextStyle(
                                         fontSize: AppSizes.caption,
                                         fontWeight: FontWeight.bold,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/support_contact.dart';
 import '../../../../core/utils/phone_launcher.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../data/mock_support_data.dart';
@@ -18,8 +19,6 @@ class SupportPage extends StatefulWidget {
 
 class _SupportPageState extends State<SupportPage> {
   FAQCategory _selectedFAQCategory = FAQCategory.bookings;
-  static const String _supportPhone = '+2347042685209';
-  static const String _supportWhatsappPath = '2347042685209';
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +244,7 @@ class _SupportPageState extends State<SupportPage> {
   Future<void> _openWhatsAppSupport({required String message}) async {
     final encoded = Uri.encodeComponent(message);
     final whatsappUri = Uri.parse(
-      'https://wa.me/$_supportWhatsappPath?text=$encoded',
+      'https://wa.me/${SupportContact.whatsappNumber}?text=$encoded',
     );
 
     try {
@@ -255,7 +254,7 @@ class _SupportPageState extends State<SupportPage> {
       }
     } catch (_) {}
 
-    final openedDialer = await launchPhoneDialer(_supportPhone);
+    final openedDialer = await launchPhoneDialer(SupportContact.phone);
     if (!openedDialer || !mounted) return;
   }
 }

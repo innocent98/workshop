@@ -8,6 +8,10 @@ class Booking {
   final DateTime dateTime;
   final List<String> services;
 
+  /// Client's budget range, when the booking carries one.
+  final double? budgetMin;
+  final double? budgetMax;
+
   /// True once the client disputed the artisan's completion claim.
   final bool isDisputed;
   final String? disputeReason;
@@ -21,6 +25,8 @@ class Booking {
     required this.status,
     required this.dateTime,
     required this.services,
+    this.budgetMin,
+    this.budgetMax,
     this.isDisputed = false,
     this.disputeReason,
   });

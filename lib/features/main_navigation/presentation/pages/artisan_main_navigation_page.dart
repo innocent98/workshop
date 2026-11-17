@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/widgets/navigation/bottom_nav_bar.dart';
 import '../../../artisan_home/presentation/pages/artisan_home_page.dart';
 import '../../../bookings/presentation/pages/artisan_jobs_page.dart';
+import '../../../bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../../support/presentation/pages/support_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../bookings/presentation/pages/earnings_page.dart';
@@ -43,6 +44,11 @@ class _ArtisanMainNavigationPageState
     setState(() {
       _currentIndex = index;
     });
+    // Tabs live in an IndexedStack and are built once: refresh the job lists
+    // (Home shows incoming requests, Jobs shows everything) on selection.
+    if (index == 0 || index == 1) {
+      ref.read(artisanBookingsProvider.notifier).refreshSilently();
+    }
   }
 
   @override

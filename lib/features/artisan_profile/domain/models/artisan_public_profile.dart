@@ -1,3 +1,5 @@
+import '../../../../core/utils/money_format.dart';
+
 /// Domain model for public artisan profile data
 class ArtisanPublicProfile {
   final String id;
@@ -30,6 +32,6 @@ class ArtisanPublicProfile {
     if (hourlyRateMin == null || hourlyRateMax == null) {
       return 'Not specified';
     }
-    return '₦${hourlyRateMin!.toStringAsFixed(0)} - ₦${hourlyRateMax!.toStringAsFixed(0)}/hr';
+    return '${formatNairaRange(hourlyRateMin!, hourlyRateMax!)}/hr';
   }
 }

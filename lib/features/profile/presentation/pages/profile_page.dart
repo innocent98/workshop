@@ -9,6 +9,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/user.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/widgets/common/avatar_placeholder.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../artisan_profile/domain/models/artisan_profile.dart';
 import '../../../artisan_profile/domain/models/wallet_balance.dart';
@@ -20,6 +21,7 @@ import '../../../verification/presentation/widgets/verification_status_tile.dart
 import 'artisan_portfolio_management_page.dart';
 import 'artisan_profile_edit_page.dart';
 import '../providers/profile_actions_provider.dart';
+import '../widgets/delete_account_dialog.dart';
 import '../../../../core/network/dio_error_mapper.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -119,6 +121,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
+  Future<void> _confirmDeleteAccount() async {
+    final deleted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => DeleteAccountDialog(
+        onConfirm: () => ref.read(authProvider.notifier).deleteAccount(),
+      ),
+    );
+
+    // The auth notifier has already cleared the session; make sure we leave
+    // the signed-in shell even if the global sign-out listener is slow.
+    if (deleted == true && mounted) {
+      context.go(AppRoutes.login);
+    }
+  }
+
   Future<void> _openArtisanEditProfile({
     required ArtisanProfile profile,
     String? phoneNumber,
@@ -159,9 +177,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return authAsync.when(
       data: (user) {
         if (user == null) {
-          return _buildErrorState('User not logged in', () {
-            ref.invalidate(authProvider);
-          });
+          // Signed out (logout / deleted account / expired session): the app
+          // is already navigating to the login screen. Never show a Retry
+          // here, there is nothing to retry.
+          return _buildLoadingSkeleton();
         }
 
         return user.role == UserRole.artisan
@@ -323,18 +342,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       width: 2.r,
                     ),
                   ),
-                  child: CircleAvatar(
-                    radius: 50.r,
-                    backgroundColor: const Color(0xFFF1F5F5),
-                    backgroundImage: _image != null
-                        ? FileImage(_image!)
-                        : (imageUrl != null
-                                  ? NetworkImage(imageUrl)
-                                  : const AssetImage(
-                                      'assets/images/regular.jpg',
-                                    ))
-                              as ImageProvider,
-                  ),
+                  child: _image != null
+                      ? CircleAvatar(
+                          radius: 50.r,
+                          backgroundColor: const Color(0xFFF1F5F5),
+                          backgroundImage: FileImage(_image!),
+                        )
+                      : ProfileAvatar(
+                          imageUrl: imageUrl,
+                          name: name,
+                          radius: 50,
+                        ),
                 ),
                 Positioned(
                   bottom: 0,
@@ -527,7 +545,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ),
         ),
-        SizedBox(height: 40.h),
+        SizedBox(height: 8.h),
+        Center(
+          child: TextButton(
+            key: const Key('profile_delete_account'),
+            onPressed: _isLoggingOut ? null : _confirmDeleteAccount,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              minimumSize: Size(44.r, 44.r),
+            ),
+            child: BodyText(
+              'Delete account',
+              size: BodySize.medium,
+              color: AppColors.error,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        SizedBox(height: 32.h),
       ],
     );
   }
