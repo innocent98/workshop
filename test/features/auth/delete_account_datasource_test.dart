@@ -95,4 +95,76 @@ void main() {
 
     await expectLater(source.deleteAccount(), throwsA(isA<NetworkException>()));
   });
+
+  test('sends the password as the JSON body when given', () async {
+    final source = sourceFor((o) async => jsonResponse({'message': 'ok'}));
+
+    await source.deleteAccount(password: 'pw-placeholder');
+
+    final request = adapter!.requests.single;
+    expect(request.method, 'DELETE');
+    expect(request.path, '/auth/me');
+    expect(request.data, {'password': 'pw-placeholder'});
+  });
+
+  test(
+    'sends the Google token as google_token for Google-only accounts',
+    () async {
+      final source = sourceFor((o) async => jsonResponse({'message': 'ok'}));
+
+      await source.deleteAccount(googleToken: 'firebase-token-placeholder');
+
+      expect(adapter!.requests.single.data, {
+        'google_token': 'firebase-token-placeholder',
+      });
+    },
+  );
+
+  test('an empty password is not sent', () async {
+    final source = sourceFor((o) async => jsonResponse({'message': 'ok'}));
+
+    await source.deleteAccount(password: '');
+
+    expect(adapter!.requests.single.data, isNull);
+  });
+
+  // Exact bodies captured from the backend (DELETE /auth/me).
+  final structured = <(int, String, String)>[
+    (400, 'password_required', 'Enter your password to delete your account.'),
+    (
+      400,
+      'reauth_required',
+      'Sign in with Google again to delete your account.',
+    ),
+    (403, 'invalid_password', 'The password is incorrect.'),
+    (
+      429,
+      'too_many_attempts',
+      'Too many incorrect attempts. Please try again in a few minutes.',
+    ),
+    (
+      409,
+      'active_bookings',
+      'Your account cannot be deleted yet: Finish or cancel your accepted, paid, in-progress and disputed bookings.',
+    ),
+  ];
+  for (final (status, code, message) in structured) {
+    test('$status $code keeps the backend message and code', () async {
+      final source = sourceFor(
+        (o) async => jsonResponse({
+          'detail': {'code': code, 'message': message},
+        }, status: status),
+      );
+
+      await expectLater(
+        source.deleteAccount(password: 'pw-placeholder'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.message, 'message', message)
+              .having((e) => e.code, 'code', code)
+              .having((e) => e.statusCode, 'statusCode', status),
+        ),
+      );
+    });
+  }
 }

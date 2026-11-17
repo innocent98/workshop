@@ -201,9 +201,18 @@ class AuthRemoteDataSource {
   /// Permanently deletes the signed-in account (`DELETE /auth/me`, no body).
   /// Any 2xx counts as success (204 or 200 with JSON). 404/405/501 mean the
   /// backend does not offer deletion yet and are mapped to a support message.
-  Future<void> deleteAccount() async {
+  ///
+  /// The backend requires re-authentication: [password] for accounts that have
+  /// one, or a fresh Firebase [googleToken] for Google-only accounts. Without
+  /// either it answers 400 `password_required` / `reauth_required`.
+  Future<void> deleteAccount({String? password, String? googleToken}) async {
+    final body = <String, dynamic>{
+      if (password != null && password.isNotEmpty) 'password': password,
+      if (googleToken != null && googleToken.isNotEmpty)
+        'google_token': googleToken,
+    };
     try {
-      await _dio.delete('/auth/me');
+      await _dio.delete('/auth/me', data: body.isEmpty ? null : body);
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       if (status == 404 || status == 405 || status == 501) {

@@ -69,6 +69,8 @@ abstract class AuthRepository {
 
   Future<void> logout();
 
-  /// Permanently deletes the signed-in account.
-  Future<void> deleteAccount();
+  /// Permanently deletes the signed-in account. The backend re-authenticates
+  /// with [password], or with a fresh Firebase [googleToken] for Google-only
+  /// accounts.
+  Future<void> deleteAccount({String? password, String? googleToken});
 }
