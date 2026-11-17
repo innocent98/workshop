@@ -33,13 +33,14 @@ Bundle id and team come from Xcode; the owner must set them under *Signing & Cap
 | Push Notifications | **Yes** | `firebase_messaging` + local notifications. Enable the capability and create an APNs auth key (.p8) in Apple Developer, upload it in Firebase Console > Cloud Messaging. |
 | Background Modes > Remote notifications | **Yes** | For silent/background FCM. |
 | Location (when in use) | Yes | Usage strings already in `Info.plist`. `NSLocationAlwaysAndWhenInUse...` is present but the app only needs *when in use*; consider removing it to ease App Review. |
+| Microphone | Yes | Dojah's liveness check; `NSMicrophoneUsageDescription` added. |
 | Camera / Photo library | Yes | Usage strings present (profile photo, portfolio, progress photos, identity selfie). Text is generic; make it specific for review ("take a selfie to verify your identity"). |
 | Sign in with Google | Yes (URL scheme) | `GoogleService-Info.plist` present; `REVERSED_CLIENT_ID` must be registered as a URL scheme in `Info.plist` for Google sign-in to return to the app. **Verify this on a device**; it is not in `Info.plist` today. |
 | **Sign in with Apple** | **Required by App Store Review Guideline 4.8 if Google sign-in is offered as a *login* option** | The app offers "Continue with Google" on the login page. Apple requires an equivalent privacy-preserving option (Sign in with Apple) unless the login is limited to your own account system. Either add Sign in with Apple (capability + `sign_in_with_apple` + a backend endpoint verifying Apple identity tokens) or remove Google sign-in on iOS. Backend currently has only `google` sign-in. Decision for the owner. |
 | Associated domains / Universal links | No | Not used. Payment returns rely on app resume, not deep links. |
 | In-App Purchase | No | Services are paid through Paystack (physical-world services are exempt from IAP). |
 | Minimum iOS version | **15.0** (raised from 13.0: Xcode 26/27 refuses lower pod targets). `Podfile` forces pods to >= 15.0. |
-| `PERMISSION_*` macros | Done | `ios/Podfile` now defines `PERMISSION_CAMERA/LOCATION/PHOTOS/NOTIFICATIONS=1`; without them `permission_handler` reported "denied" without prompting. Run `cd ios && pod install` after pulling. |
+| `PERMISSION_*` macros | Done | `ios/Podfile` now defines `PERMISSION_CAMERA/MICROPHONE/LOCATION/PHOTOS/NOTIFICATIONS=1`; without them `permission_handler` reported "denied" without prompting. Run `cd ios && pod install` after pulling. |
 | Crashlytics dSYM upload | **Not done** | Needs an Xcode Run Script build phase (`Pods/FirebaseCrashlytics/run`); edits `project.pbxproj`, so left for the owner (crashes are reported but unsymbolicated until added). |
 | Export compliance | Set `ITSAppUsesNonExemptEncryption=false` in `Info.plist` if only HTTPS is used. |
 

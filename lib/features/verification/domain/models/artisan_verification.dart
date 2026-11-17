@@ -1,7 +1,7 @@
 import 'verification_status.dart';
 
 /// The artisan's current identity-verification state, as returned by
-/// `GET/POST /profiles/artisans/me/verification`.
+/// `GET .../verification/status` and `POST .../verification/confirm`.
 ///
 /// Never carries the NIN itself: the backend only exposes [ninLast4].
 class ArtisanVerification {
@@ -15,6 +15,9 @@ class ArtisanVerification {
   /// Human-readable reason for a `failed` status. Shown to the user verbatim.
   final String? failureReason;
   final String? ninLast4;
+
+  /// Backend-owned reference of the latest verification (`WC-NIN-...`).
+  final String? referenceId;
   final int attemptsUsed;
   final int attemptsRemaining;
   final int maxAttempts;
@@ -30,6 +33,7 @@ class ArtisanVerification {
     this.method,
     this.failureReason,
     this.ninLast4,
+    this.referenceId,
     this.attemptsUsed = 0,
     this.attemptsRemaining = 5,
     this.maxAttempts = 5,

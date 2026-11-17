@@ -1,16 +1,22 @@
-import 'dart:io';
-
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
-import '../../../../core/utils/image_compressor.dart';
+import '../../data/real_dojah_widget_launcher.dart';
 import '../../data/repositories/verification_repository_impl.dart';
+import '../../domain/dojah_widget_launcher.dart';
 import '../../domain/models/artisan_verification.dart';
+import '../../domain/models/verification_start.dart';
+import '../../domain/models/verification_status.dart';
 import '../../domain/repositories/verification_repository.dart';
 import '../../domain/verification_error_messages.dart';
 
 final verificationRepositoryProvider = Provider<VerificationRepository>((ref) {
   return VerificationRepositoryImpl();
+});
+
+final dojahWidgetLauncherProvider = Provider<DojahWidgetLauncher>((ref) {
+  return RealDojahWidgetLauncher();
 });
 
 /// Current verification status. Auto-disposed so nothing lingers (and no
@@ -39,76 +45,183 @@ class VerificationStatusController extends AsyncNotifier<ArtisanVerification> {
   }
 }
 
-class VerificationSubmitState {
-  final bool isSubmitting;
-  final String? errorMessage;
-  final String? errorCode;
-
-  const VerificationSubmitState({
-    this.isSubmitting = false,
-    this.errorMessage,
-    this.errorCode,
-  });
+enum VerificationFlowPhase {
+  idle,
+  preparing,
+  inWidget,
+  confirming,
+  notConfigured,
+  incomplete,
+  error,
 }
 
-final verificationSubmitProvider =
+class VerificationFlowState {
+  final VerificationFlowPhase phase;
+
+  /// User-facing error text for `notConfigured`, `incomplete` and `error`.
+  final String? message;
+
+  /// Non-error information shown while idle (e.g. the widget was closed).
+  final String? notice;
+
+  /// The camera is blocked at OS level, so offer "Open settings".
+  final bool needsSettings;
+
+  const VerificationFlowState({
+    this.phase = VerificationFlowPhase.idle,
+    this.message,
+    this.notice,
+    this.needsSettings = false,
+  });
+
+  bool get isBusy =>
+      phase == VerificationFlowPhase.preparing ||
+      phase == VerificationFlowPhase.inWidget ||
+      phase == VerificationFlowPhase.confirming;
+}
+
+final verificationFlowProvider =
     NotifierProvider.autoDispose<
-      VerificationSubmitController,
-      VerificationSubmitState
-    >(VerificationSubmitController.new);
+      VerificationFlowController,
+      VerificationFlowState
+    >(VerificationFlowController.new);
 
-/// Submits the NIN + selfie.
+/// Orchestrates: permissions -> config -> start -> Dojah widget -> confirm,
+/// then hands over to status polling.
 ///
-/// Privacy: the NIN is only a method argument. It is never stored in [state]
-/// (or anywhere else) whether the call succeeds or fails.
-class VerificationSubmitController extends Notifier<VerificationSubmitState> {
+/// Rules that matter:
+/// * `start` burns an attempt, so it is called at most once per [verify], only
+///   after the permission and config checks pass, and never retried here.
+/// * A confirm failure of any kind is treated as "still resolving" (pending),
+///   never as a failed verification: the backend/webhook finishes the job.
+/// * Nothing sensitive is stored in [state] or logged.
+class VerificationFlowController extends Notifier<VerificationFlowState> {
   @override
-  VerificationSubmitState build() => const VerificationSubmitState();
+  VerificationFlowState build() => const VerificationFlowState();
 
-  void clearError() {
-    if (state.errorMessage != null) state = const VerificationSubmitState();
+  void clearMessages() {
+    if (state.message != null || state.notice != null) {
+      state = const VerificationFlowState();
+    }
   }
 
-  Future<void> submit({required String nin, required File selfie}) async {
-    if (state.isSubmitting) return;
-    state = const VerificationSubmitState(isSubmitting: true);
+  Future<void> verify(BuildContext context) async {
+    if (state.isBusy) return;
+    state = const VerificationFlowState(phase: VerificationFlowPhase.preparing);
 
-    File? compressed;
+    final repo = ref.read(verificationRepositoryProvider);
+    final launcher = ref.read(dojahWidgetLauncherProvider);
+
     try {
-      try {
-        compressed = await ImageCompressor.compress(selfie);
-      } catch (_) {
-        throw ApiException(
-          verificationErrorMessages['invalid_image']!,
-          null,
-          'invalid_image',
-        );
-      }
-      if (compressed == null) {
-        throw ApiException(
-          verificationErrorMessages['invalid_image']!,
-          null,
-          'invalid_image',
-        );
-      }
-
-      final result = await ref
-          .read(verificationRepositoryProvider)
-          .submit(nin: nin, selfie: compressed);
-
+      final permission = await launcher.ensurePermissions();
       if (!ref.mounted) return;
-      _publish(result);
-      state = const VerificationSubmitState();
+      if (permission != WidgetPermissionResult.granted) {
+        final blocked = permission == WidgetPermissionResult.permanentlyDenied;
+        state = VerificationFlowState(
+          phase: VerificationFlowPhase.error,
+          message: blocked
+              ? verificationCameraBlockedMessage
+              : verificationCameraDeniedMessage,
+          needsSettings: blocked,
+        );
+        return;
+      }
+
+      final config = await repo.getConfig();
+      if (!ref.mounted) return;
+      if (!config.isUsable) {
+        // No start call: nothing here may burn an attempt.
+        state = const VerificationFlowState(
+          phase: VerificationFlowPhase.notConfigured,
+          message: verificationNotConfiguredMessage,
+        );
+        return;
+      }
+
+      final started = await repo.start();
+      if (!ref.mounted) return;
+      if (!context.mounted) {
+        // The screen went away after the attempt was spent: let the status
+        // provider (and its poller, if reopened) pick it up.
+        state = const VerificationFlowState();
+        await _resyncStatus();
+        return;
+      }
+
+      state = const VerificationFlowState(
+        phase: VerificationFlowPhase.inWidget,
+      );
+      final outcome = await launcher.launch(
+        context,
+        DojahLaunchParams(
+          appId: config.appId!,
+          publicKey: config.publicKey!,
+          widgetId: started.widgetId,
+          referenceId: started.referenceId,
+          email: started.email,
+        ),
+      );
+      if (!ref.mounted) return;
+
+      switch (outcome) {
+        case DojahOutcome.closed:
+          state = VerificationFlowState(
+            notice: verificationClosedEarlyMessage(started.attemptsRemaining),
+          );
+          await _resyncStatus();
+        case DojahOutcome.error:
+          state = VerificationFlowState(
+            phase: VerificationFlowPhase.incomplete,
+            message: verificationWidgetIncompleteMessage(
+              started.attemptsRemaining,
+            ),
+          );
+          await _resyncStatus();
+        case DojahOutcome.success:
+          state = const VerificationFlowState(
+            phase: VerificationFlowPhase.confirming,
+          );
+          await _confirm(repo, started);
+          if (ref.mounted) state = const VerificationFlowState();
+      }
     } catch (error) {
       if (!ref.mounted) return;
-      state = VerificationSubmitState(
-        errorMessage: verificationErrorMessage(error),
-        errorCode: error is ApiException ? error.code : null,
+      state = VerificationFlowState(
+        phase: VerificationFlowPhase.error,
+        message: verificationErrorMessage(error),
       );
       if (_shouldResync(error)) await _resyncStatus();
-    } finally {
-      await _deleteQuietly(compressed);
     }
+  }
+
+  Future<void> _confirm(
+    VerificationRepository repo,
+    VerificationStart started,
+  ) async {
+    try {
+      final result = await repo.confirm(started.referenceId);
+      if (ref.mounted) _publish(result);
+    } catch (_) {
+      // Any confirm failure (502 provider_error, timeout, offline, odd body)
+      // means "still resolving", not "failed": show pending and let the page
+      // poll /status.
+      if (ref.mounted) _publish(_pendingFor(started));
+    }
+  }
+
+  ArtisanVerification _pendingFor(VerificationStart started) {
+    final previous = ref.exists(verificationStatusProvider)
+        ? ref.read(verificationStatusProvider).value
+        : null;
+    final maxAttempts = previous?.maxAttempts ?? 5;
+    return ArtisanVerification(
+      status: VerificationStatus.pending,
+      referenceId: started.referenceId,
+      attemptsUsed: maxAttempts - started.attemptsRemaining,
+      attemptsRemaining: started.attemptsRemaining,
+      maxAttempts: maxAttempts,
+      windowHours: previous?.windowHours ?? 24,
+    );
   }
 
   void _publish(ArtisanVerification result) {
@@ -117,14 +230,12 @@ class VerificationSubmitController extends Notifier<VerificationSubmitState> {
     }
   }
 
-  /// The server may know something we don't: another submit running, an
-  /// already-verified account, exhausted attempts, or (after a timeout) a
-  /// submit that actually went through.
+  /// The server may know something we don't: an already-verified account,
+  /// exhausted attempts, or (after a timeout) a start that went through.
   bool _shouldResync(Object error) {
     if (error is NetworkException) return true;
     if (error is ApiException) {
       return error.code == 'already_verified' ||
-          error.code == 'verification_in_progress' ||
           error.code == 'attempts_exhausted';
     }
     return false;
@@ -135,16 +246,7 @@ class VerificationSubmitController extends Notifier<VerificationSubmitState> {
     try {
       await ref.read(verificationStatusProvider.notifier).fetchQuietly();
     } catch (_) {
-      // Best effort: the error banner already tells the user what happened.
-    }
-  }
-
-  Future<void> _deleteQuietly(File? file) async {
-    if (file == null) return;
-    try {
-      if (await file.exists()) await file.delete();
-    } catch (_) {
-      // Temp file in the cache dir; the OS reclaims it if this fails.
+      // Best effort: the screen already tells the user what happened.
     }
   }
 }

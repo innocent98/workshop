@@ -5,12 +5,11 @@ import 'package:workchop/features/verification/domain/verification_error_message
 
 void main() {
   const contractCodes = [
-    'invalid_nin',
-    'invalid_image',
     'already_verified',
-    'verification_in_progress',
     'attempts_exhausted',
     'verification_unavailable',
+    'unknown_reference',
+    'provider_error',
   ];
 
   group('code map', () {
@@ -28,14 +27,24 @@ void main() {
       expect(verificationMessageForCode(null), isNull);
     });
 
-    test('failures say what happened to the attempt', () {
+    test('dead codes from the old upload flow are gone', () {
+      for (final code in [
+        'invalid_nin',
+        'invalid_image',
+        'verification_in_progress',
+      ]) {
+        expect(verificationMessageForCode(code), isNull, reason: code);
+      }
+    });
+
+    test('says what happened to the attempt / the verification', () {
       expect(
         verificationMessageForCode('verification_unavailable'),
-        contains('not counted'),
+        contains('not used'),
       );
       expect(
-        verificationMessageForCode('invalid_image'),
-        contains('not counted'),
+        verificationMessageForCode('provider_error'),
+        contains("hasn't been lost"),
       );
     });
   });
@@ -74,21 +83,18 @@ void main() {
       );
     });
 
-    test('413 maps to a retake message', () {
-      expect(
-        verificationErrorMessage(ApiException('too big', 413)),
-        verificationFileTooLargeMessage,
-      );
-    });
-
     test('422 validation errors are not shown raw', () {
       expect(
         verificationErrorMessage(ApiException('Field required', 422)),
-        verificationMissingFieldMessage,
+        verificationGenericMessage,
       );
     });
 
-    test('429 and 503 without a code still map by status', () {
+    test('429, 502 and 503 without a code still map by status', () {
+      expect(
+        verificationErrorMessage(ApiException('x', 502)),
+        verificationErrorMessages['provider_error'],
+      );
       expect(
         verificationErrorMessage(ApiException('x', 429)),
         verificationErrorMessages['attempts_exhausted'],
@@ -142,6 +148,22 @@ void main() {
         ),
         verificationErrorMessages['attempts_exhausted'],
       );
+    });
+  });
+
+  group('flow copy', () {
+    test('closed early and widget error say the attempt is used', () {
+      expect(verificationClosedEarlyMessage(3), contains('has been used'));
+      expect(verificationClosedEarlyMessage(3), contains('3 attempts left'));
+      expect(verificationClosedEarlyMessage(1), contains('1 attempt left'));
+      expect(verificationClosedEarlyMessage(null), isNot(contains('left')));
+      expect(verificationWidgetIncompleteMessage(2), contains('has been used'));
+    });
+
+    test('not-configured and camera copy say no attempt was used', () {
+      expect(verificationNotConfiguredMessage, contains('No attempt'));
+      expect(verificationCameraDeniedMessage, contains('not used'));
+      expect(verificationCameraBlockedMessage, contains('Settings'));
     });
   });
 

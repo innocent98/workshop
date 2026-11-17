@@ -48,7 +48,11 @@
 
 	<!-- Camera permission -->
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to take profile pictures and upload documents.</string>
+	<string>Workchop uses your camera to take profile pictures and to complete identity verification (selfie and liveness check).</string>
+
+	<!-- Microphone permission (identity verification liveness check) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Workchop's identity verification step may briefly use your microphone during the liveness check.</string>
 
 	<!-- Photo Library permission -->
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -60,9 +64,9 @@
 
 	<!-- Location permissions for maps -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs your location to show nearby artisans and calculate distances.</string>
+	<string>Workchop uses your location to show nearby artisans and calculate distances, and may use it during identity verification to help detect and prevent fraud.</string>
 
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs your location to show nearby artisans and calculate distances.</string>
+	<string>Workchop uses your location to show nearby artisans and calculate distances, and may use it during identity verification to help detect and prevent fraud.</string>
 </dict>
 </plist>

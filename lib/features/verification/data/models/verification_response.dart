@@ -1,7 +1,8 @@
 import '../../domain/models/artisan_verification.dart';
 import '../../domain/models/verification_status.dart';
 
-/// Wire model for `GET/POST /profiles/artisans/me/verification`.
+/// Wire model for the status object returned by `GET .../verification/status`
+/// and `POST .../verification/confirm`.
 ///
 /// Parsing is lenient: a missing or oddly-typed field falls back to a safe
 /// default instead of throwing.
@@ -12,6 +13,7 @@ class VerificationResponse {
   final String? verificationMethod;
   final String? failureReason;
   final String? ninLast4;
+  final String? referenceId;
   final int attemptsUsed;
   final int attemptsRemaining;
   final int maxAttempts;
@@ -25,6 +27,7 @@ class VerificationResponse {
     this.verificationMethod,
     this.failureReason,
     this.ninLast4,
+    this.referenceId,
     this.attemptsUsed = 0,
     this.attemptsRemaining = 5,
     this.maxAttempts = 5,
@@ -40,6 +43,7 @@ class VerificationResponse {
       verificationMethod: _string(json['verification_method']),
       failureReason: _string(json['failure_reason']),
       ninLast4: _string(json['nin_last4']),
+      referenceId: _string(json['reference_id']),
       attemptsUsed: _int(json['attempts_used'], 0),
       attemptsRemaining: _int(json['attempts_remaining'], 5),
       maxAttempts: _int(json['max_attempts'], 5),
@@ -60,6 +64,7 @@ class VerificationResponse {
       method: verificationMethod,
       failureReason: failureReason,
       ninLast4: ninLast4,
+      referenceId: referenceId,
       attemptsUsed: attemptsUsed,
       attemptsRemaining: attemptsRemaining,
       maxAttempts: maxAttempts,

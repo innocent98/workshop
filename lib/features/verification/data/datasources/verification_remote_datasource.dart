@@ -1,63 +1,65 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
-import 'package:http_parser/http_parser.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/dio_error_mapper.dart';
 import '../../domain/models/verification_api_exception.dart';
+import '../models/dojah_config_response.dart';
+import '../models/start_verification_response.dart';
 import '../models/verification_response.dart';
 
-/// Talks to `/profiles/artisans/me/verification`.
+/// Talks to `/profiles/artisans/me/verification/*`.
 ///
-/// Privacy: the NIN and selfie only ever live inside the single multipart
-/// request built here. Nothing is logged, cached or persisted.
+/// Privacy: the NIN and selfie go to Dojah's widget, never through here. Only
+/// the backend reference id is sent. Nothing is logged, cached or persisted.
 class VerificationRemoteDataSource {
-  static const String path = '/profiles/artisans/me/verification';
-
-  /// The submit call is synchronous on the backend (the provider is called
-  /// inside the request, typically 2-8 s), so it gets more room than the
-  /// app-wide 30 s default.
-  static const Duration submitTimeout = Duration(seconds: 45);
+  static const String basePath = '/profiles/artisans/me/verification';
+  static const String configPath = '$basePath/config';
+  static const String startPath = '$basePath/start';
+  static const String confirmPath = '$basePath/confirm';
+  static const String statusPath = '$basePath/status';
 
   final Dio _dio;
 
   VerificationRemoteDataSource({Dio? dio}) : _dio = dio ?? DioClient().dio;
 
-  Future<VerificationResponse> getVerification() async {
+  Future<DojahConfigResponse> getConfig() async {
     try {
-      final response = await _dio.get(path);
-      return VerificationResponse.fromJson(_asMap(response.data));
+      final response = await _dio.get(configPath);
+      return DojahConfigResponse.fromJson(_asMap(response.data));
     } on DioException catch (e) {
-      throw _map(e, 'Failed to load verification status');
+      throw _map(e, 'Failed to load verification settings');
     }
   }
 
-  Future<VerificationResponse> submitVerification({
-    required String nin,
-    required File selfie,
-  }) async {
+  /// Burns one attempt. Never retried here or by any caller automatically.
+  Future<StartVerificationResponse> start() async {
     try {
-      final formData = FormData.fromMap({
-        'nin': nin,
-        'selfie': await MultipartFile.fromFile(
-          selfie.path,
-          filename: 'selfie.jpg',
-          contentType: MediaType('image', 'jpeg'),
-        ),
-      });
+      final response = await _dio.post(startPath);
+      return StartVerificationResponse.fromJson(_asMap(response.data));
+    } on DioException catch (e) {
+      throw _map(e, 'Failed to start verification');
+    }
+  }
+
+  Future<VerificationResponse> confirm(String referenceId) async {
+    try {
       final response = await _dio.post(
-        path,
-        data: formData,
-        options: Options(
-          sendTimeout: submitTimeout,
-          receiveTimeout: submitTimeout,
-        ),
+        confirmPath,
+        data: {'reference_id': referenceId},
       );
       return VerificationResponse.fromJson(_asMap(response.data));
     } on DioException catch (e) {
-      throw _map(e, 'Failed to submit verification');
+      throw _map(e, 'Failed to confirm verification');
+    }
+  }
+
+  Future<VerificationResponse> getStatus() async {
+    try {
+      final response = await _dio.get(statusPath);
+      return VerificationResponse.fromJson(_asMap(response.data));
+    } on DioException catch (e) {
+      throw _map(e, 'Failed to load verification status');
     }
   }
 

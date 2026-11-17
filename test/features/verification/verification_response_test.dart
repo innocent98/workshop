@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workchop/features/artisan_profile/data/models/artisan_profile_response_model.dart';
+import 'package:workchop/features/verification/data/models/dojah_config_response.dart';
+import 'package:workchop/features/verification/data/models/start_verification_response.dart';
 import 'package:workchop/features/verification/data/models/verification_response.dart';
 import 'package:workchop/features/verification/domain/models/verification_status.dart';
 
-// Shapes copied from the contract draft in
-// docs/fe-integration-guide-verification-admin.md. Placeholder values only.
+// Shapes copied from the live captures in
+// docs/fe-captures/verification-admin (backend repo), placeholder values only.
 Map<String, dynamic> _body({
   String status = 'unverified',
   bool isVerified = false,
@@ -12,6 +14,7 @@ Map<String, dynamic> _body({
   String? method,
   String? failureReason,
   String? nin4,
+  String? ref,
   int used = 0,
   int remaining = 5,
   String? retryAt,
@@ -22,6 +25,7 @@ Map<String, dynamic> _body({
   'verification_method': method,
   'failure_reason': failureReason,
   'nin_last4': nin4,
+  'reference_id': ref,
   'attempts_used': used,
   'attempts_remaining': remaining,
   'max_attempts': 5,
@@ -60,15 +64,17 @@ void main() {
           isVerified: true,
           verifiedAt: '2026-11-17T10:00:00Z',
           method: 'dojah',
-          nin4: '0000',
-          used: 1,
+          nin4: '1117',
+          ref: 'WC-NIN-795e18bb751cece1',
+          used: 3,
           remaining: 4,
         ),
       ).toDomain();
       expect(v.status, VerificationStatus.verified);
       expect(v.isVerified, isTrue);
       expect(v.method, 'dojah');
-      expect(v.ninLast4, '0000');
+      expect(v.ninLast4, '1117');
+      expect(v.referenceId, 'WC-NIN-795e18bb751cece1');
       expect(v.verifiedAt, DateTime.utc(2026, 11, 17, 10));
     });
 
@@ -125,6 +131,67 @@ void main() {
       expect(v.maxAttempts, 5);
       expect(v.windowHours, 24);
       expect(VerificationResponse.fromJson({}).toDomain().isLockedOut, isFalse);
+    });
+  });
+
+  group('config and start responses', () {
+    test('config (capture 04)', () {
+      final c = DojahConfigResponse.fromJson({
+        'configured': true,
+        'app_id': 'capture-app-id',
+        'public_key': 'capture-public-key',
+        'widget_id': 'capture-nin-widget',
+        'environment': 'sandbox',
+      }).toDomain();
+      expect(c.configured, isTrue);
+      expect(c.isUsable, isTrue);
+      expect(c.widgetId, 'capture-nin-widget');
+      expect(c.environment, 'sandbox');
+    });
+
+    test('configured:false with null ids is not usable', () {
+      final c = DojahConfigResponse.fromJson({
+        'configured': false,
+        'app_id': null,
+        'public_key': null,
+        'widget_id': null,
+        'environment': null,
+      }).toDomain();
+      expect(c.isUsable, isFalse);
+    });
+
+    test('configured:true but a missing id is still not usable', () {
+      final c = DojahConfigResponse.fromJson({
+        'configured': true,
+        'app_id': 'a',
+        'public_key': 'k',
+      }).toDomain();
+      expect(c.isUsable, isFalse);
+      expect(DojahConfigResponse.fromJson({}).toDomain().isUsable, isFalse);
+    });
+
+    test('start (capture 08)', () {
+      final s = StartVerificationResponse.fromJson({
+        'reference_id': 'WC-NIN-722d6ac501fca48c',
+        'widget_id': 'capture-nin-widget',
+        'email': 'artisan@example.com',
+        'attempts_remaining': 4,
+      }).toDomain();
+      expect(s.referenceId, 'WC-NIN-722d6ac501fca48c');
+      expect(s.widgetId, 'capture-nin-widget');
+      expect(s.email, 'artisan@example.com');
+      expect(s.attemptsRemaining, 4);
+    });
+
+    test('start without a reference or widget id is rejected', () {
+      expect(
+        () => StartVerificationResponse.fromJson({'widget_id': 'w'}),
+        throwsA(isA<Object>()),
+      );
+      expect(
+        () => StartVerificationResponse.fromJson({'reference_id': 'r'}),
+        throwsA(isA<Object>()),
+      );
     });
   });
 

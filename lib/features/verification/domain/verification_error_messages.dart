@@ -5,28 +5,24 @@ import 'models/verification_api_exception.dart';
 ///
 /// Codes come from `detail.code` on the verification endpoints.
 const Map<String, String> verificationErrorMessages = {
-  'invalid_nin':
-      "That NIN doesn't look right. It must be exactly 11 digits. "
-      'Check it and try again.',
-  'invalid_image':
-      "We couldn't use that selfie. Retake it in good light with your face "
-      'clearly visible. This attempt was not counted.',
   'already_verified':
       "You're already verified. There's nothing more to do here.",
-  'verification_in_progress':
-      "We're already checking your details. This usually takes a few "
-      'seconds, so hang tight.',
   'attempts_exhausted':
       "You've used all your verification attempts for now. Try again later "
       'or contact support and we can verify you manually.',
   'verification_unavailable':
-      "Our verification service isn't available right now. Your attempt was "
-      'not counted. Please try again in a little while.',
+      "Verification isn't available right now. Your attempt was not used. "
+      'Please try again in a little while.',
+  'unknown_reference':
+      "We couldn't find that verification. Start a new one when you're ready.",
+  'provider_error':
+      "We couldn't reach our verification partner just now. Your "
+      "verification hasn't been lost, so we'll keep checking.",
 };
 
 const String verificationOfflineMessage =
-    "You're offline, so we couldn't reach the server. Your details were not "
-    'saved. Check your connection and try again.';
+    "You're offline, so we couldn't reach the server. Check your connection "
+    'and try again.';
 
 const String verificationSessionExpiredMessage =
     'Your session has expired. Please log in again.';
@@ -37,11 +33,33 @@ const String verificationGenericMessage =
 const String verificationNotArtisanMessage =
     'Identity verification is only available to artisan accounts.';
 
-const String verificationFileTooLargeMessage =
-    'That selfie is too large. Retake it and try again.';
+const String verificationNotConfiguredMessage =
+    "Identity verification isn't available yet. We're setting it up, so "
+    'please check back soon. No attempt was used.';
 
-const String verificationMissingFieldMessage =
-    'Enter your 11-digit NIN and take a selfie to continue.';
+const String verificationCameraDeniedMessage =
+    'We need camera access to take your live selfie. Turn it on and try '
+    'again. Your attempt was not used.';
+
+const String verificationCameraBlockedMessage =
+    'Camera access is turned off for Workchop. Open Settings to turn it on, '
+    'then try again. Your attempt was not used.';
+
+/// The widget reported an error before finishing. The attempt is spent.
+String verificationWidgetIncompleteMessage(int? attemptsRemaining) =>
+    "We couldn't finish your verification. That attempt has been used"
+    '${_attemptsSuffix(attemptsRemaining)}. Please try again.';
+
+/// The user closed the widget early. Not an error, but the attempt is spent.
+String verificationClosedEarlyMessage(int? attemptsRemaining) =>
+    'You closed verification before finishing. That attempt has been used'
+    '${_attemptsSuffix(attemptsRemaining)}.';
+
+String _attemptsSuffix(int? remaining) {
+  if (remaining == null) return '';
+  if (remaining == 1) return ' (1 attempt left)';
+  return ' ($remaining attempts left)';
+}
 
 /// Message for a known backend error code, or null if the code is unknown.
 String? verificationMessageForCode(String? code) =>
@@ -69,12 +87,12 @@ String verificationErrorMessage(Object error, {DateTime? now}) {
     switch (error.statusCode) {
       case 403:
         return verificationNotArtisanMessage;
-      case 413:
-        return verificationFileTooLargeMessage;
       case 422:
-        return verificationMissingFieldMessage;
+        return verificationGenericMessage;
       case 429:
         return verificationErrorMessages['attempts_exhausted']!;
+      case 502:
+        return verificationErrorMessages['provider_error']!;
       case 503:
         return verificationErrorMessages['verification_unavailable']!;
     }
