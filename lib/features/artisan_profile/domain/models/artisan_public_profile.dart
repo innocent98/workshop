@@ -14,6 +14,9 @@ class ArtisanPublicProfile {
   final int totalRatings;
   final int totalJobsCompleted;
 
+  /// Average minutes to accept a booking; null until the first accepted one.
+  final int? responseTimeAvgMinutes;
+
   const ArtisanPublicProfile({
     required this.id,
     required this.fullName,
@@ -26,6 +29,7 @@ class ArtisanPublicProfile {
     required this.averageRating,
     required this.totalRatings,
     required this.totalJobsCompleted,
+    this.responseTimeAvgMinutes,
   });
 
   String get hourlyRateRange {

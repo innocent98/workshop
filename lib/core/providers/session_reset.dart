@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/misc.dart' show ProviderOrFamily;
 
 import '../../features/artisan_profile/presentation/providers/artisan_profile_provider.dart';
 import '../../features/artisan_profile/presentation/providers/artisan_wallet_provider.dart';
+import '../../features/artisan_profile/presentation/providers/report_review_provider.dart';
 import '../../features/bookings/presentation/providers/artisan_bookings_provider.dart';
 import '../../features/bookings/presentation/providers/payment_verification_provider.dart';
 import '../../features/bookings/presentation/providers/wallet_provider.dart';
@@ -46,6 +47,7 @@ final List<ProviderOrFamily> userScopedProviders = <ProviderOrFamily>[
   registrationProvider,
   passwordResetProvider,
   serviceGuardProvider,
+  reportedReviewIdsProvider,
 ];
 
 /// Invalidates every account-scoped provider. Pass `ref.invalidate`.

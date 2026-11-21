@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/response_time_label.dart';
 import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../domain/models/artisan.dart';
@@ -120,6 +121,14 @@ class ArtisanCard extends StatelessWidget {
                         ),
                     ],
                   ],
+                ),
+              ),
+            if (artisan.responseTimeAvgMinutes != null)
+              Padding(
+                padding: EdgeInsets.only(top: 4.h),
+                child: ResponseTimeLabel(
+                  minutes: artisan.responseTimeAvgMinutes,
+                  iconSize: 12,
                 ),
               ),
           ],

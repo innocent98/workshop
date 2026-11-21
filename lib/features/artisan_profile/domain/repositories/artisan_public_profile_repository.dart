@@ -1,5 +1,6 @@
 import '../models/artisan_public_profile.dart';
 import '../models/portfolio_item.dart';
+import '../models/review_report_reason.dart';
 import '../models/reviews_data.dart';
 
 /// Abstract repository interface for public artisan profile operations
@@ -12,4 +13,12 @@ abstract class ArtisanPublicProfileRepository {
 
   /// Get reviews and rating distribution for an artisan
   Future<ReviewsData> getArtisanReviews(String artisanId, {int page = 1});
+
+  /// Report a review. Throws an `ApiException` with a user-friendly message;
+  /// `code == 'already_reported'` means this user had already reported it.
+  Future<void> reportReview(
+    String reviewId,
+    ReviewReportReason reason, {
+    String? details,
+  });
 }

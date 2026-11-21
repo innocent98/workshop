@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/response_time_label.dart';
 import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../client_home/domain/models/artisan.dart';
@@ -201,7 +202,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
   Widget _buildRatingSection(ArtisanPublicProfile profile) {
     final reviewsAsync = ref.watch(artisanReviewsProvider(widget.artisan.id));
 
-    return Row(
+    final ratingRow = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
@@ -261,6 +262,17 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
             error: (error, stack) => const SizedBox.shrink(),
           ),
         ),
+      ],
+    );
+
+    // Hidden entirely until the artisan has accepted a first booking.
+    if (profile.responseTimeAvgMinutes == null) return ratingRow;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ratingRow,
+        SizedBox(height: AppSizes.spacingSmall),
+        ResponseTimeLabel(minutes: profile.responseTimeAvgMinutes),
       ],
     );
   }

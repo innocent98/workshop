@@ -20,6 +20,7 @@ class ArtisanSearchModel {
   final double? averageRating;
   final int? ratingsCount;
   final int? totalJobsCompleted;
+  final int? responseTimeAvgMinutes;
 
   const ArtisanSearchModel({
     required this.id,
@@ -43,6 +44,7 @@ class ArtisanSearchModel {
     this.averageRating,
     this.ratingsCount,
     this.totalJobsCompleted,
+    this.responseTimeAvgMinutes,
   });
 
   factory ArtisanSearchModel.fromJson(Map<String, dynamic> json) {
@@ -93,6 +95,9 @@ class ArtisanSearchModel {
       ratingsCount:
           json['ratings_count'] as int? ?? json['total_ratings'] as int?,
       totalJobsCompleted: json['total_jobs_completed'] as int?,
+      // null and absent both mean "no data yet".
+      responseTimeAvgMinutes: (json['response_time_avg_minutes'] as num?)
+          ?.toInt(),
     );
   }
 

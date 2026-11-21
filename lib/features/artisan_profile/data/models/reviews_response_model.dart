@@ -5,6 +5,7 @@ import '../../domain/models/rating_distribution.dart';
 /// Response model for individual review from API
 class ReviewResponseModel {
   final String id;
+  final String? customerId;
   final double rating;
   final String? reviewText;
   final String customerName;
@@ -14,6 +15,7 @@ class ReviewResponseModel {
 
   const ReviewResponseModel({
     required this.id,
+    this.customerId,
     required this.rating,
     this.reviewText,
     required this.customerName,
@@ -25,6 +27,7 @@ class ReviewResponseModel {
   factory ReviewResponseModel.fromJson(Map<String, dynamic> json) {
     return ReviewResponseModel(
       id: (json['id'] ?? '').toString(),
+      customerId: json['customer_id']?.toString(),
       rating: (json['rating'] as num? ?? 0).toDouble(),
       reviewText: json['review_text'] as String?,
       customerName: (json['customer_name'] as String?) ?? 'Anonymous',
@@ -37,6 +40,7 @@ class ReviewResponseModel {
   Review toDomain() {
     return Review(
       id: id,
+      customerId: customerId,
       reviewerName: customerName,
       reviewerAvatarUrl: customerProfilePicture ?? '',
       rating: rating,

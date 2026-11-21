@@ -6,6 +6,7 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/response_time_label.dart';
 import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../client_home/domain/models/artisan.dart';
 
@@ -131,6 +132,10 @@ class ArtisanResultCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (artisan.responseTimeAvgMinutes != null) ...[
+                  SizedBox(height: 4.h),
+                  ResponseTimeLabel(minutes: artisan.responseTimeAvgMinutes),
+                ],
               ],
             ),
           ],
