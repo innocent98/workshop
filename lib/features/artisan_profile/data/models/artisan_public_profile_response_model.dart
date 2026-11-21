@@ -13,6 +13,7 @@ class ArtisanPublicProfileResponseModel {
   final double averageRating;
   final int totalRatings;
   final int totalJobsCompleted;
+  final int? responseTimeAvgMinutes;
 
   const ArtisanPublicProfileResponseModel({
     required this.id,
@@ -26,9 +27,12 @@ class ArtisanPublicProfileResponseModel {
     required this.averageRating,
     required this.totalRatings,
     required this.totalJobsCompleted,
+    this.responseTimeAvgMinutes,
   });
 
-  factory ArtisanPublicProfileResponseModel.fromJson(Map<String, dynamic> json) {
+  factory ArtisanPublicProfileResponseModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return ArtisanPublicProfileResponseModel(
       id: json['id'] as String,
       fullName: json['full_name'] as String,
@@ -41,6 +45,9 @@ class ArtisanPublicProfileResponseModel {
       averageRating: (json['average_rating'] as num).toDouble(),
       totalRatings: json['total_ratings'] as int,
       totalJobsCompleted: json['total_jobs_completed'] as int,
+      // null and absent both mean "no data yet".
+      responseTimeAvgMinutes: (json['response_time_avg_minutes'] as num?)
+          ?.toInt(),
     );
   }
 
@@ -50,13 +57,18 @@ class ArtisanPublicProfileResponseModel {
       fullName: fullName,
       bio: bio,
       locationAddress: locationAddress,
-      hourlyRateMin: hourlyRateMin != null ? double.tryParse(hourlyRateMin!) : null,
-      hourlyRateMax: hourlyRateMax != null ? double.tryParse(hourlyRateMax!) : null,
+      hourlyRateMin: hourlyRateMin != null
+          ? double.tryParse(hourlyRateMin!)
+          : null,
+      hourlyRateMax: hourlyRateMax != null
+          ? double.tryParse(hourlyRateMax!)
+          : null,
       yearsOfExperience: yearsOfExperience,
       specialization: specialization,
       averageRating: averageRating,
       totalRatings: totalRatings,
       totalJobsCompleted: totalJobsCompleted,
+      responseTimeAvgMinutes: responseTimeAvgMinutes,
     );
   }
 }

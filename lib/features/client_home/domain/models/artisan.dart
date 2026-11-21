@@ -19,6 +19,9 @@ class Artisan {
   final bool isVerified;
   final double? distanceKm;
   final int? ratingsCount;
+
+  /// Average minutes to accept a booking; null until the first accepted one.
+  final int? responseTimeAvgMinutes;
   final int? serviceId;
   final List<ArtisanServiceOption> offeredServices;
 
@@ -38,6 +41,7 @@ class Artisan {
     this.isVerified = false,
     this.distanceKm,
     this.ratingsCount,
+    this.responseTimeAvgMinutes,
     this.serviceId,
     this.offeredServices = const [],
     this.preferredService,
@@ -76,6 +80,7 @@ class Artisan {
       isVerified: isVerified,
       distanceKm: distanceKm,
       ratingsCount: ratingsCount,
+      responseTimeAvgMinutes: responseTimeAvgMinutes,
       serviceId: serviceId,
       offeredServices: offeredServices,
       preferredService: match,
@@ -127,6 +132,7 @@ class Artisan {
       isVerified: model.isVerified,
       distanceKm: model.distanceKm,
       ratingsCount: model.ratingsCount,
+      responseTimeAvgMinutes: model.responseTimeAvgMinutes,
       serviceId: model.services.isNotEmpty
           ? int.tryParse(model.services.first.id)
           : null,

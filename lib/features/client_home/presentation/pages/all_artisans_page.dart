@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/widgets/common/avatar_placeholder.dart';
+import '../../../../core/widgets/common/response_time_label.dart';
 import '../../../../core/widgets/common/verified_badge.dart';
 import '../../../../core/widgets/text/text_widgets.dart';
 import '../../domain/models/artisan.dart';
@@ -281,6 +282,10 @@ class _ArtisanListItem extends StatelessWidget {
                             _meta(
                               icon: Icons.work_outline,
                               label: '${artisan.jobsCompleted} jobs',
+                            ),
+                          if (artisan.responseTimeAvgMinutes != null)
+                            ResponseTimeLabel(
+                              minutes: artisan.responseTimeAvgMinutes,
                             ),
                         ],
                       ),

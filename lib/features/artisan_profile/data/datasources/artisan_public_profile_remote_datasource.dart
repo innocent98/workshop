@@ -2,11 +2,15 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/artisan_public_profile_response_model.dart';
 import '../models/portfolio_item_response_model.dart';
+import '../../domain/models/review_report_reason.dart';
 import '../models/reviews_response_model.dart';
 
 /// Remote datasource for public artisan profile endpoints
 class ArtisanPublicProfileRemoteDataSource {
-  final Dio _dio = DioClient().dio;
+  ArtisanPublicProfileRemoteDataSource({Dio? dio})
+    : _dio = dio ?? DioClient().dio;
+
+  final Dio _dio;
 
   /// Fetch public profile for an artisan
   /// GET /profiles/artisans/{artisan_id}
@@ -50,5 +54,24 @@ class ArtisanPublicProfileRemoteDataSource {
       queryParameters: {'page': page, 'page_size': pageSize},
     );
     return ReviewsResponseModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Report a review to the moderators.
+  /// POST /reviews/{review_id}/report -> 201 `{"review_id": 1, "reported": true}`
+  /// Errors: 409 already_reported, 403 cannot_report_own_review,
+  /// 404 review_not_found, 429 report_rate_limited.
+  Future<void> reportReview(
+    String reviewId,
+    ReviewReportReason reason, {
+    String? details,
+  }) async {
+    final trimmed = details?.trim();
+    await _dio.post(
+      '/reviews/$reviewId/report',
+      data: {
+        'reason': reason.apiValue,
+        if (trimmed != null && trimmed.isNotEmpty) 'details': trimmed,
+      },
+    );
   }
 }
